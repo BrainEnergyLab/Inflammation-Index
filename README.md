@@ -53,6 +53,19 @@ In this selection, users are presented with the motion processed images and aske
 
 ## Marking Cell Positions
 
+This stage involves the user placing point selections on cell bodies in substacks of the processed image stacks. These are first generated automatically, before users are then allowed to either approve the automatic generation, change the generation, or manually select, cells. Stacks are split into substacks 10um deep, with at least 10um separating each substack, and a buffer of 10um from the beginning and end of the stack. These substacks are average projected and it is these average projections on which cell selections are made, and cells masks are drawn and analysed.
+
+## Automatically Generate Cell Masks
+
+From these point selections, cell masks are automatically generated using the methodlogy outlined in Kozlowski and Weimar (2012): https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0031814. Briefly, 120um x 120um ROIs are drawn around the point selections, and the selections are optimised (to ensure they sit on the brightest point of the cell body). A threshold is then applied to the image, and the area of all the pixels (in um^2) that are in direct contact with the point selection that pass this threshold are compared to a user defined mask size (MS) +/- a user defined range. If the area is within the MS +/- the range, the area is retained as a mask of the cell. Otherwise, through an interative process, the threshold of the image is adjusted until the area of the pixels sits in this range. If, after three consecutive iterations, the area is stable but does not sit within the range, the mask is still retained, else, the cell location is ignored for future processing.
+
+When choosing this option in the menu, the user is asked 
+- What mask sizes to use as lower and upper limits
+- What range to use for MS error
+- What increment to increase the MS by on each loop
+
+Here the script loops from the lower and upper limits of the MS and creates cell masks that lie within the current MS +/- the defined range. The loop increase the MS by the increment defined by the user. In this way we generate cell masks across a range of MS values for each individual cell.
+
 ## InflammationIndex R Package
 
 Package for R, which works with the output of the MicroMorphologyAnalysis.ijm script. This script semi-automatically identifies and extracts morphological measurements from microglial cells, and the R package is used to process and format the output of this, before using the data to build a PCA-based composite measure that is sensitive to inflammation-associated morphological changes
