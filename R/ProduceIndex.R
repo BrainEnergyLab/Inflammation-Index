@@ -1,18 +1,5 @@
 # This function is for preprocessing the microglial morphology data output by 
 # the MicrogliaMorphologyAnalysis.ijm ImageJ script
-
-# pixelSize: The size of the pixel of the analysed images un um, as numeric
-# morphologyWD: The microglia morphology analysis working directory as a string
-# lacDir: The directory within which the fractal analysis results are stored as
-# a string
-# TCSExclude is a vector of mask size values to exclude from the preprocessing
-#DevMode is a boolean for whether the author is working on the script
-
-# Outputs a list containing various stages of the processing, including a 
-# merged file where each row is a single cell and each column is a separate
-# measurement
-
-# Requires the stringr, tidyr, and data.table packages
 morphPreProcessing <- function(pixelSize,
                                morphologyWD,
                                TCSExclude = NULL,
@@ -34,11 +21,15 @@ morphPreProcessing <- function(pixelSize,
   if(is.null(animalIDs)) {
     exit = T
     print("Need to provide a vector of animal IDs")
+  } else {
+    animalIDs = toupper(animalIDs)
   }
   
   if(is.null(treatmentIDs)) {
     exit = T
     print("Need to provide a vector of treatment IDs")
+  } else {
+    treatmentIDs = toupper(treatmentIDs)
   }
   
   if(exit == T) {
@@ -392,6 +383,9 @@ morphPreProcessing <- function(pixelSize,
   
 }
 
+# Run on the output of the morphPreProcessing function, we look through TCS values and
+# find the best TCS and combination of descriptors to distinguish between LPS and nonLPS
+# using "method"
 constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL) {
   
   exit = F
@@ -627,6 +621,7 @@ constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL) {
   
 }
 
+# Functino wraps the preprocessing and constructInfInd functions in one
 infInd <- 
   function(pixelSize, morphologyWD, TCSExclude = NULL, 
            animalIDs, treatmentIDs, LPSGroups, method,
