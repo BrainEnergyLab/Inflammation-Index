@@ -53,7 +53,7 @@ In this selection, users are presented with the motion processed images and aske
 
 ## Marking Cell Positions
 
-This stage involves the user placing point selections on cell bodies in substacks of the processed image stacks. These are first generated automatically, before users are then allowed to either approve the automatic generation, change the generation, or manually select, cells. Stacks are split into substacks 10um deep, with at least 10um separating each substack, and a buffer of 10um from the beginning and end of the stack. These substacks are average projected and it is these average projections on which cell selections are made, and cells masks are drawn and analysed.
+This stage involves the user placing point selections on cell bodies in substacks of the processed image stacks. These are first generated automatically, before users are then allowed to either approve the automatic generation, change the generation, or manually select, cells. If the automated selection is poor, the user is asked what went wrong, whether it was bad image registration, or bad body detection. If bad registration, the image is flagged so frames can be manually selected when running the preprocessing step, and ignored from future analysis steps. If detection was bad, the user manually selects / edits the cell selection. Stacks are split into substacks 10um deep, with at least 10um separating each substack, and a buffer of 10um from the beginning and end of the stack. These substacks are average projected and it is these average projections on which cell selections are made, and cells masks are drawn and analysed.
 
 ## Automatically Generate Cell Masks
 
