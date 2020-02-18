@@ -1,6 +1,6 @@
 This repo contains all the code necessary to generate an inflammation index - i.e. a single measure that is sensitive to the morphological effects of inflammation on microglial morphology. This code was written to be applied to in vivo images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D microglia image stacks. The inflammation index is a composite measure based on multiple individual morphological measures, and serves as a way to reduce the dimensionality of a morphological dataset and provide a single measure of morphological change.
 
-Running the scripts and package in this repo requires the installation of Fiji with the MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html) and the FracLac plugin (), and RStudio with the devtools package.
+Running the scripts and package in this repo requires the installation of Fiji with the MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), the FracLac plugin (), and the Stack Contrast Adjustment plugin (), and RStudio with the devtools package.
 
 To construct this index, images from a positive control condition of inflammation must be present. In brief, the morphological measures of microglia that are best at discriminating between this positive control condition, and a control condition, are combined into a composite measure and this is what forms the inflammation index. The weightings of these measures can then be applied to other data to generate a measure of inflammatory morphological changes.
 
@@ -22,7 +22,7 @@ The following pipeline, **Step 2**, should first be run exclusively on the infla
 
 First, create a directory for the Fiji script to work within. This can be just a single empty folder, and this will be populated by the script.
 
-Open the MicrogliaMorphologyAnalysis.ijm file in Fiji, and click the run button in the script editor. Point it to the Fiji working directory, and then run the script option labelled "Preprocess morphology stacks and save them". If calibration values are stored in ini files for each image, tick this box. When prompted, select the parent directory (from step 1). The user is then asked for a number of inputs.
+Open the MicrogliaMorphologyAnalysis.ijm file in Fiji, and click the run button in the script editor. Tick the script option labelled "Preprocess morphology stacks and save them". If calibration values are stored in ini files for each image, tick this box as well. Click ok. Select the working directory followed by the parent directory for image storage. The user is then asked for a number of inputs.
 
 - How many frames per Z plane to average over for the final Z plane image?
 
@@ -39,6 +39,8 @@ This is a tickbox where users can indicate if rather than using the automated me
 - String to search for
 
 This is a string value that indicates which string identifier to use to identify images to process. This can be useful if the microglia images are stored with other images, or if the user wants to limit processing to a single animal / treatment. It cannot be empty and defaults to "Morphology".
+
+If the user has not put calibration values in a .ini file, they are asked how many frames exist per plane.
 
 Once run, this section of the script saves processed image stacks in the working directory in the Output folder, in folders labelled with the animal name and treatment/timepoint the image was sourced from. If ini files were used, these are saved with the animal name and treatment/timepoint in the Ini File folder.
 
