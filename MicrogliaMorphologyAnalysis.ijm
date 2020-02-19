@@ -62,7 +62,6 @@ function removeZeros(inputArray, output) {
 
 //Findfolders, directoryname is path to search in, substring is substring to 
 //look for, fileLocations is array to fill with paths that contain substring
-
 function listFilesAndFilesSubDirectories(directoryName, subString,
                                          fileLocations) {
 
@@ -76,14 +75,13 @@ function listFilesAndFilesSubDirectories(directoryName, subString,
 	//Loop through the files in the file list
 	for (i=0; i<listOfFiles.length; i++) {
 
-
 		//Create a string of the full path name
 		fullPath = directoryName+listOfFiles[i];
-
+		
 		//If the file we're checking is a file and not a directory and if it 
 		//contains the substring we're interested in within its full path We check 
 		//against the absolute path of our file in lower case on both counts
-		if (File.isDirectory(fullPath)==0 && indexOf(toLowerCase(listOfFiles[i]), 
+		if (File.isDirectory(fullPath)==0 && indexOf(toLowerCase(fullPath), 
 		                                             toLowerCase(subString))>-1) {
 			
 			//We store the full path in the output fileLocations at the latest index 
@@ -276,11 +274,7 @@ function touchingCheck(imageName, saveName, fileName, type) {
 //folder within which the ini files are located, and iniTextValuesMicrons is an 
 //array we pass into the function that we fill with calibration values before 
 //later returning it
-function getIniData(iniFolder, animal, timepoint, iniTextValuesMicrons) {
-	
-	//Found is a boolean about whether we've found the associated ini file or not, 
-	//start as false
-	found = false;
+function getIniData(iniFolder, iniTextValuesMicrons) {
 
 	//We get the list of files in the iniFolder
 	iniFileList = getFileList(iniFolder);
@@ -290,21 +284,13 @@ function getIniData(iniFolder, animal, timepoint, iniTextValuesMicrons) {
 	//provide the right file
 	do {
 		for(i=0; i<iniFileList.length; i++) {
-			if(matches(toLowerCase(iniFileList[i]), ".*"+animal+".*") && 
-			   matches(toLowerCase(iniFileList[i]), ".*"+timepoint+".*")) {
+			if(matches(toLowerCase(iniFileList[i]), "*.ini.")) {
 				
 				//Create a variable that tells us which ini file to open
 				iniToOpen = iniFolder + iniFileList[i]; 
 				found = true;
 				i = iniFileList.length;
 			}
-		}
-		
-		//If we've looped through all ini files and haven't found one, ask the user 
-		//to put the right one into the ini folder
-		if(found == false) {
-			print(animal, timepoint);
-			waitForUser("Correct ini file not found");
 		}
 	} while (found == false);
 	
@@ -318,8 +304,7 @@ function getIniData(iniFolder, animal, timepoint, iniTextValuesMicrons) {
 	//This is an array with the strings that come just before the information we 
 	//want to retrieve from the ini file. We want to get the x, y, and z pixel 
 	//sizes, as well as the no of planes and the frames per plane of the image
-	iniTextStringsPre = newArray("active.objective",
-								  "x.pixel.sz = ",
+	iniTextStringsPre = newArray("x.pixel.sz = ",
 								  "y.pixel.sz = ",
 								  "z.spacing = ",
 								  "no.of.planes",
@@ -329,7 +314,7 @@ function getIniData(iniFolder, animal, timepoint, iniTextValuesMicrons) {
 	//ini file that we get using iniTextStringsPre so that we can then retrieve 
 	//the numeric values i.e. we have a substring of active.objective 1, and to 
 	//get the number we index at position 19
-	iniTextIndicesPreAdds = newArray(19, 13, 13, 12, 15, 19);	
+	iniTextIndicesPreAdds = newArray(13, 13, 12, 15, 19);	
 		
 	//We open the ini file as a string
 	iniText = File.openAsString(iniToOpen);	
@@ -398,30 +383,14 @@ function getIniData(iniFolder, animal, timepoint, iniTextValuesMicrons) {
 
 			//If we're finding the values that are in the 1st or 2nd index of our 
 			//iniTextStringsPre array we parseFloat the value before multiply by 1e6
-			if(i>0 && i<3) {
+			if(i<3) {
 				iniTextValuesMicrons[(i-1)] = parseFloat(realString) * 1e6;
 
 			//Else we just parseFloat if the values if we are at 3 or above
 			} else if (i>=3) {
 				iniTextValuesMicrons[(i-1)] = parseFloat(realString);
-
-			//If we're at the 0th index, if we parseFloat the value and it isn't 0 
-			//then we know our data was collected with software set to the wrong 
-			//objective, which is a problem because all data was collected with a 20X 
-			//objective, so we set [5] to 1, else we set it to 0 if the objective was 
-			//correct and use this as an andicator
-			} else if (i==0) {
-				iniTextValuesMicrons[5] = parseFloat(realString);
 			}
-				
-			//	if(parseFloat(realString)!= 0) {
-			//		iniTextValuesMicrons[5] = 1;
-			//	} else {
-			//		iniTextValuesMicrons[5] = 0;
-			//	}		
-			//}
 		}
-	
 }
 
 //Function to check if the inputValue is above the topLimit - this is so that if 
@@ -707,7 +676,8 @@ function getAndProcessSlices(currenStackSlices, motionArtifactRemoval, currTime)
 
 //A string array that contains the functionality choices that the user has wrt. 
 //running this macro
-stringChoices = newArray("Preprocess morphology stacks and save them", "Mark cell positions", "Generate masks for cells",  "Quality control masks", "Analyse masks", "QC Motion Processing");
+stringChoices = newArray("Preprocess morphology stacks and save them", "Mark cell positions", "Generate masks for cells",  
+"Quality control masks", "Analyse masks", "QC Motion Processing");
 
 //Create a dialog box where the user can input which functionalities they want 
 //to run
@@ -729,30 +699,15 @@ for(i=0; i<stringChoices.length; i++) {
 	analysisSelections[i] = Dialog.getCheckbox();
 }
 
-//This the main parent directory where we do our analysis
-Dialog.create("OS Selection");
-Dialog.addRadioButtonGroup("OS Selection", newArray("Mac OS", "Windows OS"), 1, 2, "Windows OS");
-Dialog.show();
 
-OSOption = Dialog.getRadioButton();
-
-if(OSOption == "Windows OS") {
-	dropPath = "E:/Dropbox (Brain Energy Lab)/Everything/";
-} else {
-	dropPath = "";
-}
-
-MorphologyProcessing = dropPath + "Devin/2P Data Analysis/Microglial Morphology/";
-//MorphologyProcessing = getDirectory("Choose morphology analysis working directory");
-
+MorphologyProcessing = getDirectory("Choose morphology analysis working directory");
 
 //Here we create an array to store the full name of the directories we'll be 
 //working with within our morphology processing directory
-directories=newArray(MorphologyProcessing+"Input/", 
-                     MorphologyProcessing+"Output/", 
-                     MorphologyProcessing+"Done/", 
-                     MorphologyProcessing+"Ini File/");
-//[0] is input, [1] is output, [2] is done, [3] is iniFolder
+directories=newArray(MorphologyProcessing+"Input" + File.separator, 
+                     MorphologyProcessing+"Output" + File.separator, 
+                     MorphologyProcessing+"Done" + File.separator);
+//[0] is input, [1] is output, [2] is done
 
 //Here we make our working directories by looping through our folder names, 
 //concatenating them to our main parent directory
@@ -772,20 +727,22 @@ Housekeeping();
 if(analysisSelections[0] == true) {
 
 	//Get the parent 2P directory i.e. where all the raw 2P images are stored
-	directoryName = dropPath + "2P data/Devin/";
-	//directoryName = getDirectory("Choose the 2P data storage directory");
+	//directoryName = dropPath + "2P data/Devin/";
+	directoryName = getDirectory("Choose the image storage directory");
 
 	//Ask the user how many frames they want to retain for motion correction and how many frames they want to use
 	//to make the average projection to compare other frames to (lapFrames) - also ask if the user would rather select
 	//the frames to use manually 
 	Dialog.create("Info for each section");
-	Dialog.addNumber("How many frames to keep?",1); 
-	Dialog.addNumber("How many frames do you want to use for the average projection?", 3);
-	Dialog.addCheckbox("Manually select frames?", true)
+	Dialog.addNumber("How many frames per Z plane to average over for the final Z plane image?",1); 
+	Dialog.addNumber("How many frames do you want to include in the average projection of least blurry frames?", 3);
+	Dialog.addCheckbox("Manually select frames?", false);
+	Dialog.addString("String to Search For", "Morphology");
 	Dialog.show();
 	fToKeep = Dialog.getNumber();
 	lapFrames = Dialog.getNumber();
 	manCorrect = Dialog.getCheckbox();
+	preProcStringToFind = Dialog.getString();
 
 	//If the user would rather select the frames to use manually, ask if they want to select the frames,
 	//process the previously selected frames, or both
@@ -809,10 +766,10 @@ if(analysisSelections[2] == true) {
 	
 	//These are the required inputs from the user
 
-	strings = newArray("What target cell size would you like to use as a lower limit?",
-	"What target cell size would you like to use as an upper limit?",
-	"What range would you like to use for TCS error?",
-	"What increment would you like to increase TCS by per loop?");
+	strings = newArray("What mask size would you like to use as a lower limit?",
+	"What mask size would you like to use as an upper limit?",
+	"What range would you like to use for mask size error?",
+	"What increment would you like to increase mask size by per loop?");
 
 	//TCS is target cell size, we iteratively threshold our cells to reach the 
 	//TCS +/- the range/ The TCS lower is the minimum TCS we want to get results 
@@ -861,7 +818,8 @@ if(analysisSelections[1] == true || analysisSelections[2] == true ||
 	                        "Somas/", "Candidate Cell Masks/", "Local Regions/",
 							            "Results/");
 
-	maskGenerationArray = newArray("21-30", "51-60", "81-90", 120);
+	//maskGenerationArray = newArray("21-30", "51-60", "81-90", 120);
+	LRSize = 120;
 
 	//[0] through to [2] are the pieces of the stack we're going to analyze, [3] 
 	//is the size of the local region to draw in microns. The stacks are 100 
@@ -885,74 +843,45 @@ imagesInput = getFileList(directories[0]);
 if(analysisSelections[0] == true) {
 
 	//Here we run the listFilesAndFilesSubDirectories function on our parent 2P 
-	//raw data location looking for locations that are labelled as "morphology"
+	//raw data location looking for locations that are labelled with the user indicated string
 
 	fileLocations = newArray(1);
-	fileLocations = listFilesAndFilesSubDirectories(directoryName, "Morphology", fileLocations);
-	
-	//Loop through all the morphology locations, if the name matches ch_1.tif and 
-	//microglia, add it to the images array, since its a microglia morphology 
-	//488nm channel image
+	fileLocations = listFilesAndFilesSubDirectories(directoryName, preProcStringToFind, fileLocations);
+	//Loop through all matching files
 	for(i=0; i<fileLocations.length; i++) {
 
-		if(matches(toLowerCase(fileLocations[i]), ".*ch_1.tif.*") && 
-		   matches(toLowerCase(fileLocations[i]), ".*microglia.*")) {
+		//Here we take the location of the file that is a microglia morphology 
+		//image, and we split up parts of the file name and store them in the 
+		//parentArray for easier access where index [0] contains the whole string 
+		//of image location, and each subsequent index is the parent directory of 
+		//the previous index
+		parentArray=newArray(5);
+		parentArray[0] = fileLocations[i];
+		for(i1=0; i1<4; i1++){
+			parentArray[i1+1] = File.getParent(parentArray[i1]);
+		}
+		
+		//Here we create a name to save the image as based the names in the last 2
+		//directories of our image location and we add " Microglia Morphology" on 
+		//to the end of it
+		saveName = File.getName(parentArray[2]) + " " + 
+		           File.getName(parentArray[1]) + " Microglia Morphology";
 
-			//Here we take the location of the file that is a microglia morphology 
-			//image, and we split up parts of the file name and store them in the 
-			//parentArray for easier access where index [0] contains the whole string 
-			//of image location, and each subsequent index is the parent directory of 
-			//the previous index
-			parentArray=newArray(5);
-			parentArray[0] = fileLocations[i];
-			for(i1=0; i1<4; i1++){
-				parentArray[i1+1] = File.getParent(parentArray[i1]);
-			}
-
-			//Here we create a name to save the image as based the names in the last 2
-			//directories of our image location and we add " Microglia Morphology" on 
-			//to the end of it
-			saveName = File.getName(parentArray[4]) + " " + 
-			           File.getName(parentArray[3]) + " Microglia Morphology";
-
-			//If this file is already saved in our input directory, or in our done 
-			//directory, then we ignore it, but if it isn't we proceed
-			if((File.exists(directories[0] + saveName + ".tif")==0 && File.exists(directories[2] + saveName + ".tif")==0)) {
+		//If this file is already saved in our input directory, or in our done 
+		//directory, then we ignore it, but if it isn't we proceed
+		if((File.exists(directories[0] + saveName + ".tif")==0 && File.exists(directories[2] + saveName + ".tif")==0)) {
 					
-				//Here copy the image to the input folder with the saveName
-				File.copy(fileLocations[i], directories[0] + saveName + ".tif");
+			//Here copy the image to the input folder with the saveName
+			File.copy(fileLocations[i], directories[0] + saveName + ".tif");
 		
-				//Here get the parent directory of the image
-				parentFiles = getFileList(parentArray[1]);
-				
-				//We then loop through the files in that directory looking for the ini 
-				//file for the morphology image
-				for(i1=0; i1<parentFiles.length; i1++) {
-
-					//Once we have found the ini file, we copy it into our ini directory 
-					//with the same name as our image, and set our searching loop to 
-					//terminate
-					if(matches(toLowerCase(parentFiles[i1]), ".*.ini.*")==1) {
-						File.copy(parentArray[1] + "/" + parentFiles[i1], directories[3] + 
-						          saveName + ".ini");
-						i1=parentFiles.length;
-					}
-				}
-
-				//Print the image and ini files new names, as well as the original 
-				//locations of both the image and ini file so we can make sure we're 
-				//getting the right ini file for the right image
-				print("Saved ", saveName, "moved ini file");
-				print("Original image ", fileLocations[i], "Original ini ", parentArray[1]);
-			}
-			
+			//Here get the parent directory of the image
+			parentFiles = getFileList(parentArray[1]);
 		}
 	}
 	
-	//Now we get out the list of files in our ini folder and in our input folder 
+	//Now we get out the list of files in our input folder 
 	//once we've gone through all the microglia morphology images in our raw 2P 
 	//data directory
-	iniFileList=getFileList(directories[3]);
 	imagesInput = getFileList(directories[0]);
 	
 ////////////////////////////////////////////////////////////////////////////////	
@@ -1063,25 +992,21 @@ if(analysisSelections[0] == true) {
 					getAnimalTimepointInfo(imageNames, forInfo);
 					
 					print("Preprocessing ", imageNames[0]); 
-				
+
 					//Array to store the values we need to calibrate our image with
-					iniTextValuesMicrons = newArray(6);
+					iniTextValuesMicrons = newArray(5);
 					//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ, final index is 
 					//whether the ini file was correctly calibrated	
-				
-					//Fill that array with the calibration data for that animal at that 
-					//timepoint
-					getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-				
-					run("TIFF Virtual Stack...", "open=["+directories[0]+""+forInfo+"]");
-				
+
+					getIniData(directoryName, iniTextValuesMicrons)
+
 					//Calculate the number of timepoints in the image, and also a value framesReorder that we pass in 
 					//to reorganise our slices as we want
-					timepoints = nSlices/(iniTextValuesMicrons[3] * iniTextValuesMicrons[4]);
-					framesReorder = nSlices/timepoints;
+					timepoints = iniTextValuesMicrons[3]/(iniTextValuesMicrons[3] * iniTextValuesMicrons[4]);
+					framesReorder = iniTextValuesMicrons[3]/timepoints;
 		
 					//This makes an array with a sequence 0,1,2...slices
-					imageNumberArray = Array.getSequence(nSlices+1); 
+					imageNumberArray = Array.getSequence(iniTextValuesMicrons[3]+1); 
 		
 					//This array is used in motion artifact removal to store the image numbers 
 					//being processed that contains 1,2,3...slices
@@ -1265,22 +1190,36 @@ if(analysisSelections[0] == true) {
 				// " processed.tif") == 1) {
 			
 				print("Preprocessing ", imageNames[0]); 
-				
-				//Array to store the values we need to calibrate our image with
-				iniTextValuesMicrons = newArray(6);
-				//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ, final index is 
-				//whether the ini file was correctly calibrated	
-	
-				//Fill that array with the calibration data for that animal at that 
-				//timepoint
-				getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-					
+
 				//Open our raw image
 				print("Opening " + imagesInput[i]);
 				//run("TIFF Virtual Stack...", "open=["+directories[0] + imagesInput[i]+"]");
 				open(directories[0] + imagesInput[i]);
 				print(imagesInput[i] + " opened");
-			
+
+				//Array to store the values we need to calibrate our image with
+				iniTextValuesMicrons = newArray(5);
+				//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ, final index is 
+				//whether the ini file was correctly calibrated	
+
+				if(analysisSelections[6] == true) {
+				
+					//Fill that array with the calibration data for that animal at that 
+					//timepoint
+					getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
+
+				} else {
+
+					iniTextValuesMicrons[4] = noIniFperZ;
+					iniTextValuesMicrons[3] = nSlices;
+					
+					getVoxelSize(vWidth, vHeight, vDepth, vUnit);
+					iniTextValuesMicrons[0] = vWidth;
+					iniTextValuesMicrons[1] = vHeight;
+					iniTextValuesMicrons[2] = vDepth;
+
+				}
+					
 				//Calculate the number of timepoints in the image
 				timepoints = nSlices/(iniTextValuesMicrons[3] * iniTextValuesMicrons[4]);
 				framesReorder = nSlices/timepoints;
@@ -1444,10 +1383,15 @@ if(analysisSelections[0] == true) {
 							//set the slice number to 0 in the array. This allows us to store only 
 							//the slice numbers of the slices we want to use
 							for (i1=0;i1<subSlices;i1++) {
+								print(IMTArrayCutoffRank2[i1]);
+								print(intDenDiff[i1]);
 								if (IMTArrayCutoffRank2[i1]>(lapFrames-1)) {
 									forLap[i1+(i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))] = 0;
 								}
+								print(forLap[i1+(i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))]);
 							}
+
+							waitForUser("Check the laplacian of gaussian filtering is selecting those with the highest values");
 							
 							//Here we create a new array that stores the slice numbers for the 
 							//substack we're currently working with
@@ -1962,19 +1906,48 @@ if(analysisSelections[1] == true) {
 		run("Close");
 
 		//Here we loop through all the images in the images to use table
+		//No counts stores how many substacks we can make from our image
 		toConcat = newArray(1);
 		finalImagestoUseArray = newArray(1);
+		noStacks = newArray(1);
+		noStacksRaw = newArray(images.length);
 		count = 0;
 		for(row = 0; row < images.length; row++) {
 			
 			//If we kept the image (and have analysed it)
 			if(kept[row] == 1) {
+
+				//If the image was kept, count how many 10um thick substacks we can make with at least
+				//10um spacing between them, and 10um from the bottom and top of the stack
+				run("TIFF Virtual Stack...", "open=["+images[row]+".tif]");
+				getVoxelSize(vWidth, vHeight, vDepth, vUnit);
+				zSize = nSlices*vDepth;
+				counting = 0;
+				for(currZ = 10; currZ < zSize; currZ++) {
+					if(currZ%10 == 0 && currZ <= zSize-20) {
+						counting = counting+1;
+					}
+				}
+
+				//Fill maskGenerationArray with a string of the range of z planes to include in each substack
+				count = 0;
+				maskGenerationArray = newArray(counting);
+				for(currZ = 10; currZ < zSize; currZ++) {
+					if(currZ%10 == 0 && currZ <= zSize-20) {
+						maskGenerationArray[count] = currZ+"-"+(currZ+10);
+					}
+				}
+
+				noStacksRaw[row] = maskGenerationArray.length;
+
+				checkIt = false;
+				for(i0 = 0; i0<maskGenerationArray.length; i0++) {
 		
 				//We need to make 3 chunks of images to analyse - so we loop 3 times
 				//Create a substack of 10um deep using our dividingArraySlices array 
 				//(i.e. 21-30um, 51-60um, and 81-90um)
-				checkIt = false;
-				for(i0=0; i0<3; i0++) {
+				//checkIt = false;
+				//for(i0=0; i0<3; i0++) {
 			
 					imgName="Substack ("+maskGenerationArray[i0]+")"; 
 					stringToSave = "Substack ("+maskGenerationArray[i0]+") positions marked"; 
@@ -1994,6 +1967,7 @@ if(analysisSelections[1] == true) {
 					//If we're not on the first image, we concatenate our finalImagesToUseArray with our toConcat array
 					if(count!=0) {
 						finalImagestoUseArray = Array.concat(finalImagestoUseArray, toConcat);
+						noStacks = Array.concat(noStacks, toConcat);
 					}
 
 					//If the image contains " .tif" in the name we set finalImagestoUseArray[count] to the image name without it,
@@ -2003,11 +1977,16 @@ if(analysisSelections[1] == true) {
 					} else {
 						finalImagestoUseArray[count] = File.getName(images[row]);
 					}
+
+					//Add how many substacks we can make for this image
+					noStacks[count] = maskGenerationArray.length;
 					
 					//Increase our count by one
 					count++;
 				}
 			}
+			
+			noStacksRaw[row] = 0;
 		}
 
 		//Loop through the images that we want to calculate our motility indices for
@@ -2037,16 +2016,15 @@ if(analysisSelections[1] == true) {
 					found++;
 				}
 			}
-
 			
-			//If found doesn't equal 3 (i.e. we haven't marked coordinates for all 3
+			//If found doesn't equal the number of stacks we can make for this image (i.e. we haven't marked coordinates for all
 			//substacks of out input image, even if we have for some) then we continue
-			//if(found!=3) {		
-			if(found==3) {		
+			//if(found!=noCounts[i]) {		
+			//if(found==noCounts[i]) {		
 				
 				//Here we make any storage folders that aren't related to TCS and 
 				//haven't already been made
-				for(i0=0; i0<3; i0++) {
+				for(i0=0; i0<noCounts[i]; i0++) {
 					dirToMake=directories[1]+imageNames[3]+"/"+storageFolders[i0];
 					if(File.exists(dirToMake)==0) {
 						File.makeDirectory(dirToMake);
@@ -2066,7 +2044,7 @@ if(analysisSelections[1] == true) {
 					                        
 				//TableValues is an array we'll fill with the values from any existing
 				//cell position marking table for this image
-				TableValues = newArray(3*TableColumns.length);
+				TableValues = newArray(noCounts[i]*TableColumns.length);
 					
 				//TableResultsRefs is an array of the location where we would find any
 				//previuosly existing table, repeated for each column
@@ -2084,22 +2062,26 @@ if(analysisSelections[1] == true) {
 				//Here we fill our current or new cell position marking table with data 
 				//from our TCSValues array
 				selectWindow("Cell Position Marking");
-				for(i0=0; i0<3; i0++) {
+				for(i0=0; i0<noCounts[i]; i0++) {
 					for(i1=0; i1<TableColumns.length; i1++) {
-						Table.set(TableColumns[i1], i0, TableValues[(3*i1)+i0]);
+						Table.set(TableColumns[i1], i0, TableValues[(noCounts[i]*i1)+i0]);
 						if(i1 == TableColumns.length-2) {
 							//alreadyProcessed[i0] = TableValues[(3*i1)+i0];
 						}
 					}
 				}
 
-				subName = newArray(3);
-				procForTable = newArray(1,1,1);
+				subName = newArray(noCounts[i]);
+				procForTable = newArray(noCounts[i]);
+				for(currI = 0; currI < noCounts[i], currI++) {
+					procForTable[currI] = 1;
+				}
+				//procForTable = newArray(1,1,1);
 			
 				//We need to make 3 chunks of images to analyse - so we loop 3 times
 				//Create a substack of 10um deep using our dividingArraySlices array 
 				//(i.e. 21-30um, 51-60um, and 81-90um)
-				for(i0=0; i0<3; i0++) {
+				for(i0=0; i0<noCounts[i]; i0++) {
 			
 					imgName="Substack ("+maskGenerationArray[i0]+")"; 
 					stringToSave = "Substack ("+maskGenerationArray[i0]+") positions marked"; 
@@ -2300,7 +2282,7 @@ if(analysisSelections[1] == true) {
 				//Create a substack of 10um deep using our dividingArraySlices array 
 				//(i.e. 21-30um, 51-60um, and 81-90um)
 				checkIt = false;
-				for(i0=0; i0<3; i0++) {
+				for(i0=0; i0<noStacksRaw[row]; i0++) {
 			
 					imgName="Substack ("+maskGenerationArray[i0]+")"; 
 					stringToSave = "Substack ("+maskGenerationArray[i0]+") positions marked"; 
@@ -2567,7 +2549,7 @@ if(analysisSelections[1] == true) {
 		}
 	
 	}
-}
+
 
 //If the user wants to automatically generate masks of microglial cells
 if(analysisSelections[2] == true) {
@@ -2592,746 +2574,741 @@ if(analysisSelections[2] == true) {
 
 		proceed = false;
 		if(loopThrough[i] != "Images To Use.csv" && loopThrough[i] != "fracLac/") {
-			
-			getAnimalTimepointInfo(imageNames, forUse);
-			baseName = substring(loopThrough[i], 0, lastIndexOf(loopThrough[i], "/"));
-	
-			//0 is V1, 1 is hipp
-			regionInd = 0;
-			if(indexOf(toLowerCase(baseName), "hipp")>-1) {
-				regionInd = 1;
-			}
-	
-			iniTextValuesMicrons = newArray(6);
-			getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-			print(iniTextValuesMicrons[5], regionInd);
-	
-			if(regionInd == 0 && parseFloat(iniTextValuesMicrons[5]) == 0) {
-				proceed = true;
-			}
-			if(regionInd == 1 && parseFloat(iniTextValuesMicrons[5]) == 2) {
-				proceed = true;
-			}
-			
-		}
+		
+			//Find out how many cell coordinate files there are in the basename directory, and if there's at least one
+			//we proceed, so we don't end up looking in directories where cell coordinates haven't been marked
+			coordinateFiles = getFileList(directories[1]+baseName+"/Cell Coordinates/");
+			print(directories[1]+baseName+"/Cell Coordinates/");
+		
+			if(coordinateFiles.length>0) {
 
-		if(proceed == true) {
-		//Find out how many cell coordinate files there are in the basename directory, and if there's at least one
-		//we proceed, so we don't end up looking in directories where cell coordinates haven't been marked
-		coordinateFiles = getFileList(directories[1]+baseName+"/Cell Coordinates/");
-		print(directories[1]+baseName+"/Cell Coordinates/");
-		if(coordinateFiles.length>0) {
-
-			Table.create("ToBChanged");
+				Table.create("ToBChanged");
 			
-			//Here we create a table that will store all the TCS values we're going through, and for each one, whether we've
-			//generated masks for it, whether we've QC checked it, and whether we've analysed it - headings are in TCSColumns
-			TCSColumns = newArray("TCS", "Masks Generated", "QC Checked", "Analysed");
+				//Here we create a table that will store all the TCS values we're going through, and for each one, whether we've
+				//generated masks for it, whether we've QC checked it, and whether we've analysed it - headings are in TCSColumns
+				TCSColumns = newArray("TCS", "Masks Generated", "QC Checked", "Analysed");
 	
-			//TCSValues is an array that we will store all this data in with a single dimension - we just have to index into the first TCSColumns.length
-			//indices to get the TCS values, and the second to get the masks generated values etc
-			TCSValues = newArray(numberOfLoops*TCSColumns.length);
+				//TCSValues is an array that we will store all this data in with a single dimension - we just have to index into the first TCSColumns.length
+				//indices to get the TCS values, and the second to get the masks generated values etc
+				TCSValues = newArray(numberOfLoops*TCSColumns.length);
 			
-			//This is an array of where we get the data for these values from if they previuosly exist - from the TCS Status.csv files
-			//that are saved if we've done this before
-			TCSResultsRefs = newArray(directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv", 
+				//This is an array of where we get the data for these values from if they previuosly exist - from the TCS Status.csv files
+				//that are saved if we've done this before
+				TCSResultsRefs = newArray(directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv", 
 										directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv");
 	
-			//This array stores whether the values we're getting are strings or not
-			TCSResultsAreStrings = newArray(false, false, false, false);
+				//This array stores whether the values we're getting are strings or not
+				TCSResultsAreStrings = newArray(false, false, false, false);
 	
-			//Array to store the calibration values
-			iniTextValuesMicrons = newArray(6);
-			//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ, then wrong objective
+				//Array to store the calibration values
+				iniTextValuesMicrons = newArray(5);
+				//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ, then wrong objective
 	
-			//Variable to set whether we've gotten calibration values for this image
-			gottenCalibration = false;
+				//Variable to set whether we've gotten calibration values for this image
+				gottenCalibration = false;
 
-			//Here we begin looping through the different TCS values we're going to be analysing
-			for(TCSLoops=0; TCSLoops<numberOfLoops; TCSLoops++) {
+				//Here we begin looping through the different TCS values we're going to be analysing
+				for(TCSLoops=0; TCSLoops<numberOfLoops; TCSLoops++) {
 		
-				//This is an array to store the associated values for the current TCS loop
-				currentLoopValues = newArray(TCSColumns.length);
-				//[0] is TCS, [1] is masks generated, [2] is QC checked, [3] is analysed, [4] is wrong obj
+					//This is an array to store the associated values for the current TCS loop
+					currentLoopValues = newArray(TCSColumns.length);
+					//[0] is TCS, [1] is masks generated, [2] is QC checked, [3] is analysed, [4] is wrong obj
 
-				//Set the TCS as the lowest TCS + the increment we want to increase by, X how many times we've increased
-				//We set these variables so that TCS is the current TCS to use, and TCSLoops is the number of loops we've been through
-				currentLoopValues[0]=selection[0]+(selection[3]*TCSLoops);
+					//Set the TCS as the lowest TCS + the increment we want to increase by, X how many times we've increased
+					//We set these variables so that TCS is the current TCS to use, and TCSLoops is the number of loops we've been through
+					currentLoopValues[0]=selection[0]+(selection[3]*TCSLoops);
 	
-				//Here we fill our TCSValues array with all the associated data taken from previous instances
-				//we've run this macro if we have generated a TCS Status.csv file before
+					//Here we fill our TCSValues array with all the associated data taken from previous instances
+					//we've run this macro if we have generated a TCS Status.csv file before
 	
-				fillArray(TCSValues, TCSResultsRefs, TCSColumns, TCSResultsAreStrings, true); 
+					fillArray(TCSValues, TCSResultsRefs, TCSColumns, TCSResultsAreStrings, true); 
 		
-				//Here we fill our TCS Status table with data from our TCSValues array
-				selectWindow("ToBChanged");
-				for(i0=0; i0<numberOfLoops; i0++) {
-					for(i1=0; i1<TCSColumns.length; i1++) {
-						Table.set(TCSColumns[i1], i0, TCSValues[(numberOfLoops*i1)+i0]);
-					}
-				}
-				
-				selectWindow("ToBChanged");
-				for(i0 = 0; i0<Table.size; i0++) {
-					if(currentLoopValues[0] == Table.get("TCS", i0)) {
-						//Here we fill our currentLoopValues table with the TCSValues data that corresponds to the TCS value
-						//we're current processing - this will be a bunch of zeros if we haven't processed anything before
+					//Here we fill our TCS Status table with data from our TCSValues array
+					selectWindow("ToBChanged");
+					for(i0=0; i0<numberOfLoops; i0++) {
 						for(i1=0; i1<TCSColumns.length; i1++) {
-							currentLoopValues[i1] = Table.get(TCSColumns[i1], i0);
+							Table.set(TCSColumns[i1], i0, TCSValues[(numberOfLoops*i1)+i0]);
 						}
 					}
-				}
-
-				Table.rename("ToBChanged", "TCS Status");
-	
-				//limits is an array to store the lower and upper limits of the cell area we're using within this TCS loop, calculated
-				//according to the error the user input
-				limits = newArray(currentLoopValues[0]-selection[2], currentLoopValues[0]+selection[2]);
-				//Selection: //[0] is TCSLower, [1] is TCSUpper, [2] is range, [3] is increment, [4] is framesToKeep, [5] is trace
-				//Limits: [0] is lower limit, [1] is upper
-		
-				//This is the directory for the current TCS
-				TCSDir=directories[1]+baseName+"/"+"TCS"+currentLoopValues[0]+"/";
-		
-				//Here we make a TCS specific directory for our input image if it doesn't already exist
-				if(File.exists(TCSDir)==0) {
-					File.makeDirectory(TCSDir);
-				}
-		
-				//Here we store the full names of the directories in an array for access later
-				storageFoldersArray=newArray(storageFolders.length);
-		
-				//Here we make sure we have all the working directories we need, either within or without the
-				//TCS specific directory
-				for(i0=0; i0<storageFolders.length; i0++) {
-	
-					//Depending on what storageFolder we're working with, the dirToMake and parentDir vary
-					if(i0<3) {
-						dirToMake=directories[1]+baseName+"/"+storageFolders[i0];
-						parentDir=directories[1]+baseName+"/";	
-					} else {
-						dirToMake=TCSDir+storageFolders[i0];
-						parentDir=TCSDir;	
-					}
-	
-					//Either way, we store the parentDir and storageFolders[i0] value in storageFoldersArray
-					storageFoldersArray[i0]=parentDir+storageFolders[i0];
-	
-					//And if dirToMake doesn't exist, we make it
-					if(File.exists(dirToMake)==0) {
-						File.makeDirectory(dirToMake);
-					}	
-				}
-		
-				//Here if we haven't already looped through this TCS, we enter the process
-				if(currentLoopValues[1]==0) {
-		
-					//We use this variable to store the total number of cells we've counted for a given image
-					totalCells=0;
-		
-					//These arrays are used to store all the X and Y coordinates, and the substack names associated with them
-					tempX = newArray(1);
-					tempY = newArray(1);
-					tempName = newArray(1);
-
-					//Here we get out the cell postion marking informatino about whther the positions were makred
-					//correctly or if there were issues with the image
-					open(directories[1]+baseName+"/Cell Coordinate Masks/Cell Position Marking.csv");
-					selectWindow("Cell Position Marking.csv");
-					QCArray = Table.getColumn("QC");
-					ProcessedArray = Table.getColumn("Processed");
-					detectionArray = Table.getColumn("Bad Detection");
-					regArray = Table.getColumn("Bad Registration");
-					Table.reset("Cell Position Marking.csv");
-		
-					//Here we loop through all 3 substacks of cell placements and add together all the cells in them
-					for(i0=0; i0<3; i0++) {
-						
-						//Find the number of coordinates for the associated chunk by opening the coordinates table and finding nResults
-						imgName="Substack ("+maskGenerationArray[i0]+")";
-						inputpath=directories[1]+baseName+"/Cell Coordinates/CP coordinates for " + imgName + ".csv";
-						print(ProcessedArray[i0], QCArray[i0], detectionArray[i0], regArray[i0]);
-
-						//If the image has been processed, QC'd, and theres is no bad detection or bad registration, then
-						//proceed
-						if(ProcessedArray[i0] == 1 && QCArray[i0] == 1 && detectionArray[i0] == 0 && regArray[i0] == 0) {
-							
-							//Add the nResults of the cell coordinates to the totalCells count
-							//run("Clear Results");
-							open(inputpath);
-							totalCells += Table.size;
-		
-							//Here we create an array to store the name of the image chunk 
-							substackName = newArray(Table.size);
-							for(i1=0; i1<Table.size; i1++) {
-								substackName[i1] = imgName;
+				
+					selectWindow("ToBChanged");
+					for(i0 = 0; i0<Table.size; i0++) {
+						if(currentLoopValues[0] == Table.get("TCS", i0)) {
+							//Here we fill our currentLoopValues table with the TCSValues data that corresponds to the TCS value
+							//we're current processing - this will be a bunch of zeros if we haven't processed anything before
+							for(i1=0; i1<TCSColumns.length; i1++) {
+								currentLoopValues[i1] = Table.get(TCSColumns[i1], i0);
 							}
-		
-							//Here we get out all the X and Y coordinates from the results table and store all the X's in tempX, and all the Y's
-							//in tempY, as well as the substackNames in tempName
-		
-							selectWindow("CP coordinates for " + imgName + ".csv");
-							currentX = Table.getColumn("X");
-							currentY = Table.getColumn("Y");
-							tempX = Array.concat(tempX,currentX);
-							tempY = Array.concat(tempY, currentY);
-							tempName = Array.concat(tempName, substackName);
-							selectWindow("CP coordinates for " + imgName + ".csv");
-							Table.reset("CP coordinates for " + imgName + ".csv");
 						}
-
 					}
 
+					Table.rename("ToBChanged", "TCS Status");
+	
+					//limits is an array to store the lower and upper limits of the cell area we're using within this TCS loop, calculated
+					//according to the error the user input
+					limits = newArray(currentLoopValues[0]-selection[2], currentLoopValues[0]+selection[2]);
+					//Selection: //[0] is TCSLower, [1] is TCSUpper, [2] is range, [3] is increment, [4] is framesToKeep, [5] is trace
+					//Limits: [0] is lower limit, [1] is upper
+		
+					//This is the directory for the current TCS
+					TCSDir=directories[1]+baseName+"/"+"TCS"+currentLoopValues[0]+"/";
+		
+					//Here we make a TCS specific directory for our input image if it doesn't already exist
+					if(File.exists(TCSDir)==0) {
+						File.makeDirectory(TCSDir);
+					}
+		
+					//Here we store the full names of the directories in an array for access later
+					storageFoldersArray=newArray(storageFolders.length);
+		
+					//Here we make sure we have all the working directories we need, either within or without the
+					//TCS specific directory
+					for(i0=0; i0<storageFolders.length; i0++) {
+	
+						//Depending on what storageFolder we're working with, the dirToMake and parentDir vary
+						if(i0<3) {
+							dirToMake=directories[1]+baseName+"/"+storageFolders[i0];
+							parentDir=directories[1]+baseName+"/";	
+						} else {
+							dirToMake=TCSDir+storageFolders[i0];
+							parentDir=TCSDir;	
+						}
+	
+						//Either way, we store the parentDir and storageFolders[i0] value in storageFoldersArray
+						storageFoldersArray[i0]=parentDir+storageFolders[i0];
+	
+						//And if dirToMake doesn't exist, we make it
+						if(File.exists(dirToMake)==0) {
+							File.makeDirectory(dirToMake);
+						}	
+					}
+		
+					//Here if we haven't already looped through this TCS, we enter the process
+					if(currentLoopValues[1]==0) {
+		
+						//We use this variable to store the total number of cells we've counted for a given image
+						totalCells=0;
+		
+						//These arrays are used to store all the X and Y coordinates, and the substack names associated with them
+						tempX = newArray(1);
+						tempY = newArray(1);
+						tempName = newArray(1);
 
-					//If we have at least one coordinates to analyze
-					if(totalCells!=0) {
-	
-						//Here we cut out all the zeros from the tempX, tempY,and tempName arrays and move the data into X,Y, and finalSub arrays
-						X = newArray(1);
-						Y = newArray(1);
-						finalSub = newArray(1);
+						//Here we get out the cell postion marking informatino about whther the positions were makred
+						//correctly or if there were issues with the image
+						open(directories[1]+baseName+"/Cell Coordinate Masks/Cell Position Marking.csv");
+						selectWindow("Cell Position Marking.csv");
+						QCArray = Table.getColumn("QC");
+						ProcessedArray = Table.getColumn("Processed");
+						detectionArray = Table.getColumn("Bad Detection");
+						regArray = Table.getColumn("Bad Registration");
+						Table.reset("Cell Position Marking.csv");
+						
+						coordPath = directories[1] + baseName + "/Cell Coordinates/";
 		
-						X = removeZeros(tempX, X);
-						Y = removeZeros(tempY, Y);
-						finalSub = removeZeros(tempName, finalSub);
+						noStacks = getfileList(coordPath);
+						//Here we loop through all 3 substacks of cell placements and add together all the cells in them
+						for(i0=0; i0<noStacks.length; i0++) {
 						
-						//Here we make arrays to fill with the name of the current cell and whether we've attempted to create a mask from it already that we fill
-						//with 1's by default
-						maskSuccessPrev = newArray(totalCells);
-						Array.fill(maskSuccessPrev, 1);
+							//Find the number of coordinates for the associated chunk by opening the coordinates table and finding nResults
+							imgName = substring(noStacks[i0], indexOf(noStacks[i0], "for "), indexOf(noStacks[i0], ".csv"));
+							//imgName="Substack ("+maskGenerationArray[i0]+")";
+							inputpath=directories[1]+baseName+"/Cell Coordinates/"+noStacks[i0];
+							print(ProcessedArray[i0], QCArray[i0], detectionArray[i0], regArray[i0]);
+
+							//If the image has been processed, QC'd, and theres is no bad detection or bad registration, then proceed
+							if(ProcessedArray[i0] == 1 && QCArray[i0] == 1 && detectionArray[i0] == 0 && regArray[i0] == 0) {
+							
+								//Add the nResults of the cell coordinates to the totalCells count
+								//run("Clear Results");
+								open(inputpath);
+								totalCells += Table.size;
 		
-						//If we're not in the first TCS loop
+								//Here we create an array to store the name of the image chunk 
+								substackName = newArray(Table.size);
+								for(i1=0; i1<Table.size; i1++) {
+									substackName[i1] = imgName;
+								}
+		
+								//Here we get out all the X and Y coordinates from the results table and store all the X's in tempX, and all the Y's
+								//in tempY, as well as the substackNames in tempName
+		
+								selectWindow("CP coordinates for " + imgName + ".csv");
+								currentX = Table.getColumn("X");
+								currentY = Table.getColumn("Y");
+								tempX = Array.concat(tempX,currentX);
+								tempY = Array.concat(tempY, currentY);
+								tempName = Array.concat(tempName, substackName);
+								selectWindow("CP coordinates for " + imgName + ".csv");
+								Table.reset("CP coordinates for " + imgName + ".csv");
+							}
+
+						}
+
+
+						//If we have at least one coordinates to analyze
+						if(totalCells!=0) {
 	
-						if(TCSLoops>0) {
+							//Here we cut out all the zeros from the tempX, tempY,and tempName arrays and move the data into X,Y, and finalSub arrays
+							X = newArray(1);
+							Y = newArray(1);
+							finalSub = newArray(1);
+		
+							X = removeZeros(tempX, X);
+							Y = removeZeros(tempY, Y);
+							finalSub = removeZeros(tempName, finalSub);
+						
+							//Here we make arrays to fill with the name of the current cell and whether we've attempted to create a mask from it already that we fill
+							//with 1's by default
+							maskSuccessPrev = newArray(totalCells);
+							Array.fill(maskSuccessPrev, 1);
+		
+							//If we're not in the first TCS loop
+	
+							if(TCSLoops>0) {
 			
-							//We create an array to store these values from our previous TCS loop
-							prevLoopValues = newArray(TCSColumns.length);
-							//[0] is TCS, [1] is masks generated, [2] is QC checked, [3] is analysed, [4] is wrong obj, [5] is TCS error
+								//We create an array to store these values from our previous TCS loop
+								prevLoopValues = newArray(TCSColumns.length);
+								//[0] is TCS, [1] is masks generated, [2] is QC checked, [3] is analysed, [4] is wrong obj, [5] is TCS error
 					
 		
-							//Here we fill the array with the values from the previuos TCS loop as stored in TCSValues
+								//Here we fill the array with the values from the previuos TCS loop as stored in TCSValues
 		
-							for(i0=0; i0<TCSColumns.length; i0++) {
-								prevLoopValues[i0] = TCSValues[(numberOfLoops*i0)+(TCSLoops-1)];
-							}
+								for(i0=0; i0<TCSColumns.length; i0++) {
+									prevLoopValues[i0] = TCSValues[(numberOfLoops*i0)+(TCSLoops-1)];
+								}
 		
-							//Here we open the Mask Generation.csv file from the previous TCS loop and get out the information
-							//about which mask generation was successful and store these in the maskSuccessPrev array
-							previousTCSDir=directories[1]+baseName+"/TCS"+prevLoopValues[0]+"/";
-		
-							run("Clear Results");
-							open(previousTCSDir+"Mask Generation.csv");
-							selectWindow("Mask Generation.csv");
-							resultsNo=Table.size; 	
-							for(i0=0; i0<resultsNo; i0++) {
-								maskSuccessPrev[i0] = Table.get("Mask Success", i0);
-							}
-							Table.reset("Mask Generation.csv");
-							//Array.show(maskSuccessPrev);
-							//waitForUser("Check this line 2820");
-							Table.update;
+								//Here we open the Mask Generation.csv file from the previous TCS loop and get out the information
+								//about which mask generation was successful and store these in the maskSuccessPrev array
+								previousTCSDir=directories[1]+baseName+"/TCS"+prevLoopValues[0]+"/";
+			
+								run("Clear Results");
+								open(previousTCSDir+"Mask Generation.csv");
+								selectWindow("Mask Generation.csv");
+								resultsNo=Table.size; 	
+								for(i0=0; i0<resultsNo; i0++) {
+									maskSuccessPrev[i0] = Table.get("Mask Success", i0);
+								}
+								Table.reset("Mask Generation.csv");
+								//Array.show(maskSuccessPrev);
+								//waitForUser("Check this line 2820");
+								Table.update;
 			
-						}
+							}
 	
-						//This is an array of headers for data we want to record for the cells we're going to be creating masks for - xOpt and yOpt are the x and y coordinates
-						//that are located on the pixel with the maximum grey value on that cell, details follow later
-						//Mask name is the name of the mask, try is whether we tried generating a mask for it or not, success is whether it was a success
-						valuesToRecord = newArray("Mask Name", "Mask Try", "Mask Success", "xOpt", "yOpt");
+							//This is an array of headers for data we want to record for the cells we're going to be creating masks for - xOpt and yOpt are the x and y coordinates
+							//that are located on the pixel with the maximum grey value on that cell, details follow later
+							//Mask name is the name of the mask, try is whether we tried generating a mask for it or not, success is whether it was a success
+							valuesToRecord = newArray("Mask Name", "Mask Try", "Mask Success", "xOpt", "yOpt");
 						
-						//This is an array that will store all the data associated wtih the headers but in a single dimension, where the first maskDirFiles.length
-						//indices correspond to "Mask Name", then "Mask Try" etc.
-						analysisRecordInput = newArray(totalCells*valuesToRecord.length);
+							//This is an array that will store all the data associated wtih the headers but in a single dimension, where the first maskDirFiles.length
+							//indices correspond to "Mask Name", then "Mask Try" etc.
+							analysisRecordInput = newArray(totalCells*valuesToRecord.length);
 						
-						//These are the locations of any previously generated tables that contain the valuesToRecord info
-						resultsTableRefs = newArray(TCSDir+"Mask Generation.csv", TCSDir+"Mask Generation.csv", TCSDir+"Mask Generation.csv",
+							//These are the locations of any previously generated tables that contain the valuesToRecord info
+							resultsTableRefs = newArray(TCSDir+"Mask Generation.csv", TCSDir+"Mask Generation.csv", TCSDir+"Mask Generation.csv",
 													TCSDir+"Mask Generation.csv", TCSDir+"Mask Generation.csv");
 					
-						//This is whether the results to get are strings or not
-						resultsAreStrings = newArray(true, false, false, false, false);
+							//This is whether the results to get are strings or not
+							resultsAreStrings = newArray(true, false, false, false, false);
 				
-						//Here we fill our analysisRecordInput with the data we want as outlined in valuesToRecord if it exists from previous runs of the macro
-						fillArray(analysisRecordInput, resultsTableRefs, valuesToRecord, resultsAreStrings, true);
+							//Here we fill our analysisRecordInput with the data we want as outlined in valuesToRecord if it exists from previous runs of the macro
+							fillArray(analysisRecordInput, resultsTableRefs, valuesToRecord, resultsAreStrings, true);
 				
-						//We then concatenate on the x and y coordinates of our cell positons as well the as the name of the substack these coordinates are in to our
-						//analysisRecordInput array
-						analysisRecordInput = Array.concat(analysisRecordInput, X);
-						analysisRecordInput = Array.concat(analysisRecordInput, Y);
-						analysisRecordInput = Array.concat(analysisRecordInput, finalSub);
+							//We then concatenate on the x and y coordinates of our cell positons as well the as the name of the substack these coordinates are in to our
+							//analysisRecordInput array
+							analysisRecordInput = Array.concat(analysisRecordInput, X);
+							analysisRecordInput = Array.concat(analysisRecordInput, Y);
+							analysisRecordInput = Array.concat(analysisRecordInput, finalSub);
 							
-						//We then also add on the headers for this data to our valuestoRecord array and make a new headers array that contains them both
-						toAdd = newArray("X Coord", "Y Coord", "Substack Name");
-						tableLabels = Array.concat(valuesToRecord, toAdd);
+							//We then also add on the headers for this data to our valuestoRecord array and make a new headers array that contains them both
+							toAdd = newArray("X Coord", "Y Coord", "Substack Name");
+							tableLabels = Array.concat(valuesToRecord, toAdd);
 		
-						//Here make a table that we fill with information that corresponds to table lables i.e.
-						// "Mask Name", "Mask Try", "Mask Success", "xOpt", "yOpt", "X Coord", "Y Coord", "Substack Name"
+							//Here make a table that we fill with information that corresponds to table lables i.e.
+							// "Mask Name", "Mask Try", "Mask Success", "xOpt", "yOpt", "X Coord", "Y Coord", "Substack Name"
 				
-						Table.create("Mask Generation PreChange");
-						selectWindow("Mask Generation PreChange");
-						for(i1=0; i1<totalCells; i1++) {
-							for(i2=0; i2<tableLabels.length; i2++) {
-								if(i2 == 0 || i2 == 7) {
-									stringValue = analysisRecordInput[(totalCells*i2)+i1];
-									Table.set(tableLabels[i2], i1, stringValue);
-								} else {
-									Table.set(tableLabels[i2], i1, analysisRecordInput[(totalCells*i2)+i1]);
+							Table.create("Mask Generation PreChange");
+							selectWindow("Mask Generation PreChange");
+							for(i1=0; i1<totalCells; i1++) {
+								for(i2=0; i2<tableLabels.length; i2++) {
+									if(i2 == 0 || i2 == 7) {
+										stringValue = analysisRecordInput[(totalCells*i2)+i1];
+										Table.set(tableLabels[i2], i1, stringValue);
+									} else {
+										Table.set(tableLabels[i2], i1, analysisRecordInput[(totalCells*i2)+i1]);
+									}
 								}
 							}
-						}
 
-						if(isOpen("Mask Generation PreChange")==false) {
-							setBatchMode("exit and display");
-							waitForUser("Table not made or disappearead");
-						}
-		
-						//We now loop through all the cells for this given input image
-						for(i0=0; i0<totalCells; i0++) {
-							
-							//Here we create an array to store the following data for a given cell
-							currentMaskValues = newArray(8);
-							//[0] is mask name, [1] is mask try, [2] mask success, [3] xopt, [4] yopt, [5] x, [6] y, [7] substack
-		
-							//We fill our currentMaskValues with the correct data from analysisRecordInput by indexing into it in the appropriate locations
-							for(i1=0; i1<currentMaskValues.length; i1++) {
-								currentMaskValues[i1] = analysisRecordInput[(totalCells*i1)+i0];
+							if(isOpen("Mask Generation PreChange")==false) {
+								setBatchMode("exit and display");
+								waitForUser("Table not made or disappearead");
 							}
+		
+							//We now loop through all the cells for this given input image
+							for(i0=0; i0<totalCells; i0++) {
 							
+								//Here we create an array to store the following data for a given cell
+								currentMaskValues = newArray(8);
+								//[0] is mask name, [1] is mask try, [2] mask success, [3] xopt, [4] yopt, [5] x, [6] y, [7] substack
+		
+								//We fill our currentMaskValues with the correct data from analysisRecordInput by indexing into it in the appropriate locations
+								for(i1=0; i1<currentMaskValues.length; i1++) {
+									currentMaskValues[i1] = analysisRecordInput[(totalCells*i1)+i0];
+								}
 							
-							if((i0+1) == 33 && totalCells == 42 && imgName == "CP mask for Substack (51-60).tif" && baseName == "Hipp11 - 11 HFD HFD56 Microglia Morphology" && currentLoopValues[0] == 400) {
-								currentMaskValues[1] = 1;
-								currentMaskValues[2] = 0;
-							}
-							
-							//We create an array to store different names we need for our mask generation where [0] is the name to save an image as, [1] is the
-							//fileName, and [2] is the LRName. [0] and [1] are repeats as we edit them differently within functions
-							imageNamesArray = newArray(storageFoldersArray[3]+"Candidate mask for " + finalSub[i0] + " x " + X[i0] +  " y " + Y[i0] + " .tif", 
+								//We create an array to store different names we need for our mask generation where [0] is the name to save an image as, [1] is the
+								//fileName, and [2] is the LRName. [0] and [1] are repeats as we edit them differently within functions
+								imageNamesArray = newArray(storageFoldersArray[3]+"Candidate mask for " + finalSub[i0] + " x " + X[i0] +  " y " + Y[i0] + " .tif", 
 												"Candidate mask for " + finalSub[i0] + " x " + X[i0] +  " y " + Y[i0] + " .tif",
 												"Local region for " + finalSub[i0] + " x " + X[i0] + " y " + Y[i0] + " .tif");
 												//[0] is saveName, [1] is fileName, [2] is LRName
 			
-							//Here we set the cell name of the current mask to fileName
-							currentMaskValues[0]=imageNamesArray[1];
+								//Here we set the cell name of the current mask to fileName
+								currentMaskValues[0]=imageNamesArray[1];
 							
-							//If the current mask hasn't been tried, and making the mask previously was a success then we try to make a mask - the reason we check previously
-							//is because our TCS sizes increase with each loop, so if we couldn't make a mask on a previous loop where the TCS was smaller, that means the mask 
-							//must have been touching the edges of the image, so with a larger TCS, then we're guaranteed that the mask will touch the edges so we don't bother
-							//trying to make a mask for it anymore
+								//If the current mask hasn't been tried, and making the mask previously was a success then we try to make a mask - the reason we check previously
+								//is because our TCS sizes increase with each loop, so if we couldn't make a mask on a previous loop where the TCS was smaller, that means the mask 
+								//must have been touching the edges of the image, so with a larger TCS, then we're guaranteed that the mask will touch the edges so we don't bother
+								//trying to make a mask for it anymore
 		
-							if(currentMaskValues[1]==0 && maskSuccessPrev[i0]==1) {
+								if(currentMaskValues[1]==0 && maskSuccessPrev[i0]==1) {
 		
-								//If we haven't previously retrieved the calibration values for this image, then we fill the
-								//iniTextValuesMicrons array with the calibration information and set gottenCalibration to true
-								if(gottenCalibration == false) {
-									getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-									gottenCalibration = true;
-								}
+									//If we haven't previously retrieved the calibration values for this image, then we fill the
+									//iniTextValuesMicrons array with the calibration information and set gottenCalibration to true
+									if(gottenCalibration == false) {
 
-								//Array.show(iniTextValuesMicrons);
-								//waitForUser("Check if this is wrongly calibrated - last index should be 1 if wrong - also need to check how this relates to hippo vs V1");
-			
-								//This is an array to store the size of the local region in pixels (i.e. 120um in pixels)
-								LRLengthPixels=(maskGenerationArray[3])*(1/iniTextValuesMicrons[0]);
-								//[3] is size of the local region, [0] is the pixel size
+										getAnimalTimepointInfo(imageNames, forUse);
+										baseName = substring(loopThrough[i], 0, lastIndexOf(loopThrough[i], "/"));
+
+										if(analysisSelections[6] == true) {
+				
+											//Fill that array with the calibration data for that animal at that 
+											//timepoint
+											getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
+
+										} else {
+
+											open(directories[1]+baseName+"/"+baseName+" processed.tif");
+							
+											iniTextValuesMicrons[4] = noIniFperZ;
+											iniTextValuesMicrons[3] = nSlices;
+												
+											getVoxelSize(vWidth, vHeight, vDepth, vUnit);
+											iniTextValuesMicrons[0] = vWidth;
+											iniTextValuesMicrons[1] = vHeight;
+											iniTextValuesMicrons[2] = vDepth;
+							
+											run("Close");
+
+										
+										}
+					
+										gottenCalibration = true;
+									}
+
+									//Array.show(iniTextValuesMicrons);
+									//waitForUser("Check if this is wrongly calibrated - last index should be 1 if wrong - also need to check how this relates to hippo vs V1");
+				
+									//This is an array to store the size of the local region in pixels (i.e. 120um in pixels)
+									LRLengthPixels=(LRSize*(1/iniTextValuesMicrons[0]);
+									//[3] is size of the local region, [0] is the pixel size
 								
-								//If the CP mask image isn't already open
-								if(!isOpen("CP mask for " + finalSub[i0] + ".tif")) {
-		
-									//We open the image then calibrate it before converting it to 8-bit
-									open(directories[1]+baseName+"/Cell Coordinate Masks/CP mask for " + finalSub[i0]+".tif");
-									imgName = getTitle();
-									run("Select None");
-									run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width="+iniTextValuesMicrons[0]+" pixel_height="+iniTextValuesMicrons[1]+" voxel_depth="+iniTextValuesMicrons[2]+"");
-									getDimensions(originalWidth, originalHeight, originalChannels, originalSlices, originalFrames);
-									run("8-bit");	
-								}
+									//If the CP mask image isn't already open
+									if(!isOpen("CP mask for " + finalSub[i0] + ".tif")) {
+			
+										//We open the image then calibrate it before converting it to 8-bit
+										open(directories[1]+baseName+"/Cell Coordinate Masks/CP mask for " + finalSub[i0]+".tif");
+										imgName = getTitle();
+										run("Select None");
+										run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width="+iniTextValuesMicrons[0]+" pixel_height="+iniTextValuesMicrons[1]+" voxel_depth="+iniTextValuesMicrons[2]+"");
+										getDimensions(originalWidth, originalHeight, originalChannels, originalSlices, originalFrames);
+										run("8-bit");	
+									}
 								
-								//Here we create an array to store the coordinates we're going to be analysing for this cell
-								coordsArray = newArray(X[i0], Y[i0]);
-										
-								//Here we work out the number of pixels that represent 5 microns so we can use this to calculate if the coordinates are within the 5um buffer zone
-								//of the edge of the image
-								fiveMicronsInPixels=5*(1/iniTextValuesMicrons[0]);
-		
-								//If the y coordinate isn't less than 5 microns from the bottom or top edges of the image, and the x coordinate isn't less than 5 pixels from the width, then we
-								//proceed
-								if (!(coordsArray[1]<=fiveMicronsInPixels) || !(coordsArray[1]>=(originalHeight-fiveMicronsInPixels)) || !(coordsArray[0]>=(originalWidth-fiveMicronsInPixels)) || !(coordsArray[0]<=fiveMicronsInPixels)) { 	
-		
-									//Here we store x and y values that we would use to draw a 120x120um square aruond our coordinate - we store the coordinates
-									//that would be the top left corner of this square as that is what we need to input to draw it
-									newCoordsArray = newArray(coordsArray[0]-(LRLengthPixels/2), coordsArray[1]-(LRLengthPixels/2));
-									//[0] is xcordn, [1] is ycordn
-		
-									//This array is created to store the length in x and y of the local region we're going to draw - in theory it should be 120um
-									//for both directions but if our coordinate is close enough to the edge of our image that this isn't true, we adjust it
-									LRLengthArray = newArray(2);
-									//[0] is xLength, [1] is yLength
-		
-									//This array stores the width and height of our image so we can check against these
-									dimensionsCheckingArray = newArray(originalWidth, originalHeight);
+									//Here we create an array to store the coordinates we're going to be analysing for this cell
+									coordsArray = newArray(X[i0], Y[i0]);
+											
+									//Here we work out the number of pixels that represent 5 microns so we can use this to calculate if the coordinates are within the 5um buffer zone
+									//of the edge of the image
+									fiveMicronsInPixels=5*(1/iniTextValuesMicrons[0]);
 			
-									//Idea here is that if our x or y coordinates are less than half a LR length away from the edge, the LR length we create is half the 
-									//usual length + however far our coordinate is from the edge
-									//We also set our rectangle making coordinates to 0 if they would be less than 0 (i.e. our coordinates are less than half the LR distance
-									//from the pictre edges
+									//If the y coordinate isn't less than 5 microns from the bottom or top edges of the image, and the x coordinate isn't less than 5 pixels from the width, then we
+									//proceed
+									if (!(coordsArray[1]<=fiveMicronsInPixels) || !(coordsArray[1]>=(originalHeight-fiveMicronsInPixels)) || !(coordsArray[0]>=(originalWidth-fiveMicronsInPixels)) || !(coordsArray[0]<=fiveMicronsInPixels)) { 	
 			
-									//For each iteration we first do x then y coordinates
-									for(i1=0; i1<2; i1++) {
-										if(coordsArray[i1]<(LRLengthPixels/2)) {
-											newCoordsArray[i1]=0;
-											LRLengthArray[i1]=(LRLengthPixels/2) + coordsArray[i1];
-										
-										//Here we calculate what the length of our selection will have to be to take into account the coordinates location in the image
-										} else if (coordsArray[i1]>(dimensionsCheckingArray[i1]-(LRLengthPixels/2))) {
-											LRLengthArray[i1] = (LRLengthPixels/2)+(dimensionsCheckingArray[i1]-coordsArray[i1]);
-										} else {
-											LRLengthArray[i1] = LRLengthPixels;
-										}
-									}
+										//Here we store x and y values that we would use to draw a 120x120um square aruond our coordinate - we store the coordinates
+										//that would be the top left corner of this square as that is what we need to input to draw it
+										newCoordsArray = newArray(coordsArray[0]-(LRLengthPixels/2), coordsArray[1]-(LRLengthPixels/2));
+										//[0] is xcordn, [1] is ycordn
 			
-									//Making and saving local regions, running first Otsu method and getting initial value on which to base iterative process	
-									print("Coordinate number " + (i0+1) + "/" + totalCells);
-									print("Making local region image of 120um x 120um centered on X: " + coordsArray[0] + " Y: " + coordsArray[1]);
-									selectWindow(imgName);
-
-									imageT = getList("image.titles");
-									otherT =  getList("window.titles");
-									Array.show(imageT, otherT);
-									found = false;
-									for(currName = 0; currName < otherT.length; currName++) {
-										if(otherT[currName] == "Mask Generation PreChange") {
-											found = true;
-											currName = 1e99;
-										}
-									}
-									if(found==false) {
-										setBatchMode("Exit and Display");
-										waitForUser("Not present at very start");
-										setBatchMode(true);
-									}
-		
-									//Here we make our local region based on all the values we've calculated
-									makeRectangle(newCoordsArray[0], newCoordsArray[1], LRLengthArray[0], LRLengthArray[1]);
-									run("Duplicate...", " ");
-									tifLess = substring(imgName, 0, indexOf(imgName, ".tif"));
-									selectWindow(tifLess + "-1.tif");
-									rename("LR");
+										//This array is created to store the length in x and y of the local region we're going to draw - in theory it should be 120um
+										//for both directions but if our coordinate is close enough to the edge of our image that this isn't true, we adjust it
+										LRLengthArray = newArray(2);
+										//[0] is xLength, [1] is yLength
 			
-									//We then auto threshold the LR and then get the lower and upper threshold levels from the otsu method and call the lower threshold
-									//otsu
-									setAutoThreshold("Otsu dark");
-									getThreshold(otsu, upper);
-									print("Finding connected pixels from CP using threshold");
-			
-									getDimensions(LRwidth, LRheight, LRchannels, LRslices, LRframes); //These are the dimensions of our LR image
-									run("Select None");
-		
-									//Here we create an array that stores the coordinates of a point selection right in the middle of our LR - this is assuming of course
-									//that our selection was somewhere near the cell to begin with
-									LRCoords = newArray(round((LRLengthPixels/2)+(LRwidth-LRLengthPixels)), round((LRLengthPixels/2)+(LRheight-LRLengthPixels)));
-									//[0] is newXCoord, [1] is newYCoord
-			
-									//We get the grey value at that point selection, and then if the lower threshold of the image
-									//is bigger than that value, we set it to that value
-									pointValue = (getPixel(LRCoords[0], LRCoords[1])) - 1;
-									if(otsu>=pointValue) {
-										otsu = pointValue-1;
-									}
-
-									//print(pointValue);
-									//print(otsu);
-									//We then make the point on our image and find all connected pixels to that point that have grey values greater than the otsu value
-									selectWindow("LR");
-									makePoint(LRCoords[0], LRCoords[1]);
-									setBackgroundColor(0,0,0);
-									run("Find Connected Regions", "allow_diagonal display_image_for_each start_from_point regions_for_values_over="+otsu+" minimum_number_of_points=1 stop_after=1");
-									imgNamemask=getTitle();
-									rename("Connected");
-									selectWindow("Connected");
-									run("Invert");
-									run("Create Selection");
-									roiManager("add");
-									print("Connected pixels found");
-			
-									//We clear outside of our selection in our LR, then find the maxima in that and get the coordinates of the maxima
-									//to store these coordinates as the optimal point selection location
-			
-									//We need to find the optimal location as we want our point selection to be on the brightest pixel on our target cell
-									//to ensure that our point selection isn't on a local minima, which whould make finding connected pixels that are 
-									//actually from our target cell very error-prone
-									
-									print("Fine-tuning CP point selection based on mask");
-									selectWindow("LR");
-									run("Duplicate...", " ");
-									selectWindow("LR-1");
-									roiManager("Select", 0);
-									run("Clear Outside");
-									List.setMeasurements;
-					
-									//Here we get the max value in the image and get out the point selection associated with the maxima using the
-									//"find maxima" function			
-									topValue = List.getValue("Max");
-									run("Select None");
-									run("Find Maxima...", "noise=1000 output=[Point Selection]");
-									getSelectionCoordinates(tempX, tempY);
-									currentMaskValues[3] = tempX[0];
-									currentMaskValues[4] = tempY[0];
-									selectWindow("LR-1");
-									run("Close");
-									selectWindow("Connected");
-									run("Close");
-			
-									//Now that we're certain we've got the optimal coordinates, we save our LR image
-									selectWindow("LR");
-									saveAs("tiff", storageFoldersArray[4]+imageNamesArray[2]);
-									selectWindow(imageNamesArray[2]);
-									rename("LR");
-									run("Select None");
-					
-									//Here we are finding the same connected regions using the maxima as our point selection and then measuring the area
-									//of the connected region to get an initial area size associated with the starting otsu value
-									area = getConnectedArea(currentMaskValues[3], currentMaskValues[4], otsu);
-									imgNamemask = getTitle();
-									
-									//Here we check the area output, and if it fits in certain conditions we either proceed with the iterative thresholding or move onto the next cell - more explanation can be found
-									//with the corresponding functions for each condition
-									
-									//If it less than our lower limit, then we check if its touching edges and it not, we keep iterating
-									if (area<limits[0]) {
-										threshContinue=touchingCheck(imgNamemask, imgNamemask, imgNamemask, 0);
-							     	
-							     	//If its within our limits, we check if its touching edges, and if it isn't touching any edges we save it, else we keep going
-							     	} else if (area<=limits[1] && area>=limits[0]) {
-										print("Area is = "+currentLoopValues[0]+"um^2 +/- "+selection[2]+"um^2");
-										threshContinue=touchingCheck(imgNamemask, imageNamesArray[0], imageNamesArray[1],1);
-										
-										//Set mask success to 1
-										if(threshContinue == false) {
-											currentMaskValues[2] = 1;
-										}
-		
-							     	//If we're above the limits, we continue iterating
-							     	} else if (area>limits[1]) {
-										threshContinue=true;	
-									}
-			
-									selectWindow(imgNamemask);
-									run("Close");
-									
-									//These variables are changed depending on how many iterations a mask has stabilised for (regardless of whether it fits
-									// the TCS +/- the range, as if it stabilized 3 times we keep it), and loopcount ticks up each iteration we go through
-									//as we use this value to change the otsu we use for the subsequent iteration 
-									maskGenerationVariables = newArray(0,0);
-									//[0] is stabilized, [1] is loopcount
-
-									imageT = getList("image.titles");
-									otherT =  getList("window.titles");
-									Array.show(imageT, otherT);
-									found = false;
-									for(currName = 0; currName < otherT.length; currName++) {
-										if(otherT[currName] == "Mask Generation PreChange") {
-											found = true;
-											currName = 1e99;
-										}
-									}
-									if(found==false) {
-										setBatchMode("Exit and Display");
-										waitForUser("Mask generation not present before entering while loop");
-										setBatchMode(true);
-									}
-			
-									//Here we are proceeding with the iterative thresholding
-									while (threshContinue==true) {
-						
-										maskGenerationVariables[1]++; //Each iteration we increase loopCount, this modifies how we alter the threshold value
-					
-										//Here we have to constantly check if our Otsu value is above the top and adjust accordingly
-										otsu = valueCheck(otsu, topValue);
-			
-										//This array stores out current otsu value normalised to 255 in index [0], and the next threshold value we'll use in postion [1] based
-										//on a formula outlined later
-										otsuVariables = newArray(otsu/255, (((otsu/255)*(((area-currentLoopValues[0])/maskGenerationVariables[1])/currentLoopValues[0]))+(otsu/255))*255);
-										//[0] is otsuNorm, [1] is nextThresh
-	
-										//print("nextThresh: ", otsuVariables[1]);
-										//print("otsuNorm: ", otsu/255);
-										//print("area: ", area);
-										//print("TCS: ", currentLoopValues[0]);
-										//print("Loop count: ", maskGenerationVariables[1]);
-										
-										//nextTRaw=((otsuNorm*(((area-TCS[TCSLoops])/loopCount)/TCS[TCSLoops]))+otsuNorm); //Eq for calculating next threshold
-		
-										//Similarly here to check if our next threshold value is above the top and adjust accordingly
-										otsuVariables[1] = valueCheck(otsuVariables[1], topValue);
-					
-										//Here we get another area from our find connected regions
-										selectWindow("LR");
-										//print("otsu to check: ", otsuVariables[1]);
-										//print("bottom value: ", bottomValue);
-										//print("top value: ", topValue);
-										areaNew = getConnectedArea(currentMaskValues[3], currentMaskValues[4], otsuVariables[1]);
-										imgNamemask = getTitle();
-						
-										//If we get the same area for 3 iterations we exit the iterative process, so here we count identical areas 
-										//(but if for any one instance they are not identical, we rest the counter)
-										if (areaNew==area){
-											maskGenerationVariables[0]++;
-										} else {
-											maskGenerationVariables[0]=0;	
-										}
-			
-										//Here, as before, we look at which condition the mask falls into and act appropriately to either continue iterating, 
-										//save the mask, or discard the mask
-		
-										//If we're below the lower limit for area and not stabilised, we check for touching
-										if(areaNew<limits[0] && maskGenerationVariables[0]!=3) {
-											threshContinue=touchingCheck(imgNamemask, imgNamemask, imgNamemask, 0);
-		
-										//If we're within limits and not stabilised, we touchingCheck
-										} else if (areaNew<=limits[1] && areaNew>=limits[0] && maskGenerationVariables[0]!=3) {	
-											print("Area is = "+currentLoopValues[0]+"um^2 +/- "+selection[2]+"um^2");
-											threshContinue=touchingCheck(imgNamemask, imageNamesArray[0], imageNamesArray[1],1);
-										
-										//If we're over the limits and not stabilised, we continue
-										} else if (areaNew>limits[1] && maskGenerationVariables[0]!=3) {
-											threshContinue=true;
-										
-										//If we're stabilised, we touching check with type 2
-										} else if (maskGenerationVariables[0] == 3) {
-											threshContinue = touchingCheck(imgNamemask, imageNamesArray[0], imageNamesArray[1],2);
-										}
-										
-										selectWindow(imgNamemask);
-										run("Close");
-						
-										//print("Old area:" + area);
-										//print("Old otsu: "+ otsu);
-										//print("Current area: "+ areaNew);
-										//print("Current otsu:" + otsuVariables[1]);
-										print("Stabilised:" + maskGenerationVariables[0]);
-					
-										//If we're continuing, then we reset our areas and otsus and go through this again
-										if (threshContinue==true) {
-											print("Continuing");
-											otsu=otsuVariables[1];
-											area=areaNew;
-										
-										//If we're done with this cell, we set maskSuccess to 1 if we've saved a mask
-										} else {
-											print("Finished");
-											if(File.exists(imageNamesArray[0])==1) {
-												currentMaskValues[2] = 1;
+										//This array stores the width and height of our image so we can check against these
+										dimensionsCheckingArray = newArray(originalWidth, originalHeight);
+				
+										//Idea here is that if our x or y coordinates are less than half a LR length away from the edge, the LR length we create is half the 
+										//usual length + however far our coordinate is from the edge
+										//We also set our rectangle making coordinates to 0 if they would be less than 0 (i.e. our coordinates are less than half the LR distance
+										//from the pictre edges
+				
+										//For each iteration we first do x then y coordinates
+										for(i1=0; i1<2; i1++) {
+											if(coordsArray[i1]<(LRLengthPixels/2)) {
+												newCoordsArray[i1]=0;
+												LRLengthArray[i1]=(LRLengthPixels/2) + coordsArray[i1];
+											
+											//Here we calculate what the length of our selection will have to be to take into account the coordinates location in the image
+											} else if (coordsArray[i1]>(dimensionsCheckingArray[i1]-(LRLengthPixels/2))) {
+												LRLengthArray[i1] = (LRLengthPixels/2)+(dimensionsCheckingArray[i1]-coordsArray[i1]);
+											} else {
+												LRLengthArray[i1] = LRLengthPixels;
 											}
 										}
+				
+										//Making and saving local regions, running first Otsu method and getting initial value on which to base iterative process	
+										print("Coordinate number " + (i0+1) + "/" + totalCells);
+										print("Making local region image of 120um x 120um centered on X: " + coordsArray[0] + " Y: " + coordsArray[1]);
+										selectWindow(imgName);
+	
+										imageT = getList("image.titles");
+										otherT =  getList("window.titles");
+										Array.show(imageT, otherT);
+										found = false;
+										for(currName = 0; currName < otherT.length; currName++) {
+											if(otherT[currName] == "Mask Generation PreChange") {
+												found = true;
+												currName = 1e99;
+											}
+										}
+										if(found==false) {
+											setBatchMode("Exit and Display");
+											waitForUser("Not present at very start");
+											setBatchMode(true);
+										}
 			
-									} //Once the output of threshContinue==false, then we exit the process
-									selectWindow("LR");
-									run("Close");
+										//Here we make our local region based on all the values we've calculated
+										makeRectangle(newCoordsArray[0], newCoordsArray[1], LRLengthArray[0], LRLengthArray[1]);
+										run("Duplicate...", " ");
+										tifLess = substring(imgName, 0, indexOf(imgName, ".tif"));
+										selectWindow(tifLess + "-1.tif");
+										rename("LR");
+			
+										//We then auto threshold the LR and then get the lower and upper threshold levels from the otsu method and call the lower threshold
+										//otsu
+										setAutoThreshold("Otsu dark");
+										getThreshold(otsu, upper);
+										print("Finding connected pixels from CP using threshold");
+				
+										getDimensions(LRwidth, LRheight, LRchannels, LRslices, LRframes); //These are the dimensions of our LR image
+										run("Select None");
+			
+										//Here we create an array that stores the coordinates of a point selection right in the middle of our LR - this is assuming of course
+										//that our selection was somewhere near the cell to begin with
+										LRCoords = newArray(round((LRLengthPixels/2)+(LRwidth-LRLengthPixels)), round((LRLengthPixels/2)+(LRheight-LRLengthPixels)));
+										//[0] is newXCoord, [1] is newYCoord
+				
+										//We get the grey value at that point selection, and then if the lower threshold of the image
+										//is bigger than that value, we set it to that value
+										pointValue = (getPixel(LRCoords[0], LRCoords[1])) - 1;
+										if(otsu>=pointValue) {
+											otsu = pointValue-1;
+										}
+	
+										//print(pointValue);
+										//print(otsu);
+										//We then make the point on our image and find all connected pixels to that point that have grey values greater than the otsu value
+										selectWindow("LR");
+										makePoint(LRCoords[0], LRCoords[1]);
+										setBackgroundColor(0,0,0);
+										run("Find Connected Regions", "allow_diagonal display_image_for_each start_from_point regions_for_values_over="+otsu+" minimum_number_of_points=1 stop_after=1");
+										imgNamemask=getTitle();
+										rename("Connected");
+										selectWindow("Connected");
+										run("Invert");
+										run("Create Selection");
+										roiManager("add");
+										print("Connected pixels found");
+				
+										//We clear outside of our selection in our LR, then find the maxima in that and get the coordinates of the maxima
+										//to store these coordinates as the optimal point selection location
+				
+										//We need to find the optimal location as we want our point selection to be on the brightest pixel on our target cell
+										//to ensure that our point selection isn't on a local minima, which whould make finding connected pixels that are 
+										//actually from our target cell very error-prone
+										
+										print("Fine-tuning CP point selection based on mask");
+										selectWindow("LR");
+										run("Duplicate...", " ");
+										selectWindow("LR-1");
+										roiManager("Select", 0);
+										run("Clear Outside");
+										List.setMeasurements;
+						
+										//Here we get the max value in the image and get out the point selection associated with the maxima using the
+										//"find maxima" function			
+										topValue = List.getValue("Max");
+										run("Select None");
+										run("Find Maxima...", "noise=1000 output=[Point Selection]");
+										getSelectionCoordinates(tempX, tempY);
+										currentMaskValues[3] = tempX[0];
+										currentMaskValues[4] = tempY[0];
+										selectWindow("LR-1");
+										run("Close");
+										selectWindow("Connected");
+										run("Close");
+				
+										//Now that we're certain we've got the optimal coordinates, we save our LR image
+										selectWindow("LR");
+										saveAs("tiff", storageFoldersArray[4]+imageNamesArray[2]);
+										selectWindow(imageNamesArray[2]);
+										rename("LR");
+										run("Select None");
+						
+										//Here we are finding the same connected regions using the maxima as our point selection and then measuring the area
+										//of the connected region to get an initial area size associated with the starting otsu value
+										area = getConnectedArea(currentMaskValues[3], currentMaskValues[4], otsu);
+										imgNamemask = getTitle();
+										
+										//Here we check the area output, and if it fits in certain conditions we either proceed with the iterative thresholding or move onto the next cell - more explanation can be found
+										//with the corresponding functions for each condition
+										
+										//If it less than our lower limit, then we check if its touching edges and it not, we keep iterating
+										if (area<limits[0]) {
+											threshContinue=touchingCheck(imgNamemask, imgNamemask, imgNamemask, 0);
+								     	
+								     	//If its within our limits, we check if its touching edges, and if it isn't touching any edges we save it, else we keep going
+								     	} else if (area<=limits[1] && area>=limits[0]) {
+											print("Area is = "+currentLoopValues[0]+"um^2 +/- "+selection[2]+"um^2");
+											threshContinue=touchingCheck(imgNamemask, imageNamesArray[0], imageNamesArray[1],1);
+											
+											//Set mask success to 1
+											if(threshContinue == false) {
+												currentMaskValues[2] = 1;
+											}
+			
+								     	//If we're above the limits, we continue iterating
+								     	} else if (area>limits[1]) {
+											threshContinue=true;	
+										}
+				
+										selectWindow(imgNamemask);
+										run("Close");
+										
+										//These variables are changed depending on how many iterations a mask has stabilised for (regardless of whether it fits
+										// the TCS +/- the range, as if it stabilized 3 times we keep it), and loopcount ticks up each iteration we go through
+										//as we use this value to change the otsu we use for the subsequent iteration 
+										maskGenerationVariables = newArray(0,0);
+										//[0] is stabilized, [1] is loopcount
+	
+										imageT = getList("image.titles");
+										otherT =  getList("window.titles");
+										Array.show(imageT, otherT);
+										found = false;
+										for(currName = 0; currName < otherT.length; currName++) {
+											if(otherT[currName] == "Mask Generation PreChange") {
+												found = true;
+												currName = 1e99;
+											}
+										}
+										if(found==false) {
+											setBatchMode("Exit and Display");
+											waitForUser("Mask generation not present before entering while loop");
+											setBatchMode(true);
+										}
+				
+										//Here we are proceeding with the iterative thresholding
+										while (threshContinue==true) {
+							
+											maskGenerationVariables[1]++; //Each iteration we increase loopCount, this modifies how we alter the threshold value
+						
+											//Here we have to constantly check if our Otsu value is above the top and adjust accordingly
+											otsu = valueCheck(otsu, topValue);
+				
+											//This array stores out current otsu value normalised to 255 in index [0], and the next threshold value we'll use in postion [1] based
+											//on a formula outlined later
+											otsuVariables = newArray(otsu/255, (((otsu/255)*(((area-currentLoopValues[0])/maskGenerationVariables[1])/currentLoopValues[0]))+(otsu/255))*255);
+											//[0] is otsuNorm, [1] is nextThresh
+		
+											//print("nextThresh: ", otsuVariables[1]);
+											//print("otsuNorm: ", otsu/255);
+											//print("area: ", area);
+											//print("TCS: ", currentLoopValues[0]);
+											//print("Loop count: ", maskGenerationVariables[1]);
+											
+											//nextTRaw=((otsuNorm*(((area-TCS[TCSLoops])/loopCount)/TCS[TCSLoops]))+otsuNorm); //Eq for calculating next threshold
+			
+											//Similarly here to check if our next threshold value is above the top and adjust accordingly
+											otsuVariables[1] = valueCheck(otsuVariables[1], topValue);
+						
+											//Here we get another area from our find connected regions
+											selectWindow("LR");
+											//print("otsu to check: ", otsuVariables[1]);
+											//print("bottom value: ", bottomValue);
+											//print("top value: ", topValue);
+											areaNew = getConnectedArea(currentMaskValues[3], currentMaskValues[4], otsuVariables[1]);
+											imgNamemask = getTitle();
+							
+											//If we get the same area for 3 iterations we exit the iterative process, so here we count identical areas 
+											//(but if for any one instance they are not identical, we rest the counter)
+											if (areaNew==area){
+												maskGenerationVariables[0]++;
+											} else {
+												maskGenerationVariables[0]=0;	
+											}
+				
+											//Here, as before, we look at which condition the mask falls into and act appropriately to either continue iterating, 
+											//save the mask, or discard the mask
+			
+											//If we're below the lower limit for area and not stabilised, we check for touching
+											if(areaNew<limits[0] && maskGenerationVariables[0]!=3) {
+												threshContinue=touchingCheck(imgNamemask, imgNamemask, imgNamemask, 0);
+			
+											//If we're within limits and not stabilised, we touchingCheck
+											} else if (areaNew<=limits[1] && areaNew>=limits[0] && maskGenerationVariables[0]!=3) {	
+												print("Area is = "+currentLoopValues[0]+"um^2 +/- "+selection[2]+"um^2");
+												threshContinue=touchingCheck(imgNamemask, imageNamesArray[0], imageNamesArray[1],1);
+											
+											//If we're over the limits and not stabilised, we continue
+											} else if (areaNew>limits[1] && maskGenerationVariables[0]!=3) {
+												threshContinue=true;
+											
+											//If we're stabilised, we touching check with type 2
+											} else if (maskGenerationVariables[0] == 3) {
+												threshContinue = touchingCheck(imgNamemask, imageNamesArray[0], imageNamesArray[1],2);
+											}
+											
+											selectWindow(imgNamemask);
+											run("Close");
+							
+											//print("Old area:" + area);
+											//print("Old otsu: "+ otsu);
+											//print("Current area: "+ areaNew);
+											//print("Current otsu:" + otsuVariables[1]);
+											print("Stabilised:" + maskGenerationVariables[0]);
+						
+											//If we're continuing, then we reset our areas and otsus and go through this again
+											if (threshContinue==true) {
+												print("Continuing");
+												otsu=otsuVariables[1];
+												area=areaNew;
+											
+											//If we're done with this cell, we set maskSuccess to 1 if we've saved a mask
+											} else {
+												print("Finished");
+												if(File.exists(imageNamesArray[0])==1) {
+													currentMaskValues[2] = 1;
+												}
+											}
+				
+										} //Once the output of threshContinue==false, then we exit the process
+										selectWindow("LR");
+										run("Close");
+									}
+										
+									//Now that we've attempted mask generation (successful or otherwise) we set this variable to 1	
+									currentMaskValues[1]=1;	
+				
+									//Update and save our TCS analysis table
+	
+									imageT = getList("image.titles");
+									otherT =  getList("window.titles");
+									Array.show(imageT, otherT);
+									found = false;
+									for(currName = 0; currName < otherT.length; currName++) {
+										if(otherT[currName] == "Mask Generation PreChange") {
+											found = true;
+											currName = 1e99;
+										}
+									}
+									if(found==false) {
+										setBatchMode("Exit and Display");
+										waitForUser("Issue");
+										setBatchMode(true);
+									}
+									
+									selectWindow("Mask Generation PreChange");
+									for(i1=0; i1<tableLabels.length; i1++) {
+										if(i1==0 || i1 == 7) {
+											stringValue = currentMaskValues[i1];
+											Table.set(tableLabels[i1], i0, stringValue);
+										} else {
+											Table.set(tableLabels[i1], i0, currentMaskValues[i1]);
+										}
+									}
+									
+									//We then close it - as we create a new one for the next cell - otherwise we get issues with writing to things
+									//whilst they're open
+			
+									if (isOpen("Results")) {
+										run("Clear Results");
+									}
+									if(roiManager("count")>0) {
+										roiManager("deselect");
+										roiManager("delete");
+									}
+			
+									selectWindow(imgName);
+									close("\\Others");
+	
+									imageT = getList("image.titles");
+									otherT =  getList("window.titles");
+									Array.show(imageT, otherT);
+									foundNow = false;
+									for(currName = 0; currName < otherT.length; currName++) {
+										if(otherT[currName] == "Mask Generation PreChange") {
+											foundNow = true;
+											currName = 1e99;
+										}
+									}
+									if(foundNow==false && found == true) {
+										setBatchMode("Exit and Display");
+										waitForUser("Found eralier but not after closing");
+										setBatchMode(true);
+									}
+												
 								}
 									
-								//Now that we've attempted mask generation (successful or otherwise) we set this variable to 1	
-								currentMaskValues[1]=1;	
-			
-								//Update and save our TCS analysis table
-
-								imageT = getList("image.titles");
-								otherT =  getList("window.titles");
-								Array.show(imageT, otherT);
-								found = false;
-								for(currName = 0; currName < otherT.length; currName++) {
-									if(otherT[currName] == "Mask Generation PreChange") {
-										found = true;
-										currName = 1e99;
-									}
-								}
-								if(found==false) {
-									setBatchMode("Exit and Display");
-									waitForUser("Issue");
-									setBatchMode(true);
-								}
-								
-								selectWindow("Mask Generation PreChange");
-								for(i1=0; i1<tableLabels.length; i1++) {
-									if(i1==0 || i1 == 7) {
-										stringValue = currentMaskValues[i1];
-										Table.set(tableLabels[i1], i0, stringValue);
-									} else {
-										Table.set(tableLabels[i1], i0, currentMaskValues[i1]);
-									}
-								}
-								
-								//We then close it - as we create a new one for the next cell - otherwise we get issues with writing to things
-								//whilst they're open
-		
-								if (isOpen("Results")) {
-									run("Clear Results");
-								}
-								if(roiManager("count")>0) {
-									roiManager("deselect");
-									roiManager("delete");
-								}
-		
-								selectWindow(imgName);
-								close("\\Others");
-
-								imageT = getList("image.titles");
-								otherT =  getList("window.titles");
-								Array.show(imageT, otherT);
-								foundNow = false;
-								for(currName = 0; currName < otherT.length; currName++) {
-									if(otherT[currName] == "Mask Generation PreChange") {
-										foundNow = true;
-										currName = 1e99;
-									}
-								}
-								if(foundNow==false && found == true) {
-									setBatchMode("Exit and Display");
-									waitForUser("Found eralier but not after closing");
-									setBatchMode(true);
-								}
-											
 							}
-								
-						}
-				
-						selectWindow("Mask Generation PreChange");
-						Table.update;
-						Table.save(TCSDir+"Mask Generation.csv");
-						maskGTitle = Table.title;
-						Table.rename(maskGTitle, "Mask Generation PreChange");	
-						
-						//Set masks generated to 1 for this TCS
-						currentLoopValues[1]=1;
-						
-						//Update and save our TCS analysis table
-						selectWindow("TCS Status");
-						for(i0=0; i0<TCSColumns.length; i0++) {
-							Table.set(TCSColumns[i0], TCSLoops, currentLoopValues[i0]);
-						}
-						Table.update;
-						Table.save(directories[1]+baseName+"/TCS Status.csv");
-						Housekeeping();
+					
+							selectWindow("Mask Generation PreChange");
+							Table.update;
+							Table.save(TCSDir+"Mask Generation.csv");
+							maskGTitle = Table.title;
+							Table.rename(maskGTitle, "Mask Generation PreChange");	
+							
+							//Set masks generated to 1 for this TCS
+							currentLoopValues[1]=1;
+							
+							//Update and save our TCS analysis table
+							selectWindow("TCS Status");
+							for(i0=0; i0<TCSColumns.length; i0++) {
+								Table.set(TCSColumns[i0], TCSLoops, currentLoopValues[i0]);
+							}
+							Table.update;
+							Table.save(directories[1]+baseName+"/TCS Status.csv");
+							Housekeeping();
+						}	
 					}	
-				}	
-				
-				if(isOpen("TCS Status")) {
-					Table.rename("TCS Status", "ToBChanged");
-				} else if (isOpen("TCS Status.csv")) {
-					Table.rename("TCS Status.csv", "ToBChanged");
+					
+					if(isOpen("TCS Status")) {
+						Table.rename("TCS Status", "ToBChanged");
+					} else if (isOpen("TCS Status.csv")) {
+						Table.rename("TCS Status.csv", "ToBChanged");
+					}
+					
 				}
-				
-			}
-
-			if(isOpen("TobChanged")) {
-			selectWindow("ToBChanged");
-			run("Close");
-			}
-			
-			
-		}
 	
-	} else {
-		print(loopThrough[i], "calibrated with the wrong objective");
-	}
-
+				if(isOpen("TobChanged")) {
+					selectWindow("ToBChanged");
+					run("Close");
+				}
+			}
+		}
 	}
 }
 
@@ -3352,26 +3329,7 @@ if(analysisSelections[3] == true) {
 	
 		proceed = false;
 		if(loopThrough[i] != "Images To Use.csv" && loopThrough[i] != "fracLac/") {
-				
-			getAnimalTimepointInfo(imageNames, forUse);
-			baseName = substring(loopThrough[i], 0, lastIndexOf(loopThrough[i], "/"));
-		
-			//0 is V1, 1 is hipp
-			regionInd = 0;
-			if(indexOf(toLowerCase(baseName), "hipp")>-1) {
-				regionInd = 1;
-			}
-		
-			iniTextValuesMicrons = newArray(6);
-			getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-		
-			if(regionInd == 0 && parseFloat(iniTextValuesMicrons[5]) == 0) {
-				proceed = true;
-			}
-			if(regionInd == 1 && parseFloat(iniTextValuesMicrons[5]) == 2) {
-				proceed = true;
-			}
-			
+			proceed = true;		
 		}
 
 		//If a TCS status file exists already
@@ -3389,18 +3347,13 @@ if(analysisSelections[3] == true) {
 			} else {
 				newSelection[3] = 0;
 			}
-
-			if(newSelection[0] == 400) {
-				qcVal = 0;
-			} else {
-				qcVal = 1;
-			}
 			
 			print(baseName);
 			qcCol = Table.getColumn("QC Checked");
 			Array.getStatistics(qcCol, qcMin, qcMax, qcMean, qcSD);
 			selectWindow("TCS Status.csv");
 			Table.reset("TCS Status.csv");
+			
 			//If we haven't QC'd all the TCS levels for this datapoint (if we had, qcMean would be 1)
 			//then proceed
 			//if(qcMean!=1) {
@@ -3930,7 +3883,6 @@ if(analysisSelections[4] == true) {
 
 	//Set the background color to black otherwise this messes with the clear outside command
 	setBackgroundColor(0,0,0);
-
 		
 	//Set the path to where we copy our analysed cells to so we can run a fractal analysis on this folder in 
 	//batch at a later timepoint - if this directory doesn't exist, make it
@@ -3950,26 +3902,7 @@ if(analysisSelections[4] == true) {
 	
 		proceed = false;
 		if(loopThrough[i] != "Images To Use.csv" && loopThrough[i] != "fracLac/") {
-				
-			getAnimalTimepointInfo(imageNames, forUse);
-			baseName = substring(loopThrough[i], 0, lastIndexOf(loopThrough[i], "/"));
-		
-			//0 is V1, 1 is hipp
-			regionInd = 0;
-			if(indexOf(toLowerCase(baseName), "hipp")>-1) {
-				regionInd = 1;
-			}
-		
-			iniTextValuesMicrons = newArray(6);
-			getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-		
-			if(regionInd == 0 && parseFloat(iniTextValuesMicrons[5]) == 0) {
-				proceed = true;
-			}
-			if(regionInd == 1 && parseFloat(iniTextValuesMicrons[5]) == 2) {
-				proceed = true;
-			}
-			
+			proceed = true;
 		}
 
 		//If a TCS status file exists already
@@ -3996,16 +3929,10 @@ if(analysisSelections[4] == true) {
 			run("Clear Results");
 			selectWindow("TCS Status.csv");
 			Table.reset("TCS Status.csv");
-
-			if(newSelection[0] == 500) {
-				qcVal = 0;
-			} else {
-				qcVal = 1;
-			}
 			
 			//If we haven't analysed all TCS levels already
-			//if(aMean!=1) {
-			if(aMean != 1 || qcVal == 0) {
+			if(aMean!=1) {
+			//if(aMean != 1 || qcVal == 0) {
 				
 				//Clear results table just to be sure
 				run("Clear Results");
