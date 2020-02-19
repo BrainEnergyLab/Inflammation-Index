@@ -31,7 +31,9 @@ This is an integer value with the default set to 1. This value determines how ma
 
 - How many frames do you want to include in the average projection of least blurry frames?
 
-Part of the process in determining how motion-contaminated images are uses a blur detector to select the least blurred images. These are then averaged and then compared to the frames. This input requires an integer value and defaults to 3. Setting this to half the number of frames per Z plane is a good rule of thumb. This value cannot be 0, and cannot more than the number of frames per Z plane.
+Part of the process in determining how motion-contaminated images are uses a blur detector to select the least blurred images. This involves the use of a laplacian of gaussian filter where the maximum pixel value is then used as an indicator of "blurriness" where higher values indicate images are less blurred (https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/; https://stackoverflow.com/questions/7765810/is-there-a-way-to-detect-if-an-image-is-blurry). Then the number of least blurred frames indicated by the user (the input to this option) are averaged. This average is then compared to the raw frames and by a simple process of pixel subtraction, the difference between the average projection and each frame is calculated. The number of frames that are least different from the avaerage projection indicated by the user (the input to the first option) are then retained.
+
+This input requires an integer value and defaults to 3. Setting this to half the number of frames per Z plane is a good rule of thumb. This value cannot be 0, and cannot more than the number of frames per Z plane.
 
 - Manually select frames?
 
