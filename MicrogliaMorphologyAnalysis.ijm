@@ -1,40 +1,69 @@
-//Automated Microglial Morphology Analysis
-//Edited and rewritten by Devin 17/01/19
+//This function clears the results table if it exists, clears the roimanager, and closes 
+//all open images - useful for quickly clearing the workspace
+function Housekeeping() {
+	
+	if (isOpen("Results")) {
+		run("Clear Results");
+	}
+	if(roiManager("count")>0) {
+		roiManager("deselect");
+		roiManager("delete");
+	}
+	if(nImages>0) {
+		run("Close All");
+	}
+}
 
-//Method based on: 
-//https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0031814
+//Function finds all files that contain "substring" in the path "directoryname" 
+//"fileLocations" is an array that is passed in to fill with paths that contain substring
+function listFilesAndFilesSubDirectories(directoryName, subString,
+                                         fileLocations) {
 
-//This script is used to analyse the morphology of microglial cells taken from 
-//2P images, requires a dedicated folder within which to work and create its own 
-//directories, as well as being pointed to the 2P directory where the raw 2P 
-//images are stored in a directory structure of AnimalNameDietType/Timepoint/
-//SessionFolder/2PData
+	//Get the list of files in the directory
+	listOfFiles = getFileList(directoryName);
 
-//Gives the user the ability to preprocess morphology images, mark positions of 
-//cells on them, automatically generate masks of the cells, user controlled QC 
-//of masks, and then quantification of various parameters of the masks
+	//an array to add onto our fileLocations array to extend it so we can keep adding to it
+	arrayToConcat = newArray(1);
 
-//Dependencies are many - need to look through and add in dependencies here
+	//Loop through the files in the file list
+	for (i=0; i<listOfFiles.length; i++) {
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////Functions///////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+		//Create a string of the full path name
+		fullPath = directoryName+listOfFiles[i];
+		
+		//If the file we're checking is a file and not a directory and if it  contains the substring we're 
+		//interested in within its full path we check  against the absolute path of our file in lower case on both counts
+		if (File.isDirectory(fullPath)==0 && indexOf(toLowerCase(fullPath), toLowerCase(subString))>-1) {
+			
+			//We store the full path in the output fileLocations at the latest index 
+			//(end of the array) and add an extra bit onto the Array so we can keep filling it
+			fileLocations = Array.concat(fileLocations, arrayToConcat);
+			currentIndex=fileLocations.length-1;
+			fileLocations[currentIndex] = fullPath;
 
-//This function takes an array and a string as arguments. The string is a file
-//name that we cut into segments that give us info about the animal and 
-//timepoint that we store at index [0] in the array, the timepoint only at [1]
-//the animal only at [2] and finally the file name without the .tif on the end
-//that we store at [3]
-function getAnimalTimepointInfo(outputArray, inputName) {
-  outputArray[0] = substring(inputName, 0, indexOf(inputName, " Microglia Morphology"));
-  outputArray[1] = toLowerCase(substring(outputArray[0], lastIndexOf(outputArray[0], " ")+1));
-  outputArray[2] = toLowerCase(substring(outputArray[0], 0, lastIndexOf(outputArray[0], " ")));
-  outputArray[3] = substring(inputName, 0, indexOf(inputName, ".tif"));
+		//If the file we're checking is a directory, then we run the whole thing on that directory
+		} else if (File.isDirectory(fullPath)==1) {
+
+			//Create a new array to fill whilst we run on this directory and at the end add it onyo the fileLocations array 
+			tempArray= newArray(1);
+			tempArray = listFilesAndFilesSubDirectories(fullPath, subString, tempArray);
+			fileLocations = Array.concat(fileLocations, tempArray);     
+			
+		}
+	}
+
+	//Create a new array that we fill with all non zero values of fileLocations
+	output = newArray(1);
+
+	output = removeZeros(fileLocations, output);
+
+	//Then return the output array
+	return output;
+	
 }
 
 //This function takes an input array, and removes all the 0's in it, outputting 
 //it as the output array which must be passed in as an argument
-
 function removeZeros(inputArray, output) {
 
 	//Loop through the input array, if the value isn't a 0, we place that in our 
@@ -60,76 +89,329 @@ function removeZeros(inputArray, output) {
 	return output;
 }
 
-//Findfolders, directoryname is path to search in, substring is substring to 
-//look for, fileLocations is array to fill with paths that contain substring
-function listFilesAndFilesSubDirectories(directoryName, subString,
-                                         fileLocations) {
+//"OutputArray" is an array in which we store the output of this function
+//InputName is a string file path of an image generated by this macro
+//Function cuts up the file path of the inputName into different segments that
+//contain different bits of info i.e. info about the animal and 
+//timepoint that we store at index [0] in the array, the timepoint only at [1]
+//the animal only at [2] and finally the file name without the .tif on the end that we store at [3]
+function getAnimalTimepointInfo(outputArray, inputName) {
+  outputArray[0] = File.getName(substring(inputName, 0, indexOf(inputName, " Microglia Morphology")));
+  outputArray[1] = toLowerCase(substring(outputArray[0], lastIndexOf(outputArray[0], " ")+1));
+  outputArray[2] = toLowerCase(substring(outputArray[0], 0, lastIndexOf(outputArray[0], " ")));
+  outputArray[3] = File.getName(substring(inputName, 0, indexOf(inputName, ".tif")));
+}
 
-	//Get the list of files in the directory
-	listOfFiles = getFileList(directoryName);
+//This is a function to retrieve the data from the ini file. The ini file contains calibration information for the 
+//entire experiment that we use to calibrate our images. iniFolder is the folder within which the ini file is located, 
+//and iniTextValuesMicrons is an array we pass into the function that we fill with calibration values before returning it
+function getIniData(iniFolder, iniTextValuesMicrons) {
 
-	//an array to add onto our fileLocations array to extend it so we can keep 
-	//adding to it
-	arrayToConcat = newArray(1);
+	//We get the list of files in the iniFolder
+	iniFileList = getFileList(iniFolder);
+	
+	//Find our ini file
+	found = false;
+	for(i=0; i<iniFileList.length; i++) {
+		if(endsWith(toLowerCase(iniFileList[i]), "ini")) {
+			//Create a variable that tells us which ini file to open
+			iniToOpen = iniFolder + iniFileList[i]; 
+			i = iniFileList.length;
+			found = true;
+		}
+	}
+	if(found == false) {
+		print("No ini file found");
+		return;
+	}
+	
+	//This is an array with the strings that come just before the information we want to retrieve from the ini file.
+	iniTextStringsPre = newArray("x.pixel.sz = ", "y.pixel.sz = ", "z.spacing = ", "no.of.planes = ", "frames.per.plane = ");
+	
+	//This is an array of the length of characters in each iniTextStringsPre item, so we can look this far after the
+	//start of each item to find the numeric value
+	iniTextIndicesPreAdds = newArray(13, 13, 12, 15, 19);	
+		
+	//We open the ini file as a string
+	iniText = File.openAsString(iniToOpen);	
+		
+	//Looping through the values we want to grab
+	for(i=0; i<iniTextStringsPre.length; i++) {
 
-	//Loop through the files in the file list
-	for (i=0; i<listOfFiles.length; i++) {
+		//We create a start point that is the index of our iniTextStringsPre + iniTextIndicesPreAdds
+		startPoint = indexOf(iniText, iniTextStringsPre[i])+iniTextIndicesPreAdds[i];
 
-		//Create a string of the full path name
-		fullPath = directoryName+listOfFiles[i];
-		
-		//If the file we're checking is a file and not a directory and if it 
-		//contains the substring we're interested in within its full path We check 
-		//against the absolute path of our file in lower case on both counts
-		if (File.isDirectory(fullPath)==0 && indexOf(toLowerCase(fullPath), 
-		                                             toLowerCase(subString))>-1) {
+		//If we're on the last string, we just grab the whole end from the start of the word "frames"
+		if(i == iniTextStringsPre.length-1) {
+			realString = substring(iniText, startPoint);
+
+		//Else get it from the start until the start of the next value of interest
+		} else {
+			realString = substring(iniText, startPoint, indexOf(iniText, iniTextStringsPre[(i+1)]));
+		}
+		iniTextValuesMicrons[i] = parseFloat(realString);
+	}
+}
+
+//Part of motion processing, takes an array (currentStackSlices), removes zeros from it, then
+//creates a string of the numbers in the array before then making a substack of these slices
+//from an imagesInput[i] window, registering them if necessary, before renaming them
+//according to the info in motionArtifactRemoval
+function getAndProcessSlices(currenStackSlices, motionArtifactRemoval, currTime) {
+	
+	//Here we order then cutoff the zeros so we get a small array of the 
+	//slices to be retained
+	imageNumberArrayCutoff = newArray(1);
+	imageNumberArrayCutoff=removeZeros(currenStackSlices, imageNumberArrayCutoff);
+
+	selectWindow("Timepoint");	
+	timeSlices = nSlices;
+					
+	//This loop strings together the names stored in the arrayIn into a 
+	//concatenated string (called strung) that can be input into the substack 
+	//maker function so that we can make a substack of all kept TZ slices in
+	//a single go - we input the imageNumberArrayCutoff array
+	strung="";
+	for(i1=0; i1<imageNumberArrayCutoff.length; i1++) {
+		
+		numb = imageNumberArrayCutoff[i1] - (currTime * timeSlices);
+		string=toString(numb, 0);
+						
+		//If we're not at the end of the array, we separate our values with a 
+		//comma
+		if(i1<imageNumberArrayCutoff.length-1) {
+			strung += string + ",";
+	
+		//Else if we are, we don't add anything to the end
+		} else if (i1==imageNumberArrayCutoff.length-1) {
+			strung += string;	
+		}
+	
+	}
+	
+	//We then make a substack of our input image of the slices we're keeping 
+	//for this particular ZT point
+	selectWindow("Timepoint");	
+	run("Make Substack...", "slices=["+strung+"]");
+	rename("new");
+	selectWindow("new");
+	newSlices = nSlices;
+		
+	//If the image has more than 1 slice, register it and average project it 
+	//so that we get a single image for this ZT point
+	if(newSlices>1){
+						
+		print("Registering T", motionArtifactRemoval[2], " Z", motionArtifactRemoval[3]);
+		if(false) {
+		run("MultiStackReg", "stack_1=[new] action_1=Align file_1=[]  stack_2=None action_2=Ignore file_2=[] transformation=[Translation]");
+		run("MultiStackReg", "stack_1=[new] action_1=Align file_1=[]  stack_2=None action_2=Ignore file_2=[] transformation=[Affine]");
+		}
+		print("Registered");
+						
+		selectWindow("new");
+		rename("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);
+		run("Z Project...", "projection=[Average Intensity]");
+		selectWindow("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);
+		run("Close");
+		selectWindow("AVG_T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);
+		rename("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);	
+		
+	//Otherwise just rename it appropriately
+	} else {	
+		selectWindow("new");
+		rename("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);	
+	}
+
+}
+
+//Function to incorporate the reordering of Z slices in registration. Takes an 
+//inputImage, then rearranges slices that are maximally layersToTest apart 
+//before renaming it toRename
+function zSpaceCorrection(inputImage, layersToTest, toRename) {
+
+	//Array to store the name of output images from the spacing correction to 
+	//close
+	toClose = newArray("Warped", "Image", inputImage);
+
+	//Runs the z spacing correction plugin on the input image using the 
+	//layersToTest value as the maximum number of layers to check against for z 
+	//positioning
+	selectWindow(inputImage);
+	run("Z-Spacing Correction", "input=[] type=[Image Stack] text_maximally="+layersToTest+" outer_iterations=100 outer_regularization=0.40 inner_iterations=10 inner_regularization=0.10 allow_reordering number=1 visitor=lazy similarity_method=[NCC (aligned)] scale=1.000 voxel=1.0000 voxel_0=1.0000 voxel_1=1.0000 render voxel=1.0000 voxel_0=1.0000 voxel_1=1.0000 upsample=1");
+
+	//Closes any images that are in the toClose array first by getting a list of 
+	//the image titles that exist
+	imageTitleList = getList("image.titles");
+
+	//Then we loop through the titles of the images we want to close, each time 
+	//also looping through the images that are open
+	for(k = 0; k<toClose.length; k++) {
+		for(j=0; j<imageTitleList.length; j++) {
 			
-			//We store the full path in the output fileLocations at the latest index 
-			//(end of the array) and add an extra bit onto the Array so we can keep 
-			//filling it
-			fileLocations = Array.concat(fileLocations, arrayToConcat);
-			currentIndex=fileLocations.length-1;
-			fileLocations[currentIndex] = fullPath;
-
-		//If the file we're checking is a directory, then we run the whole thing on 
-		//that directory
-		} else if (File.isDirectory(fullPath)==1) {
-			//print("Going into directory", fullPath);
-
-			//Create a new array to fill whilst we run on this directory and at the 
-			//end add it onyo the fileLocations array 
-			tempArray= newArray(1);
-			tempArray = listFilesAndFilesSubDirectories(fullPath, subString, 
-			                                            tempArray);
-			fileLocations = Array.concat(fileLocations, tempArray);     
-			
+			//If the title of the currently selected open image matches the one we 
+			//want to close, then we close that image and terminate our search of the 
+			//current toClose title in our list of images and move onto the next 
+			//toClose title
+			if(indexOf(imageTitleList[j], toClose[k]) == 0) {
+				selectWindow(imageTitleList[j]);
+				run("Close");
+				j = imageTitleList.length;
+			}
 		}
 	}
 
-	//Create a new array that we fill with all non zero values of fileLocations
-	output = newArray(1);
+	//Renames the output image to the toRename variable
+	selectWindow("Z-Spacing: " + inputImage);
+	rename(toRename);
 
-	output = removeZeros(fileLocations, output);
+	//Close the exception that is thrown by the rearranging of stacks
+	selectWindow("Exception");
+	run("Close");
 
-	//Then return the output array
-	return output;
-	
 }
 
-//This function clear results if they exist, clears the roimanager, and closes 
-//all open images - useful for quickly clearing the workspace
-function Housekeeping() {
+//This is a function used to fill an inputArray using data from a csv file 
+//referenced in resultsTableRefs, from a column referenced in 
+//resultsTableColumns, and whether that column contains strings are stored in 
+//resultsAreStrings, and finally the argument inputsAreArrays can be set to true 
+//if we're referencing multiple columns and multiple results tables to store in 
+//a single inputArray
+
+//InputArray needs to be a multiple of resultsTableRefs.length since if we have 
+//multiple resultsTableRefs values, we need to store at least that many values 
+//in the inputArray
+function fillArray(inputArray, resultsTableRefs, resultsTableColumns, 
+	resultsAreStrings, inputsAreArrays) {
 	
-	if (isOpen("Results")) {
-		run("Clear Results");
+	//Clear the results table, check if our results table to load exists
+	run("Clear Results");
+	
+	//Here if we are referencing multiple columns then inputsAreArrays will be 
+	//true
+	if(inputsAreArrays == true) {
+
+		//The section of the inputArray that we want to dedicate to each results 
+		//value is calculated
+		sizePerSection = inputArray.length / resultsTableRefs.length;
+
+		//Then loopping through the different data we want to fill our inputArray 
+		//with
+		for(i=0; i<resultsTableRefs.length; i++) {
+			
+			//We first clear results, then if our resultsTableRefs file exists, we 
+			//open it 
+			run("Clear Results");
+			if(File.exists(resultsTableRefs[i])==1) {
+				open(resultsTableRefs[i]);
+				tabName = Table.title;
+				
+				//Looping through the section of our inputArray that we're filling
+				for(i0=0; i0<sizePerSection; i0++) {
+
+					//If our current results we're getting aren't a string and we are 
+					//still within the limits of the results table then we fill our 
+					//inputArray with the result associated with our resultsTableColumns
+					if(resultsAreStrings[i]==false && i0 < Table.size) {
+						inputArray[(i*sizePerSection)+i0] = Table.get(resultsTableColumns[i] 
+						                                              ,i0);
+
+					//Otherwise if it is a string then we use getResultString
+					} else if (i0<Table.size) {
+						inputArray[(i*sizePerSection)+i0] = 
+						getResultString(resultsTableColumns[i], i0);
+					
+					//Otherwise if we're past the size of our results table, we fill our 
+					//inputArray with a 0
+					} else {
+						inputArray[(i*sizePerSection)+i0] = 0;
+					}
+				}
+				selectWindow(tabName);
+				Table.reset(tabName);
+				run("Clear Results");
+			}
+			//Table.reset(File.getName(resultsTableRefs[i]))
+;
+		}
+
+	//If we're not getting multiple columns
+	} else {
+
+		//Check if our results table actually exists
+		if(File.exists(resultsTableRefs)==1) {
+			
+			//Open our results table then loop through the results, filling our 
+			//inputArray with the data depending on if its a string or not
+			open(resultsTableRefs);
+			tabName = Table.title;
+			
+			//Loop through the results table and fill the input array with the 
+			//information we want to get
+			for(i0=0; i0<Table.size; i0++) {
+				if(resultsAreStrings==false) {
+					inputArray[i0] = Table.get(resultsTableColumns, i0);
+				} else {
+					inputArray[i0] = Table.getString(resultsTableColumns, i0);
+				}
+			}
+			selectWindow(tabName);
+			Table.reset(tabName);
+			run("Clear Results");	
+		}
+		
 	}
-	if(roiManager("count")>0) {
-		roiManager("deselect");
-		roiManager("delete");
+}
+
+//This is a function that generates a waitForUser dialog with waitForUserDialog 
+//that then retrieves a checkbox value with the string checkboxString so that 
+//the user can check an image and then return feedback for a given string
+function userApproval(waitForUserDialog, dialogName, checkboxString) {
+
+	//We zoom into an image 3 times so that its bigger on the screen for the user 
+	//to check
+	for(i=0; i<3; i++) {
+		run("In [+]");
 	}
-	if(nImages>0) {
-		run("Close All");
-	}
+
+	//Scale the image to fit, before exiting and displaying hidden images from 
+	//batch mode, autocontrasting the image, then waiting for the user				
+	run("Scale to Fit");					
+	setBatchMode("Exit and Display");
+	setOption("AutoContrast", true);
+	waitForUser(waitForUserDialog);
+
+	//Once exiting the wait for user dialog we ask the user to give feedback 
+	//through a dialog box and then return the checkbox boolean value						
+	Dialog.create(dialogName);
+	Dialog.addCheckbox(checkboxString, true);
+	Dialog.show();
+	output = Dialog.getCheckbox();
+	return output;
+}
+
+//This function finds the area of a mask that is above a certain threshold value
+//(threshValue) and connected to a point with coordinates xPoint, yPoint
+function getConnectedArea(xPoint, yPoint, threshValue) {
+
+	
+	//We make the point on our image then use the find connected regions plugin to 
+	//generate an image of all the pixels connected to that coordinate that have a
+	//grey value above threshValue
+	makePoint(xPoint, yPoint);
+	setBackgroundColor(0,0,0);
+	run("Find Connected Regions", "allow_diagonal display_image_for_each start_from_point regions_for_values_over="+threshValue+" minimum_number_of_points=1 stop_after=1");
+	
+	//Get the area of the mask generated and return it, leaving the mask open so 
+	//that we can grab it outside the function for further manipulation
+	imgNamemask=getTitle();
+	selectWindow(imgNamemask);
+	run("Select None");
+	run("Invert");
+	run("Create Selection");
+	getStatistics(area);
+
+	return area;
+
 }
 
 //This function essentially checks if a mask is touching the edges of the canvas
@@ -268,131 +550,6 @@ function touchingCheck(imageName, saveName, fileName, type) {
 	return output;
 }
 
-//This is a function to retrieve the data from the ini file for a given animal, 
-//at a given timepoint. The ini file contains calibration information for that 
-//particular experiment that we use to calibrate our images. iniFolder is the 
-//folder within which the ini files are located, and iniTextValuesMicrons is an 
-//array we pass into the function that we fill with calibration values before 
-//later returning it
-function getIniData(iniFolder, iniTextValuesMicrons) {
-
-	//We get the list of files in the iniFolder
-	iniFileList = getFileList(iniFolder);
-	
-	//Whilst its false, loop through the ini files and if we find one that matches 
-	//the animal and timepoint, we set it to true, otherwise we ask the user to 
-	//provide the right file
-	do {
-		for(i=0; i<iniFileList.length; i++) {
-			if(matches(toLowerCase(iniFileList[i]), "*.ini.")) {
-				
-				//Create a variable that tells us which ini file to open
-				iniToOpen = iniFolder + iniFileList[i]; 
-				found = true;
-				i = iniFileList.length;
-			}
-		}
-	} while (found == false);
-	
-	//This is an array of codes that refer to specific numbers in unicode, 
-	//grabbed from: https://unicode-table.com/en/ - The characters these codes 
-	//refer to are characters that we can use to iden1385tify where in the ini file 
-	//the calibration information that we want to grab is stored since these are 
-	//the codes for all the numerical digits 0-9
-	uniCodes = newArray(46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57);
-	
-	//This is an array with the strings that come just before the information we 
-	//want to retrieve from the ini file. We want to get the x, y, and z pixel 
-	//sizes, as well as the no of planes and the frames per plane of the image
-	iniTextStringsPre = newArray("x.pixel.sz = ",
-								  "y.pixel.sz = ",
-								  "z.spacing = ",
-								  "no.of.planes",
-								  "frames.per.plane");
-	
-	//This is an array of indices that we use to index into the substring of the 
-	//ini file that we get using iniTextStringsPre so that we can then retrieve 
-	//the numeric values i.e. we have a substring of active.objective 1, and to 
-	//get the number we index at position 19
-	iniTextIndicesPreAdds = newArray(13, 13, 12, 15, 19);	
-		
-	//We open the ini file as a string
-	iniText = File.openAsString(iniToOpen);	
-		
-	//Here we start looking in our ini data 
-		//Looping through the values we want to grab
-		for(i=0; i<iniTextStringsPre.length; i++) {
-
-			//We create a start point that is the index of our iniTextStringsPre in 
-			//our ini file plus the index associated with that information
-			startPoint = indexOf(iniText, iniTextStringsPre[i])+iniTextIndicesPreAdds[i];
-			
-			//Looping from our start point through to the end of our ini file
-			for(i0=startPoint; i0<lengthOf(iniText); i0++) {
-				
-				//If the substring we make of our ini file starting at i0 (which moves 1
-				//position each iteration past startPoint) and ending 1 character later 
-				//isn't a blank space
-				if(indexOf(substring(iniText, i0, i0+1), " ")>-1) {
-					
-					//We Create a new string from our start point to that point because 
-					//that means this new substring will contain the information we're 
-					//after as well as a string describing
-					//the next bit of information stored in the ini file i.e. 
-					//1.2345                      root.path c://... - so we make a 
-					//newString of 1.2345               root.path
-					newString = substring(iniText, startPoint, i0);
-					
-					//Loop through this new string
-					for(i1=0; i1<lengthOf(newString); i1++) {
-
-						//Create a variable to track whether the character is a number, 
-						//default to false
-						isNumb = false;
-
-						//Loop through our uniCodes array, and if the character code at a 
-						//given index in the newString matches one of the uniCode values
-						//then we know we're at a number and set isNumb to true and set our 
-						//loop to the terminating condition since we no longer
-						//need to check
-						for(i2=0; i2<uniCodes.length; i2++) {
-							if(charCodeAt(newString, i1) == uniCodes[i2]) {
-								isNumb = true;
-								i2 = uniCodes.length;
-							}
-						}
-
-						//If we're not at a number then we know we're at the first character 
-						//of the description for the next bit of inoformation i.e. the 'r' 
-						//of root.path
-						if(isNumb == false) {
-							
-							//In that case we set the end of our string to that index, and 
-							//create a new substring of our newString that ends here so that 
-							//it cuts off the next 
-							//descriptive string
-							stringEnd = i1;
-							realString = substring(newString, 0, stringEnd);
-							
-							//Set our i1 looping variable to meet its terminating condition
-							i1 = lengthOf(newString);
-						}
-					}
-				}
-			}
-
-			//If we're finding the values that are in the 1st or 2nd index of our 
-			//iniTextStringsPre array we parseFloat the value before multiply by 1e6
-			if(i<3) {
-				iniTextValuesMicrons[(i-1)] = parseFloat(realString) * 1e6;
-
-			//Else we just parseFloat if the values if we are at 3 or above
-			} else if (i>=3) {
-				iniTextValuesMicrons[(i-1)] = parseFloat(realString);
-			}
-		}
-}
-
 //Function to check if the inputValue is above the topLimit - this is so that if 
 //our thresholding calculated value ends up above the highest grey value in the 
 //image then we set inputValue to that top value
@@ -407,277 +564,52 @@ function valueCheck(inputValue, topLimit) {
 	return round(inputValue);
 }
 
-//This function finds the area of a mask that is above a certain threshold value
-//(threshValue) and connected to a point with coordinates xPoint, yPoint
-function getConnectedArea(xPoint, yPoint, threshValue) {
-	
-	//We make the point on our image then use the find connected regions plugin to 
-	//generate an image of all the pixels connected to that coordinate that have a
-	//grey value above threshValue
-	makePoint(xPoint, yPoint);
-	setBackgroundColor(0,0,0);
-	run("Find Connected Regions", "allow_diagonal display_image_for_each start_from_point regions_for_values_over="+threshValue+" minimum_number_of_points=1 stop_after=1");
-	
-	//Get the area of the mask generated and return it, leaving the mask open so 
-	//that we can grab it outside the function for further manipulation
-	imgNamemask=getTitle();
-	selectWindow(imgNamemask);
-	run("Select None");
-	run("Invert");
-	run("Create Selection");
-	getStatistics(area);
+function checkForSameCell(nameArray, currentCell, keptArray, currentKeptDefault,  currentCheckDefault, xCoord, yCoord, substackLoc, somaFolder, returnArray) {
 
-	return area;
+	currentKept = currentKeptDefault;
+	currentCheck = currentCheckDefault;
+								
+	//For each cell, get its x, y, and substack location
+	for(i1 = 0; i1<nameArray.length; i1++) {
+		newxCoord = parseInt(substring(nameArray[i1], indexOf(nameArray[i1], "x ")+2, indexOf(nameArray[i1], "y")-1));
+		newyCoord = parseInt(substring(nameArray[i1], indexOf(nameArray[i1], "y ")+2, indexOf(nameArray[i1], ".tif")-1));
+		newsubstackLoc = substring(nameArray[i1], 0, indexOf(nameArray[i1], "x"));
 
-}
-
-//This is a function that generates a waitForUser dialog with waitForUserDialog 
-//that then retrieves a checkbox value with the string checkboxString so that 
-//the user can check an image and then return feedback for a given string
-function userApproval(waitForUserDialog, dialogName, checkboxString) {
-
-	//We zoom into an image 3 times so that its bigger on the screen for the user 
-	//to check
-	for(i=0; i<3; i++) {
-		run("In [+]");
-	}
-
-	//Scale the image to fit, before exiting and displaying hidden images from 
-	//batch mode, autocontrasting the image, then waiting for the user				
-	run("Scale to Fit");					
-	setBatchMode("Exit and Display");
-	setOption("AutoContrast", true);
-	waitForUser(waitForUserDialog);
-
-	
-	//Once exiting the wait for user dialog we ask the user to give feedback 
-	//through a dialog box and then return the checkbox boolean value						
-	Dialog.create(dialogName);
-	Dialog.addCheckbox(checkboxString, true);
-	Dialog.show();
-	output = Dialog.getCheckbox();
-	return output;
-}
-
-//This is a function used to fill an inputArray using data from a csv file 
-//referenced in resultsTableRefs, from a column referenced in 
-//resultsTableColumns, and whether that column contains strings are stored in 
-//resultsAreStrings, and finally the argument inputsAreArrays can be set to true 
-//if we're referencing multiple columns and multiple results tables to store in 
-//a single inputArray
-
-//InputArray needs to be a multiple of resultsTableRefs.length since if we have 
-//multiple resultsTableRefs values, we need to store at least that many values 
-//in the inputArray
-function fillArray(inputArray, resultsTableRefs, resultsTableColumns, 
-                   resultsAreStrings, inputsAreArrays) {
-	
-	//Clear the results table, check if our results table to load exists
-	run("Clear Results");
-	
-	//Here if we are referencing multiple columns then inputsAreArrays will be 
-	//true
-	if(inputsAreArrays == true) {
-
-		//The section of the inputArray that we want to dedicate to each results 
-		//value is calculated
-		sizePerSection = inputArray.length / resultsTableRefs.length;
-
-		//Then loopping through the different data we want to fill our inputArray 
-		//with
-		for(i=0; i<resultsTableRefs.length; i++) {
-			
-			//We first clear results, then if our resultsTableRefs file exists, we 
-			//open it 
-			run("Clear Results");
-			if(File.exists(resultsTableRefs[i])==1) {
-				open(resultsTableRefs[i]);
-				tabName = Table.title;
-				
-				//Looping through the section of our inputArray that we're filling
-				for(i0=0; i0<sizePerSection; i0++) {
-
-					//If our current results we're getting aren't a string and we are 
-					//still within the limits of the results table then we fill our 
-					//inputArray with the result associated with our resultsTableColumns
-					if(resultsAreStrings[i]==false && i0 < Table.size) {
-						inputArray[(i*sizePerSection)+i0] = Table.get(resultsTableColumns[i] 
-						                                              ,i0);
-
-					//Otherwise if it is a string then we use getResultString
-					} else if (i0<Table.size) {
-						inputArray[(i*sizePerSection)+i0] = 
-						getResultString(resultsTableColumns[i], i0);
-					
-					//Otherwise if we're past the size of our results table, we fill our 
-					//inputArray with a 0
-					} else {
-						inputArray[(i*sizePerSection)+i0] = 0;
-					}
-				}
-				selectWindow(tabName);
-				Table.reset(tabName);
-				run("Clear Results");
-			}
-			//Table.reset(File.getName(resultsTableRefs[i]));
-		}
-
-	//If we're not getting multiple columns
-	} else {
-
-		//Check if our results table actually exists
-		if(File.exists(resultsTableRefs)==1) {
-			
-			//Open our results table then loop through the results, filling our 
-			//inputArray with the data depending on if its a string or not
-			open(resultsTableRefs);
-			tabName = Table.title;
-			
-			//Loop through the results table and fill the input array with the 
-			//information we want to get
-			for(i0=0; i0<Table.size; i0++) {
-				if(resultsAreStrings==false) {
-					inputArray[i0] = Table.get(resultsTableColumns, i0);
-				} else {
-					inputArray[i0] = Table.getString(resultsTableColumns, i0);
-				}
-			}
-			selectWindow(tabName);
-			Table.reset(tabName);
-			run("Clear Results");	
-			//Table.reset(File.getName(resultsTableRefs));
-		}
-		
-	}
-}
-
-//Function to incorporate the reordering of Z slices in registration. Takes an 
-//inputImage, then rearranges slices that are maximally layersToTest apart 
-//before renaming it toRename
-function zSpaceCorrection(inputImage, layersToTest, toRename) {
-
-	//Array to store the name of output images from the spacing correction to 
-	//close
-	toClose = newArray("Warped", 
-			   		   "Image",
-			   		   inputImage);
-
-	//Runs the z spacing correction plugin on the input image using the 
-	//layersToTest value as the maximum number of layers to check against for z 
-	//positioning
-	selectWindow(inputImage);
-	run("Z-Spacing Correction", "input=[] type=[Image Stack] text_maximally="+layersToTest+" outer_iterations=100 outer_regularization=0.40 inner_iterations=10 inner_regularization=0.10 allow_reordering number=1 visitor=lazy similarity_method=[NCC (aligned)] scale=1.000 voxel=1.0000 voxel_0=1.0000 voxel_1=1.0000 render voxel=1.0000 voxel_0=1.0000 voxel_1=1.0000 upsample=1");
-
-
-	//Closes any images that are in the toClose array first by getting a list of 
-	//the image titles that exist
-	imageTitleList = getList("image.titles");
-
-	//Then we loop through the titles of the images we want to close, each time 
-	//also looping through the images that are open
-	for(k = 0; k<toClose.length; k++) {
-		for(j=0; j<imageTitleList.length; j++) {
-			
-			//If the title of the currently selected open image matches the one we 
-			//want to close, then we close that image and terminate our search of the 
-			//current toClose title in our list of images and move onto the next 
-			//toClose title
-			if(indexOf(imageTitleList[j], toClose[k]) == 0) {
-				selectWindow(imageTitleList[j]);
-				run("Close");
-				j = imageTitleList.length;
-			}
+		//If the current cell in the current TCS matches a cell in the previous TCS, set whether to keep it
+		//to whether the cell was kept previously
+		if(currentCell == nameArray[i1]) {
+			currentKept = keptArray[i1];
+			currentCheck = 1;
+			print("found ", keptArray[i1]);
+			i1 = 1e99;
+										
+		//Otherwise if its not got the same name as the previous cell, but its coordinates are within 10 of it,
+		//set the otherSomaName to the soma name associated with this previous cell
+		} else if(abs(xCoord-newxCoord) <= 10 && abs(yCoord-newyCoord) <= 10 && newsubstackLoc == substackLoc) {
+			currentKept = keptArray[i1];
+			print(currentCell);
+			print(nameArray[i1]);
+			otherSomaName = somaFolder + "Candidate Soma Mask for " + substring(nameArray[i1], indexOf(nameArray[i1], "Substack"));
+			print(otherSomaName);
+			i1 = 1e99;
+			currentCheck = 1;
 		}
 	}
-
-	//Renames the output image to the toRename variable
-	selectWindow("Z-Spacing: " + inputImage);
-	rename(toRename);
-
-	//Close the exception that is thrown by the rearranging of stacks
-	selectWindow("Exception");
-	run("Close");
-
+	returnArray[0] = currentKept;
+	returnArray[1] = currentCheck;
+	returnArray[2] = otherSomaName;
+	return returnArray;
 }
 
-//Part of motion processing, takes an array (currentStackSlices), removes zeros from it, then
-//creates a string of the numbers in the array before then making a substack of these slices
-//from an imagesInput[i] window, registering them if necessary, before renaming them
-//according to the info in motionArtifactRemoval
-function getAndProcessSlices(currenStackSlices, motionArtifactRemoval, currTime) {
-	
-	//Here we order then cutoff the zeros so we get a small array of the 
-	//slices to be retained
-	imageNumberArrayCutoff = newArray(1);
-	imageNumberArrayCutoff=removeZeros(currenStackSlices, imageNumberArrayCutoff);
-
-	selectWindow("Timepoint");	
-	timeSlices = nSlices;
-					
-	//This loop strings together the names stored in the arrayIn into a 
-	//concatenated string (called strung) that can be input into the substack 
-	//maker function so that we can make a substack of all kept TZ slices in
-	//a single go - we input the imageNumberArrayCutoff array
-	strung="";
-	for(i1=0; i1<imageNumberArrayCutoff.length; i1++) {
-		
-		numb = imageNumberArrayCutoff[i1] - (currTime * timeSlices);
-		string=toString(numb, 0);
-						
-		//If we're not at the end of the array, we separate our values with a 
-		//comma
-		if(i1<imageNumberArrayCutoff.length-1) {
-			strung += string + ",";
-	
-		//Else if we are, we don't add anything to the end
-		} else if (i1==imageNumberArrayCutoff.length-1) {
-			strung += string;	
-		}
-	
-	}
-	
-	print(strung);
-	
-	//We then make a substack of our input image of the slices we're keeping 
-	//for this particular ZT point
-	selectWindow("Timepoint");	
-	run("Make Substack...", "slices=["+strung+"]");
-	rename("new");
-	selectWindow("new");
-	newSlices = nSlices;
-		
-	//If the image has more than 1 slice, register it and average project it 
-	//so that we get a single image for this ZT point
-	if(newSlices>1){
-						
-		print("Registering T", motionArtifactRemoval[2], " Z", motionArtifactRemoval[3]);
-		run("MultiStackReg", "stack_1=[new] action_1=Align file_1=[]  stack_2=None action_2=Ignore file_2=[] transformation=[Translation]");
-		run("MultiStackReg", "stack_1=[new] action_1=Align file_1=[]  stack_2=None action_2=Ignore file_2=[] transformation=[Affine]");
-		print("Registered");
-						
-		selectWindow("new");
-		rename("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);
-		run("Z Project...", "projection=[Average Intensity]");
-		selectWindow("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);
-		run("Close");
-		selectWindow("AVG_T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);
-		rename("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);	
-		
-	//Otherwise just rename it appropriately
-	} else {	
-		selectWindow("new");
-		rename("T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]);	
-	}
-
-}
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////// Main user input sections //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 //A string array that contains the functionality choices that the user has wrt. 
 //running this macro
-stringChoices = newArray("Preprocess morphology stacks and save them", "Mark cell positions", "Generate masks for cells",  
-"Quality control masks", "Analyse masks", "QC Motion Processing");
+stringChoices = newArray("Preprocess morphology stacks and save them", "QC Motion Processing",
+	"Mark cell positions", "Generate masks for cells", 
+	"Quality control masks", "Analyse masks");
 
 //Create a dialog box where the user can input which functionalities they want 
 //to run
@@ -701,7 +633,9 @@ for(i=0; i<stringChoices.length; i++) {
 
 
 MorphologyProcessing = getDirectory("Choose morphology analysis working directory");
-
+//Get the parent 2P directory i.e. where all the raw 2P images are stored
+directoryName = getDirectory("Choose the image storage directory");
+	
 //Here we create an array to store the full name of the directories we'll be 
 //working with within our morphology processing directory
 directories=newArray(MorphologyProcessing+"Input" + File.separator, 
@@ -726,10 +660,6 @@ Housekeeping();
 //If the user wants to preprocess images
 if(analysisSelections[0] == true) {
 
-	//Get the parent 2P directory i.e. where all the raw 2P images are stored
-	//directoryName = dropPath + "2P data/Devin/";
-	directoryName = getDirectory("Choose the image storage directory");
-
 	//Ask the user how many frames they want to retain for motion correction and how many frames they want to use
 	//to make the average projection to compare other frames to (lapFrames) - also ask if the user would rather select
 	//the frames to use manually 
@@ -745,7 +675,8 @@ if(analysisSelections[0] == true) {
 	preProcStringToFind = Dialog.getString();
 
 	//If the user would rather select the frames to use manually, ask if they want to select the frames,
-	//process the previously selected frames, or both
+	//process the previously selected frames, or both - basically the second choice processes
+	//frames selected when the first choice is chosen
 	if(manCorrect == true) {
 		Dialog.create("Manual Correction Options");
 		Dialog.addCheckbox("Manually select frames?", true)
@@ -753,8 +684,33 @@ if(analysisSelections[0] == true) {
 		Dialog.show();
 		frameSelect = Dialog.getCheckbox();
 		frameProcess = Dialog.getCheckbox();
+	} else {
+		frameSelect = false;
+		frameProcess = false;
 	}
 
+}
+
+if(analysisSelections[1] == true) {
+
+	//Ask the user how many images to display on the screen at once for quality control and return this number
+	stringa="How many images do you want to display on the screen at once?";
+	Dialog.create("Experiment Information");
+		
+	Dialog.addNumber(stringa,0);
+	Dialog.show();
+	onScreen = Dialog.getNumber();
+	
+}
+
+if(analysisSelections[2] == true || analysisSelections[3] == true || analysisSelections[4] == true || analysisSelections[5] == true) {
+	//These folder names are where we store various outputs from the processing 
+	//(that we don't need for preprocessing)
+	storageFolders=newArray("Cell Coordinates/", "Cell Coordinate Masks/",
+		"Somas/", "Candidate Cell Masks/", "Local Regions/", "Results/");
+
+	//Set the size of the square to be drawn around each cell in um
+	LRSize = 120;
 }
 
 //This is an array to story the inputs the user provides
@@ -762,7 +718,7 @@ selection=newArray(5);
 //[0] is TCSLower, [1] is TCSUpper, [2] is range, [3] is increment, [4] is trace
 
 //If the user wants to generate cell masks
-if(analysisSelections[2] == true) { 
+if(analysisSelections[3] == true) { 
 	
 	//These are the required inputs from the user
 
@@ -797,38 +753,6 @@ if(analysisSelections[2] == true) {
 
 }
 
-//If the user wants to do quality control, they're saked if they also want to 
-//trace any processes missed by the automated mask generation
-if(analysisSelections[3] == true) {
-	Dialog.create("Tracing");
-	Dialog.addCheckbox("Do you want to manually trace processes on this run?", 
-	                   false);
-	Dialog.show();
-	selection[4] = Dialog.getCheckbox();
-}
-
-//If the user wants to mark cell positions, generate masks, quality control 
-//masks, or analyse masks
-if(analysisSelections[1] == true || analysisSelections[2] == true || 
-   analysisSelections[3] == true || analysisSelections[4] == true) {	
-	
-	//These folder names are where we store various outputs from the processing 
-	//(that we don't need for preprocessing)
-	storageFolders=newArray("Cell Coordinates/", "Cell Coordinate Masks/",
-	                        "Somas/", "Candidate Cell Masks/", "Local Regions/",
-							            "Results/");
-
-	//maskGenerationArray = newArray("21-30", "51-60", "81-90", 120);
-	LRSize = 120;
-
-	//[0] through to [2] are the pieces of the stack we're going to analyze, [3] 
-	//is the size of the local region to draw in microns. The stacks are 100 
-	//microns and we chop them up into separate 10 micron segments that are at 
-	//least 20 microns apart to avoid analysing the same cell twice.
-
-	//The size of the local region to draw around the cell in microns is hardcoded 
-	//to 120 microns based on the paper this analysis is based on 
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////Main Processing Sections ///////////////////////////////
@@ -844,7 +768,6 @@ if(analysisSelections[0] == true) {
 
 	//Here we run the listFilesAndFilesSubDirectories function on our parent 2P 
 	//raw data location looking for locations that are labelled with the user indicated string
-
 	fileLocations = newArray(1);
 	fileLocations = listFilesAndFilesSubDirectories(directoryName, preProcStringToFind, fileLocations);
 	//Loop through all matching files
@@ -860,7 +783,8 @@ if(analysisSelections[0] == true) {
 		for(i1=0; i1<4; i1++){
 			parentArray[i1+1] = File.getParent(parentArray[i1]);
 		}
-		
+
+		
 		//Here we create a name to save the image as based the names in the last 2
 		//directories of our image location and we add " Microglia Morphology" on 
 		//to the end of it
@@ -878,38 +802,37 @@ if(analysisSelections[0] == true) {
 			parentFiles = getFileList(parentArray[1]);
 		}
 	}
-	
+
+	
 	//Now we get out the list of files in our input folder 
 	//once we've gone through all the microglia morphology images in our raw 2P 
 	//data directory
 	imagesInput = getFileList(directories[0]);
-	
-////////////////////////////////////////////////////////////////////////////////	
-///////////////////////////////Motion Processing////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-	
+
 	Housekeeping();
 
 	//Check to retrieve information about any images that have already been processed
+	//If this file exists, get the info out
 	ArrayConc = newArray(1);
 	if(File.exists(directories[1] + "Images to Use.csv") == 1) {
-		
+
 		//An array storing the column names that we'll use in our results file
 		valuesToRecord = newArray("Image List", "Kept", "Manual Flag", "Ignore");
 		
 		open(directories[1] + "Images to Use.csv");
+		
+		//TableValues is an array we'll fill with the values from any existing cell position marking table for this image
 		analysisRecordInput = newArray(Table.size * valuesToRecord.length);
-			
-		//For each row in the results table, get out the data and store it in analysisRecordInput
-		for(currRow = 0; currRow < Table.size; currRow ++ ) {
-			for(currVal = 0; currVal < valuesToRecord.length; currVal ++ ) {
-				if(currVal == 0) {
-					analysisRecordInput[(Table.size * currVal)+currRow] = Table.getString(valuesToRecord[currVal], currRow);
-				} else {
-					analysisRecordInput[(Table.size * currVal)+currRow] = Table.get(valuesToRecord[currVal], currRow);
-				}
-			}
-		}
+					
+		//TableResultsRefs is an array of the location where we would find any previuosly existing table, repeated for each column
+		TableResultsRefs = newArray(directories[1] + "Images to Use.csv", directories[1] + "Images to Use.csv", 
+			directories[1] + "Images to Use.csv", directories[1] + "Images to Use.csv");
+						
+		//This tells the function whether the results we're getting are strings
+		TableResultsAreStrings = newArray(true, false, false, false);
+						
+		//Run the fillArray function to fill analysisRecordInput
+		fillArray(analysisRecordInput, TableResultsRefs, valuesToRecord, TableResultsAreStrings, true);
 	
 		selectWindow("Images to Use.csv");
 		run("Close");
@@ -928,26 +851,26 @@ if(analysisSelections[0] == true) {
 			}
 		}
 		Table.update;
+		setBatchMode("Exit and Display");
+		waitForUser("Check table is correctly populated");
 
 		//If an image has a manual flag, get out a list of these
 		manualFlag = Table.getColumn("Manual Flag");
 		imageName = Table.getColumn("Image List");
+		ignoreFlag = Table.getColumn("Ignore");
 		for(currImage = 0; currImage<manualFlag.length; currImage++) {
-			if(manualFlag[currImage]==0) {
+			if(manualFlag[currImage]==0 || ignoreFlag[currImage] == 1) {
 				imageName[currImage] = 0;
 			}
 		}
-		//Array.show(imageName);
 		forStorage = newArray(1);
 		forStorage = removeZeros(imageName, forStorage);
 
 		//Get the file name of the manually flagged images
 		if(forStorage.length != 0) {
 			ArrayConc = Array.copy(forStorage);
-			if(File.exists(directories[0] + File.getName(forStorage[0]) + ".tif")==1 || File.exists(directories[2] + File.getName(forStorage[0]) + ".tif")==1) {
-				for(currImage = 0; currImage<forStorage.length; currImage++) {
-					ArrayConc[currImage] = File.getName(forStorage[currImage]);
-				}
+			for(currImage = 0; currImage<forStorage.length; currImage++) {
+				ArrayConc[currImage] = File.getName(forStorage[currImage]);
 			}
 		}
 
@@ -956,168 +879,148 @@ if(analysisSelections[0] == true) {
 		
 	}
 
-	//If the user wants to manually process the image and the user chose to select frames
-	if(manCorrect == true) {
-		if(frameSelect == true) {
+	//If the user wants to manually process images and the user chose to select frames
+	if(manCorrect == true && frameSelect == true) {
+		
+		//Loop through the files in the manually flagged images array
+		for(i=0; i<ArrayConc.length; i++) {
+			//If we haven't already selected frames for the current image and it is in our input folder
+			if(File.exists(directories[1] + ArrayConc[i] + "/Slices To Use.csv")==0 && File.exists(directories[0] + ArrayConc[i] + ".tif")==1) {
 
-			//Set the array to cycle through as the manually flagged images
-			imagesInput = ArrayConc;
-			
-			//Loop through the files in the input folder
-			for(i=0; i<imagesInput.length; i++) {
-	
-				//print(imagesInput[i]);
-	
-				if(File.exists(directories[1] + imagesInput[i] + "/Slices To Use.csv")==0 && File.exists(directories[0] + imagesInput[i] + ".tif")==1) {
-					print("To process: ", imagesInput[i]);
-				}
-
-			} 
-
-			waitForUser("Check what to process");
-	
-			for(i=0; i<imagesInput.length; i++) {
-				
-				//If we haven't already selected frames for the current image and it is in our input folder
-				if(File.exists(directories[1] + imagesInput[i] + "/Slices To Use.csv")==0 && File.exists(directories[0] + imagesInput[i] + ".tif")==1) {
-	
-					print("Manually selecting frames");
-					forInfo = imagesInput[i] + ".tif";
+				print("Manually selecting frames");
+				forInfo = ArrayConc[i] + ".tif";
 						
-					//Get out the animal name info - animal and 
-					//timepoint that we store at index [0] in the array, the timepoint only at [1]
-					//the animal only at [2] and finally the file name without the .tif on the end
-					//that we store at [3]
-					imageNames = newArray(4);
-					getAnimalTimepointInfo(imageNames, forInfo);
+				//Get out the animal name info - animal and 
+				//timepoint that we store at index [0] in the array, the timepoint only at [1]
+				//the animal only at [2] and finally the file name without the .tif on the end
+				//that we store at [3]
+				imageNames = newArray(4);
+				getAnimalTimepointInfo(imageNames, forInfo);
+				open(directories[0] + forInfo);
 					
-					print("Preprocessing ", imageNames[0]); 
+				print("Preprocessing ", imageNames[0]); 
 
-					//Array to store the values we need to calibrate our image with
-					iniTextValuesMicrons = newArray(5);
-					//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ, final index is 
-					//whether the ini file was correctly calibrated	
+				//Array to store the values we need to calibrate our image with
+				iniTextValuesMicrons = newArray(5);
+				//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ
 
-					getIniData(directoryName, iniTextValuesMicrons)
+				getIniData(directoryName, iniTextValuesMicrons);
 
-					//Calculate the number of timepoints in the image, and also a value framesReorder that we pass in 
-					//to reorganise our slices as we want
-					timepoints = iniTextValuesMicrons[3]/(iniTextValuesMicrons[3] * iniTextValuesMicrons[4]);
-					framesReorder = iniTextValuesMicrons[3]/timepoints;
+				//Calculate the number of timepoints in the image, and also a value framesReorder that we pass in 
+				//to reorganise our slices as we want
+				timepoints = (iniTextValuesMicrons[3] * iniTextValuesMicrons[4])/nSlices;
+				framesReorder = (iniTextValuesMicrons[3] * iniTextValuesMicrons[4])/timepoints;
 		
-					//This makes an array with a sequence 0,1,2...slices
-					imageNumberArray = Array.getSequence(iniTextValuesMicrons[3]+1); 
+				//This makes an array with a sequence 0,1,2...slices
+				imageNumberArray = Array.getSequence((iniTextValuesMicrons[3] * iniTextValuesMicrons[4])+1); 
 		
-					//This array is used in motion artifact removal to store the image numbers 
-					//being processed that contains 1,2,3...slices
-					imageNumberArray = Array.slice(imageNumberArray, 1, imageNumberArray.length); 
+				//This array is used in motion artifact removal to store the image numbers 
+				//being processed that contains 1,2,3...slices
+				imageNumberArray = Array.slice(imageNumberArray, 1, imageNumberArray.length); 
 		
-					//Here we reorder our input image so that the slices are in the right structure for motion artefact removal
-					run("Stack to Hyperstack...", "order=xyczt(default) channels=1 slices="+timepoints+" frames="+framesReorder+" display=Color");
-					run("Hyperstack to Stack");
-					run("Stack to Hyperstack...", "order=xyczt(default) channels=1 slices="+framesReorder+" frames="+timepoints+" display=Color");
+				//Here we reorder our input image so that the slices are in the right structure for motion artefact removal
+				run("Stack to Hyperstack...", "order=xyczt(default) channels=1 slices="+timepoints+" frames="+framesReorder+" display=Color");
+				run("Hyperstack to Stack");
+				run("Stack to Hyperstack...", "order=xyczt(default) channels=1 slices="+framesReorder+" frames="+timepoints+" display=Color");
 		
-					//Reorder each individual timepoint stack in Z so that any out of position slices are positioned correctly for motion artifact detection and removal
-					//Go through each timepoint
-					for(k=0; k<timepoints; k++) {	
+				//Reorder each individual timepoint stack in Z so that any out of position slices are positioned correctly for motion artifact detection and removal
+				//Go through each timepoint
+				for(k=0; k<timepoints; k++) {	
 		
-						selectWindow(forInfo);
-						//Get out the current timepoint, split it into a stack for each frame (i.e. 14 stacks of 26 slices)
-						run("Duplicate...", "duplicate frames="+(k+1)+"");
-						currentTimepoint=getTitle();	
-						rename("Timepoint");
+					selectWindow(forInfo);
+					//Get out the current timepoint, split it into a stack for each frame (i.e. 14 stacks of 26 slices)
+					run("Duplicate...", "duplicate frames="+(k+1)+"");
+					currentTimepoint=getTitle();	
+					rename("Timepoint");
 		
-						//Loop through all Z points in our image
-						for(i0=0; i0<(iniTextValuesMicrons[3]); i0++) {
+					//Loop through all Z points in our image
+					for(i0=0; i0<(iniTextValuesMicrons[3]); i0++) {
 					
-							//Here we create substacks from our input image - one substack 
-							//corresponding to all the frames at one Z point
-							subName="Substack ("+((iniTextValuesMicrons[4]*i0)+1)+"-"+ (iniTextValuesMicrons[4]*(i0+1))+")";
-							selectWindow("Timepoint");
-							slicesInTimepoint = nSlices;
-							print(slicesInTimepoint);
-							print(((iniTextValuesMicrons[4]*i0)+1)+"-"+ (iniTextValuesMicrons[4]*(i0+1)));
-							run("Make Substack...", " slices="+((iniTextValuesMicrons[4]*i0)+1)+"-"+(iniTextValuesMicrons[4]*(i0+1))+"");
-							rename(subName);
-							subSlices=nSlices;
+						//Here we create substacks from our input image - one substack 
+						//corresponding to all the frames at one Z point
+						subName="Substack ("+((iniTextValuesMicrons[4]*i0)+1)+"-"+ (iniTextValuesMicrons[4]*(i0+1))+")";
+						selectWindow("Timepoint");
+						slicesInTimepoint = nSlices;
+						print(slicesInTimepoint);
+						print(((iniTextValuesMicrons[4]*i0)+1)+"-"+ (iniTextValuesMicrons[4]*(i0+1)));
+						run("Make Substack...", " slices="+((iniTextValuesMicrons[4]*i0)+1)+"-"+(iniTextValuesMicrons[4]*(i0+1))+"");
+						rename(subName);
+						subSlices=nSlices;
 		
-							//Create an array to store which of the current substack slices we're keeping - fill with zeros
-							slicesKeeping = newArray(subSlices);
-							slicesKeeping = Array.fill(slicesKeeping, 0);
+						//Create an array to store which of the current substack slices we're keeping - fill with zeros
+						slicesKeeping = newArray(subSlices);
+						slicesKeeping = Array.fill(slicesKeeping, 0);
 
-							setOption("AutoContrast", true);
+						setOption("AutoContrast", true);
 		
-							//Looping through the number of frames the user selected to keep, ask the user to
-							//scroll to a frame to retain, the index of this frame in slicesKeeping is then set to 1
-							for(currFrame=0; currFrame < fToKeep; currFrame++) {
+						//Looping through the number of frames the user selected to keep, ask the user to
+						//scroll to a frame to retain, the index of this frame in slicesKeeping is then set to 1
+						for(currFrame=0; currFrame < fToKeep; currFrame++) {
 								
-								setBatchMode("Exit and Display");
-								run("Tile");
-								selectWindow(subName);
-								waitForUser("Scroll onto the frame to retain");
-								setBatchMode(true);
-								keptSlice = getSliceNumber();
-								print("Slice selected: ", keptSlice);
-								print("If selecting more, select a different one");
-		
-								//keptSlice = 6;
-		
-								slicesKeeping[(keptSlice-1)] = 1;
-								
-							}
-
-							setOption("AutoContrast", false);
-			
-							//Close the image
+							setBatchMode("Exit and Display");
+							run("Tile");
 							selectWindow(subName);
-							run("Close");
-								
-							//If the user is keeping a particular frame, we retain that number in our imageNumberArray, else
-							//we set it to zero
-							for (i1=0;i1<subSlices;i1++) {
-								if(slicesKeeping[i1] == 0) {
-									imageNumberArray[i1+(i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))] = 0;
-								}
+							if(false) {
+							waitForUser("Scroll onto the frame to retain on the image labelled 'Substack etc'");
 							}
+							setBatchMode(true);
+							keptSlice = getSliceNumber();
+							print("Slice selected: ", keptSlice);
+							print("If selecting more, select a different one");
+		
+							//keptSlice = 6;
+		
+							slicesKeeping[(keptSlice-1)] = 1;
+								
 						}
 
-						selectWindow("Timepoint");
+						setOption("AutoContrast", false);
+			
+						//Close the image
+						selectWindow(subName);
 						run("Close");
+								
+						//If the user is keeping a particular frame, we retain that number in our imageNumberArray, else
+						//we set it to zero
+						for (i1=0;i1<subSlices;i1++) {
+							if(slicesKeeping[i1] == 0) {
+								imageNumberArray[i1+(i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))] = 0;
+							}
+						}
 					}
-		
-					//Save our array in a csv file so we can read this in later
-					Table.create("Slices To Use");
-					selectWindow("Slices To Use");
-					Table.setColumn("Slices", imageNumberArray);
-		
-					//If the output directory for the input image hasn't already been made, make it
-					if(File.exists(directories[1]+imagesInput[i]+"/") == 0) {
-						File.makeDirectory(directories[1]+imagesInput[i]+"/");
-					}
-		
-					Table.save(directories[1] + imagesInput[i] + "/Slices To Use.csv");
-					TableName = Table.title;
-					
-					//Since we save it every time, we have to rename it to get rid of the .csv 
-					if(TableName != "Slices To Use") {
-						Table.rename(TableName, "Slices To Use");
-					}
-					
-					selectWindow("Slices To Use");
+
+					selectWindow("Timepoint");
 					run("Close");
+				}
 		
-					Housekeeping();
+				//Save our array in a csv file so we can read this in later
+				Table.create("Slices To Use");
+				selectWindow("Slices To Use");
+				Table.setColumn("Slices", imageNumberArray);
+		
+				//If the output directory for the input image hasn't already been made, make it
+				if(File.exists(directories[1] + ArrayConc[i]+"/") == 0) {
+					File.makeDirectory(directories[1]+ArrayConc[i] +"/");
+				}
+		
+				Table.save(directories[1] + ArrayConc[i] + "/Slices To Use.csv");
+				TableName = Table.title;
+				
+				//Since we save it every time, we have to rename it to get rid of the .csv 
+				if(TableName != "Slices To Use") {
+					Table.rename(TableName, "Slices To Use");
+				}
+					
+				selectWindow("Slices To Use");
+				run("Close");
+		
+				Housekeeping();
 	
-				}	 
-			}
+			}	 
 		}
 	}
 
-	if(manCorrect == false) {
-		frameProcess = false;
-	}
-
-		//If we're going to frame process our manually selected frames, or we're not manually processing motion issues
+	//If we're going to frame process our manually selected frames, or we're not manually processing motion issues
 	if(manCorrect == false || manCorrect == true && frameProcess == true ) {
 
 		//If we want to process our manually selected frames, set the image array to the manually flagged images
@@ -1132,103 +1035,61 @@ if(analysisSelections[0] == true) {
 		//that have been flagged for manual analysis i.e. images that haven't been registered before
 		} else {
 			imagesInput = getFileList(directories[0]);
-				for(currInput = 0; currInput < imagesInput.length; currInput++) {
-					noTif = substring(imagesInput[currInput], 0, indexOf(imagesInput[currInput], ".tif"));
-					//print("No Tif: ", noTif);
-					for(currConc = 0; currConc < ArrayConc.length; currConc++) {
-						//print("CurrConc: ", ArrayConc[currConc]);
-						//noTifCheck = substring(ArrayConc[currConc], 0, indexOf(ArrayConc[currConc], ".tif"));
-						if(ArrayConc[currConc] == noTif) {
-							imagesInput[currInput] = 0;
-							currConc = 1e99;
-						}
+			for(currInput = 0; currInput < imagesInput.length; currInput++) {
+				noTif = substring(imagesInput[currInput], 0, indexOf(imagesInput[currInput], ".tif"));
+				for(currConc = 0; currConc < ArrayConc.length; currConc++) {
+					if(ArrayConc[currConc] == noTif) {
+						imagesInput[currInput] = 0;
+						currConc = 1e99;
 					}
 				}
-				newImages = newArray(1);
-				newImages = removeZeros(imagesInput, newImages);			
-				imagesInput = newImages;
-					
-			}
+			}	
+			newImages = newArray(1);
+			newImages = removeZeros(imagesInput, newImages);			
+			imagesInput = newImages;			
+		}
+	}
+		
+	//Loop through the files in the input folder
+	for(i=0; i<imagesInput.length; i++) {
+			
+		//If the file exists in our input folder, we proceed
+		proceed = false;
+		if(File.exists(directories[0] + imagesInput[i])==1) {
+			proceed = true;
 		}
 
-		Array.show(imagesInput);
-		waitForUser("Images input check");
-		
-		//Loop through the files in the input folder
-		for(i=0; i<imagesInput.length; i++) {
-			
-			//If the file exists in our input folder, we proceed
+		//Though if we're doing manual correction and don't have a list of the frames to use, we don't proceed
+		if(manCorrect == true && File.exists(directories[1] + substring(imagesInput[i], 0, indexOf(imagesInput[i], ".tif")) + "/Slices To Use.csv")==0) {
 			proceed = false;
-			if(File.exists(directories[0] + imagesInput[i])==1) {
-				proceed = true;
-			}
+		}
 
-			//Though if we're doing manual correction and don't have a list of the frames to use, we don't
-			//proceed
-			if(manCorrect == true && File.exists(directories[1] + substring(imagesInput[i], 0, indexOf(imagesInput[i], ".tif")) + "/Slices To Use.csv")==0) {
-				proceed = false;
-			}
+		if(proceed == true) {
 
-			print(imagesInput[i], proceed);
-
-			if(proceed == true) {
-
-				run("TIFF Virtual Stack...", "open=["+directories[0]+""+imagesInput[i]+"]");
-				//print(imagesInput[i]);
+			open(directories[0] + imagesInput[i]);
 		
-				//Work out the animal and timepoint labels for the current image based on 
-				//its name
-				imageNames = newArray(4);
-			  	getAnimalTimepointInfo(imageNames, imagesInput[i]);
-	
-				//If the file hasn't been processed before (we check it against whether a 
-				//processed version of the image exists in its output directory), we process 
-				//it
-		
-				//if (File.exists(directories[1] + imageNames[3]+"/"+ imageNames[3]+
-		 		//              " processed.tif")==0) {
-				// " processed.tif") == 1) {
-			
-				print("Preprocessing ", imageNames[0]); 
-
-				//Open our raw image
-				print("Opening " + imagesInput[i]);
-				//run("TIFF Virtual Stack...", "open=["+directories[0] + imagesInput[i]+"]");
-				open(directories[0] + imagesInput[i]);
-				print(imagesInput[i] + " opened");
+			//Work out the animal and timepoint labels for the current image based on its name
+			imageNames = newArray(4);
+		  	getAnimalTimepointInfo(imageNames, imagesInput[i]);
+			print("Preprocessing ", imageNames[0]); 
+			print(imagesInput[i] + " opened");
 
 				//Array to store the values we need to calibrate our image with
 				iniTextValuesMicrons = newArray(5);
-				//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ, final index is 
-				//whether the ini file was correctly calibrated	
-
-				if(analysisSelections[6] == true) {
+				//Index 0 is xPxlSz, then yPxlSz, zPxlSz, ZperT, FperZ
 				
-					//Fill that array with the calibration data for that animal at that 
-					//timepoint
-					getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-
-				} else {
-
-					iniTextValuesMicrons[4] = noIniFperZ;
-					iniTextValuesMicrons[3] = nSlices;
-					
-					getVoxelSize(vWidth, vHeight, vDepth, vUnit);
-					iniTextValuesMicrons[0] = vWidth;
-					iniTextValuesMicrons[1] = vHeight;
-					iniTextValuesMicrons[2] = vDepth;
-
-				}
+				getIniData(directoryName, iniTextValuesMicrons);
 					
 				//Calculate the number of timepoints in the image
-				timepoints = nSlices/(iniTextValuesMicrons[3] * iniTextValuesMicrons[4]);
-				framesReorder = nSlices/timepoints;
+				timepoints = (iniTextValuesMicrons[3] * iniTextValuesMicrons[4])/nSlices;
+				framesReorder = iniTextValuesMicrons[3]/timepoints;
 		
 				//Convert the image to 8-bit, then adjust the contrast across all slices 
 				//to normalise brightness to that of the top slice in the image
 				selectWindow(imagesInput[i]);
 				print("Converting to 8-bit");
 				run("8-bit");
+				if(false) {
 				print("Stack Contrast Adjusting");
 				selectWindow(imagesInput[i]);
 				setSlice(1);
@@ -1239,6 +1100,7 @@ if(analysisSelections[0] == true) {
 				selectWindow(stackWindow);
 				rename(imagesInput[i]);
 				run("8-bit");
+				}
 	
 				//Increase the canvas size of the image by 100 pixels in x and y so that 
 				//when we run registration on the image, if the image drifts we don't lose
@@ -1327,9 +1189,9 @@ if(analysisSelections[0] == true) {
 
 							//Here we create substacks from our input image - one substack 
 							//corresponding to all the frames at one Z point
-							subName="Substack ("+((iniTextValuesMicrons[4]*i0)+1)+"-"+(iniTextValuesMicrons[4]*(i0+1))+")";
+							subName="Substack ("+((iniTextValuesMicrons[4]*i0)+1)+"-"+(iniTextValuesMicrons[4]*(i0+1))+")";
 							selectWindow("Timepoint");
-							run("Make Substack...", " slices="+((iniTextValuesMicrons[4]*i0)+1)+"-"+(iniTextValuesMicrons[4]*(i0+1))+"");
+							run("Make Substack...", " slices="+((iniTextValuesMicrons[4]*i0)+1)+"-"+(iniTextValuesMicrons[4]*(i0+1))+"");
 							rename(subName);
 						
 							//As a way of detection blur in our imgaes, we use a laplacian of gaussian filter on our stack,
@@ -1383,16 +1245,14 @@ if(analysisSelections[0] == true) {
 							//set the slice number to 0 in the array. This allows us to store only 
 							//the slice numbers of the slices we want to use
 							for (i1=0;i1<subSlices;i1++) {
-								print(IMTArrayCutoffRank2[i1]);
-								print(intDenDiff[i1]);
-								if (IMTArrayCutoffRank2[i1]>(lapFrames-1)) {
+								//print(IMTArrayCutoffRank2[i1]);
+								//print(intDenDiff[i1]);
+								if (IMTArrayCutoffRank2[i1]<(IMTArrayCutoffRank2.length-lapFrames)) {
 									forLap[i1+(i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))] = 0;
 								}
-								print(forLap[i1+(i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))]);
+								//print(forLap[i1+(i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))]);
 							}
 
-							waitForUser("Check the laplacian of gaussian filtering is selecting those with the highest values");
-							
 							//Here we create a new array that stores the slice numbers for the 
 							//substack we're currently working with
 							currentStackSlices = Array.slice(forLap, ((i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3])))), (subSlices+((i0*subSlices) + (k*(subSlices*(iniTextValuesMicrons[3]))))));
@@ -1415,7 +1275,9 @@ if(analysisSelections[0] == true) {
 							//Stick our average projected image in front of the ZT point to register then by translation (to minimize differences when comparing them)
 							//before then removing the average projection from the stack
 							run("Concatenate...", " title = wow image1=[T"+motionArtifactRemoval[2]+" Z"+motionArtifactRemoval[3]+"] image2=toKeep image3=[-- None --]");
+							if(false) {
 							run("MultiStackReg", "stack_1=[Untitled] action_1=Align file_1=[]  stack_2=None action_2=Ignore file_2=[] transformation=[Translation]");
+							}
 							selectWindow("Untitled");
 							run("Make Substack...", "delete slices=1");
 							selectWindow("Substack (1)");
@@ -1500,13 +1362,17 @@ if(analysisSelections[0] == true) {
 							selectWindow("T"+motionArtifactRemoval[2]);
 							run("8-bit");
 							print("Reordering and registering T", motionArtifactRemoval[2]);
+							if(false) {
 							run("MultiStackReg", "stack_1=[T"+motionArtifactRemoval[2]+"] action_1=Align file_1=[] stack_2=None action_2=Ignore file_2[] transformation=[Translation]");
+							}
 							selectWindow("T"+motionArtifactRemoval[2]);
 							run("8-bit");
 							zSpaceCorrection("T"+motionArtifactRemoval[2], (iniTextValuesMicrons[3]*5), "T"+motionArtifactRemoval[2]);
 							selectWindow("T"+motionArtifactRemoval[2]);
 							run("8-bit");
+							if(false) {
 							run("MultiStackReg", "stack_1=[T"+motionArtifactRemoval[2]+"] action_1=Align file_1=[] stack_2=None action_2=Ignore file_2[] transformation=[Affine]");
+							}
 							selectWindow("T"+motionArtifactRemoval[2]);
 							run("8-bit");
 							print("Done");
@@ -1547,23 +1413,18 @@ if(analysisSelections[0] == true) {
 				selectWindow(timepointNamesCutoff[(timepoints-1)] + "Mask");
 				run("Z Project...", "projection=[Max Intensity]");
 				run("Create Selection");
-				
-				roiManager("add");
-				selectWindow(timepointNamesCutoff[(timepoints-1)]);
-				rename(imagesInput[i]);
-				roiManager("select", 0);
 				run("To Bounding Box");
-				run("Clear Outside", "stack");
 				run("Duplicate...", "duplicate");
+				rename("dup");
 	
 				selectWindow(timepointNamesCutoff[(timepoints-1)] + "Mask");
 				run("Close");
-				selectWindow(imagesInput[i]);
+				selectWindow(timepointNamesCutoff[(timepoints-1)]);
 				run("Close");
 		
 				//As this isn't a timelapse experiment, we can close our original input 
 				//image and rename our registered timepoint as the input image
-				selectWindow(substring(imagesInput[i], 0, indexOf(imagesInput[i], ".tif")) + "-1.tif");
+				selectWindow("dup");
 				rename(imagesInput[i]);
 				run("Select None");
 				
@@ -1583,7 +1444,6 @@ if(analysisSelections[0] == true) {
 				}
 
 				selectWindow(imagesInput[i]);
-				//run("Select None");
 				saveAs("tiff", directories[1]+imageNames[3]+"/" + imageNames[3]+ " processed.tif");
 	
 				wasMoved = File.rename(directories[0]+imagesInput[i], directories[2]+imagesInput[i]);
@@ -1601,22 +1461,15 @@ if(analysisSelections[0] == true) {
 }
 
 //If the user has chosen to select images to analyse
-if(analysisSelections[5] == 1) {
+if(analysisSelections[1] == 1) {
 
-	//Array to store variables for use in generating the Images To Use.csv file
-	variableArray = newArray(3);
+	//Array to store variables for use in generating the Images to Use.csv file
+	variableArray = newArray(3);	
 	variableArray[1] = 0;
 	//Indexes: how many images the user wants on the screen at once, how many images we've added to our imagesToUse array, and an index of how many images we've
 	//added to our final output array
 	
-	//Ask the user how many images to display on the screen at once for quality control and return this number
-	stringa="How many images do you want to display on the screen at once?";
-	Dialog.create("Experiment Information");
-		
-	Dialog.addNumber(stringa,0);
-	Dialog.show();
-	
-	variableArray[0] = Dialog.getNumber();
+	variableArray[0] = onScreen;
 
 	//Create an array to fill with locations of images that match the max substring (max projections of processed images) and fill it
 	fileLocations=newArray(1);
@@ -1626,42 +1479,28 @@ if(analysisSelections[5] == 1) {
 	//An array storing the column names that we'll use in our results file
 	valuesToRecord = newArray("Image List", "Kept", "Manual Flag", "Ignore");
 
-	//If we've previuosly created a results file, open it up, and create an array analysisRecordInput that will store all the results
-	//from it
-	if(File.exists(directories[1] + "Images to Use.csv") == 1) {
-		open(directories[1] + "Images to Use.csv");
-		analysisRecordInput = newArray(Table.size * valuesToRecord.length);
-		
-		//For each row in the results table, get out the data and store it in analysisRecordInput
-		for(currRow = 0; currRow < Table.size; currRow ++ ) {
-			for(currVal = 0; currVal < valuesToRecord.length; currVal ++ ) {
-				if(currVal == 0) {
-					analysisRecordInput[(Table.size * currVal)+currRow] = Table.getString(valuesToRecord[currVal], currRow);
-				} else {
-					analysisRecordInput[(Table.size * currVal)+currRow] = Table.get(valuesToRecord[currVal], currRow);
-				}
-			}
-		}
-
-		selectWindow("Images to Use.csv");
-		run("Close");
-	
-	//If we haven't previuosly created a results table, set the analysisRecordInput array length to store the data
-	//for all the images in the output folder		
+	//If the images to use table isn't open, we create it
+	if(isOpen("Images to Use")==0) {
+		Table.create("Images to Use");
 	} else {
-		analysisRecordInput = newArray(outputMaxFiles.length*valuesToRecord.length);
+		Table.reset("Images to Use"");
 	}
-	
-	//Create an array to fill with the names of the images we want to calculate motility indices for based on which max projected images pass QA
-	imagesToUse = newArray(outputMaxFiles.length);
-
-	//waitForUser("check images to use table");
-
-	//Create a results table to fill with previous data if it exists
-	Table.create("Images to Use");
-	//Table.create("Hippo Image Check");
+					                        
+	//TableValues is an array we'll fill with the values from any existing cell position marking table for this image
+	analysisRecordInput = newArray(outputMaxFiles.length*valuesToRecord.length);
+					
+	//TableResultsRefs is an array of the location where we would find any previuosly existing table, repeated for each column
+	TableResultsRefs = newArray(directories[1] + "Images to Use.csv", directories[1] + "Images to Use.csv", 
+		directories[1] + "Images to Use.csv", directories[1] + "Images to Use.csv");
+						
+	//This tells the function whether the results we're getting are strings
+	TableResultsAreStrings = newArray(true, false, false, false);
+					
+	//Run the fillArray function to fill analysisRecordInput
+	fillArray(analysisRecordInput, TableResultsRefs, valuesToRecord, TableResultsAreStrings, true);
 
 	//File the table with previous data
+	selectWindow("Images to Use");
 	for(i0=0; i0<(analysisRecordInput.length / valuesToRecord.length); i0++) {
 		for(i1=0; i1<valuesToRecord.length; i1++) {
 			if(i1 == 0) {
@@ -1671,7 +1510,11 @@ if(analysisSelections[5] == 1) {
 			Table.set(valuesToRecord[i1], i0, analysisRecordInput[((analysisRecordInput.length / valuesToRecord.length)*i1)+i0]);
 		}
 	}
+	// Seems to fix issue where kept column wasn't updating
 	Table.update;
+	setBatchMode("exit and display");
+	waitForUser("Check table is correctly populated");
+	setBatchMode(true);
 
 	//Opened is a variable that counts how many images we've opened
 	opened = 0;
@@ -1693,7 +1536,7 @@ if(analysisSelections[5] == 1) {
 		for(currRow = 0; currRow < Table.size; currRow++) {
 
 			if(Table.get("Image List", currRow)!= 0) {
-				if(indexOf(toLowerCase(File.getParent(outputMaxFiles[i])), toLowerCase(File.getParent(Table.getString("Image List", currRow)))) > -1) {
+				if(indexOf(toLowerCase(File.getParent(outputMaxFiles[i])), toLowerCase(Table.getString("Image List", currRow))) > -1) {
 					match = true;
 					if(File.exists(File.getParent(outputMaxFiles[i]) + "/TCS Status.csv")==1) {
 						Table.set("Kept", currRow, 1);
@@ -1703,7 +1546,8 @@ if(analysisSelections[5] == 1) {
 						checkImage = false;
 						print("Already kept or ignored image");
 					}
-					if(Table.get("Manual Flag", currRow)==1 && File.exists(directories[0] + File.getName(Table.getString("Image List", currRow) + ".tif"))==1) {
+					fileName = Table.getString("Image List", currRow);
+					if(Table.get("Manual Flag", currRow)==1 && File.exists(directories[0] + fileName + ".tif")) {
 						checkImage = false;
 					}
 					currRow = 1e99;
@@ -1713,7 +1557,7 @@ if(analysisSelections[5] == 1) {
 
 		//If we couldn't find our image in the table
 		if(match == false) {
-		print("Not found");
+			print("Not found");
 		
 			//Set kept and analysed to 0
 			kept = 0;
@@ -1728,30 +1572,31 @@ if(analysisSelections[5] == 1) {
 
 			//Update and save our table
 			selectWindow("Images to Use");
-			//selectWindow("Hippo Image Check");
-			currentImage = substring(outputMaxFiles[i], 0, indexOf(toLowerCase(outputMaxFiles[i]), " processed"));
+			currentImage = substring(File.getName(outputMaxFiles[i]), 0, indexOf(File.getName(outputMaxFiles[i]), " processed"));
 			Table.set("Image List", i, currentImage);
 			Table.set("Kept", i, kept);
 			Table.update;
-			Table.save(directories[1]+"Images To Use.csv");
-			//Table.save(directories[1]+"Hippo Image Check.csv");
+			Table.save(directories[1]+"Images to Use.csv");
 
 			TableName = Table.title;
 			//Since we save it every time, we have to rename it to get rid of the .csv 
 			if(TableName != "Images to Use") {
-			//if(TableName != "Hippo Image Check") {
 				Table.rename(TableName, "Images to Use");
-				//Table.rename(TableName, "Hippo Image Check");
 			}
 			
 		}
 
-		//if(indexOf(toLowerCase(File.getParent(outputMaxFiles[i])), "hipp") > -1) {
 		//If we haven't analysed the current image
 		if(checkImage == true) {
 		
 			//Open each image
 			open(outputMaxFiles[i]);
+			rename("curr");
+			run("Duplicate...", "duplicate");
+			selectWindow("curr");
+			run("Close");
+			selectWindow("curr-1");
+			rename(substring(File.getName(outputMaxFiles[i]), 0, indexOf(File.getName(outputMaxFiles[i]), " processed")));
 			print(outputMaxFiles[i]);
 			print("Curr index", i);
 
@@ -1772,7 +1617,7 @@ if(analysisSelections[5] == 1) {
 		}
 
 		//If we've hit our limit or we're done opening images
-		if((opened!= 0 && opened%variableArray[0]==0) || (i==(outputMaxFiles.length-1) && nImages < variableArray[0])) {
+		if((opened!= 0 && opened%variableArray[0]==0) || (i==(outputMaxFiles.length-1) && nImages < variableArray[0] && opened!=0)) {
 			
 			setOption("AutoContrast", true);
 			//We get a list of all their titles
@@ -1785,10 +1630,6 @@ if(analysisSelections[5] == 1) {
 			setBatchMode("Exit and Display");
 			run("Tile");
 			waitForUser("Close the images that aren't good enough in terms of registration for analysis then press ok");
-
-			//If any images are left open
-			//if(nImages>0) {
-
 			openImages = getList("image.titles");
 			
 			//We loop through the titles of the open images and check within the outputMaxFiles array (all the files with max in the name)
@@ -1808,8 +1649,8 @@ if(analysisSelections[5] == 1) {
 
 				//If we're not keeping this image
 				if(imagesKept[i0] == 0) {
-					fileName = substring(allImages[i0], 0, (indexOf(toLowerCase(allImages[i0]), "processed"))-1);
-
+					fileName = allImages[i0];
+					
 					//If this image has a manual registration frame selection file and is in our done folder, this means we've manually
 					//registered it and still don't want it so set ignore to 1
 					if(File.exists(directories[1] + fileName + "/Slices To Use.csv")==1 && File.exists(directories[2] + fileName + ".tif")==1) {
@@ -1818,7 +1659,6 @@ if(analysisSelections[5] == 1) {
 						//Else, if this image doesn't have a manual registration frame selection file, we flag it for manual analysis and move
 						//the image from the done folder to the input folder
 						} else if(File.exists(File.getParent(fileName) + "/Slices To Use.csv")==0) {
-							//directories[1] + fileName + "/Slices To Use.csv")==0) {	
 							manualFlag[i0] = 1;
 							if(File.exists(directories[0] + fileName + ".tif")==0) {
 								print(directories[2] + fileName + ".tif");
@@ -1831,41 +1671,33 @@ if(analysisSelections[5] == 1) {
 							}
 						}
 					}
-
 				}
 
 				//We close all the open images after editing the imagesToUse array
 				if(nImages>0) {
-				run("Close All");
+					run("Close All");
 				}
-
-			//}
 			
 			//Update our results table with the names of the images we've checked, as well as their keep value
 			selectWindow("Images to Use");
-			//selectWindow("Hippo Image Check");
 			for(indexLoop =0; indexLoop < indices.length; indexLoop++) {
-				print(indexLoop);
-				currentIndex = indices[indexLoop];
-				currentImage = substring(outputMaxFiles[currentIndex], 0, indexOf(toLowerCase(outputMaxFiles[currentIndex]), " processed"));
-				currentKept = imagesKept[indexLoop];
-				currentFlag = manualFlag[indexLoop];
-				currentIgnore = ignore[indexLoop];
-				Table.set("Image List", currentIndex, currentImage);
-				Table.set("Kept", currentIndex, currentKept);
-				Table.set("Manual Flag", currentIndex, currentFlag);
-				Table.set("Ignore", currentIndex, currentIgnore);
+
+				//Update array contains the index to update, the name of the image, whether it was kept, manually flagged, or
+				//ignored, these are then set in the table
+				updateArray = newArray(indices[indexLoop], 
+					substring(File.getName(outputMaxFiles[i]), 0, indexOf(File.getName(outputMaxFiles[i]), " processed")),
+					imagesKept[indexLoop],manualFlag[indexLoop], ignore[indexLoop]);
+				for(currVal = 0; currVal < valuesToRecord.length; currVal++) {
+					Table.set(valuesToRecord[currVal], updateArray[0], updateArray[(currVal+1)]);
+				}
 				Table.update;
 				Table.save(directories[1] + "Images to Use.csv");
-				//Table.save(directories[1]+"Hippo Image Check.csv");
 			}
 
 			TableName = Table.title;
 			//Since we save it every time, we have to rename it to get rid of the .csv 
 			if(TableName != "Images to Use") {
-			//if(TableName != "Hippo Image Check") {
 				Table.rename(TableName, "Images to Use");
-				//Table.rename(TableName, "Hippo Image Check");
 			}
 
 			//Reset opened to 0 and reset indices to be a blank array
@@ -1873,21 +1705,19 @@ if(analysisSelections[5] == 1) {
 			indices = newArray(0);
 					
 		}
-		
 	}
-
 }
 
-
-//If we're going to mark cell positions on our processed images
-
-if(analysisSelections[1] == true) {
 
 ////////////////////////////////////////////////////////////////////////////////	
 //////////////////////////////Cell Position Marking/////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-//If we have generated an images to use csv file - otherwise we can't run this step
+//If we're going to mark cell positions on our processed images
+
+if(analysisSelections[2] == true) {
+
+	//If we have generated an images to use csv file - otherwise we can't run this step
 	if(File.exists(directories[1] + "Images to Use.csv") == 1) {
 
 		//Run housekeeping
@@ -1919,49 +1749,43 @@ if(analysisSelections[1] == true) {
 
 				//If the image was kept, count how many 10um thick substacks we can make with at least
 				//10um spacing between them, and 10um from the bottom and top of the stack
-				run("TIFF Virtual Stack...", "open=["+images[row]+".tif]");
+				run("TIFF Virtual Stack...", "open=["+directories[1]+images[row]+"/"+images[row]+" processed.tif]");
 				getVoxelSize(vWidth, vHeight, vDepth, vUnit);
 				zSize = nSlices*vDepth;
 				counting = 0;
 				for(currZ = 10; currZ < zSize; currZ++) {
-					if(currZ%10 == 0 && currZ <= zSize-20) {
+					if(currZ%20 == 0 && currZ <= (zSize-30)) {
 						counting = counting+1;
 					}
 				}
 
 				//Fill maskGenerationArray with a string of the range of z planes to include in each substack
-				count = 0;
+				countingTwo = 0;
 				maskGenerationArray = newArray(counting);
 				for(currZ = 10; currZ < zSize; currZ++) {
-					if(currZ%10 == 0 && currZ <= zSize-20) {
-						maskGenerationArray[count] = currZ+"-"+(currZ+10);
+					if(currZ%20 == 0 && currZ <= (zSize-30)) {
+						maskGenerationArray[countingTwo] = toString(currZ)+"-"+toString((currZ+10));
+						countingTwo = countingTwo + 1;
 					}
 				}
 
 				noStacksRaw[row] = maskGenerationArray.length;
 
+				//For each substack, check if we've made cell locations
 				checkIt = false;
 				for(i0 = 0; i0<maskGenerationArray.length; i0++) {
-		
-				//We need to make 3 chunks of images to analyse - so we loop 3 times
-				//Create a substack of 10um deep using our dividingArraySlices array 
-				//(i.e. 21-30um, 51-60um, and 81-90um)
-				//checkIt = false;
-				//for(i0=0; i0<3; i0++) {
 			
-					imgName="Substack ("+maskGenerationArray[i0]+")"; 
 					stringToSave = "Substack ("+maskGenerationArray[i0]+") positions marked"; 
 
 					//Check if we've already generated cell locations for this substack
 					//for this image
-					if(File.exists(File.getParent(images[row]) + "/Cell Coordinate Masks/"+stringToSave+".txt")==0) {
+					if(File.exists(directories[1]+images[row]+"/Cell Coordinate Masks/"+stringToSave+".txt")==0) {
 						checkIt = true;
 						i0 = 1e99;
 					}
 				}
-			
 
-				//If we haven't calculated the threshold for this image, add it to our finalImagestoUseArray
+				//If we haven't got all the coordinates for every substack for this image
 				if(checkIt== true) {
 				
 					//If we're not on the first image, we concatenate our finalImagesToUseArray with our toConcat array
@@ -1970,13 +1794,7 @@ if(analysisSelections[1] == true) {
 						noStacks = Array.concat(noStacks, toConcat);
 					}
 
-					//If the image contains " .tif" in the name we set finalImagestoUseArray[count] to the image name without it,
-					//else we just set it to that name
-					if(lastIndexOf(images[row], " .tif") > -1 ) {
-						finalImagestoUseArray[count] = File.getName(substring(images[row], 0, lastIndexOf(images[row], " .tif")));
-					} else {
-						finalImagestoUseArray[count] = File.getName(images[row]);
-					}
+					finalImagestoUseArray[count] = directories[1]+images[row]+"/"+images[row]+" processed";
 
 					//Add how many substacks we can make for this image
 					noStacks[count] = maskGenerationArray.length;
@@ -1984,140 +1802,122 @@ if(analysisSelections[1] == true) {
 					//Increase our count by one
 					count++;
 				}
+			} else {
+				noStacksRaw[row] = 0;
 			}
-			
-			noStacksRaw[row] = 0;
 		}
 
-		//Loop through the images that we want to calculate our motility indices for
-		for(i=0; i<finalImagestoUseArray.length; i++) {
-
-			Housekeeping();
-		
-			//Work out the animal and timepoint labels for the current image based on 
-			//its name
-			imageNames = newArray(4);
-			forUse = finalImagestoUseArray[i] + ".tif";
-		  	getAnimalTimepointInfo(imageNames, forUse);
-
-		  	/////////////////We're up to here in the checking process
-			
-			//Look for the files in the cell coordinates masks folder for that image
-			maskFolderFiles = getFileList(directories[1] + imageNames[3] + "/Cell Coordinate Masks/");
+		if(finalImagestoUseArray[0] != 0) {
+			//Loop through the images that we want to calculate our motility indices for
+			for(i=0; i<finalImagestoUseArray.length; i++) {
 	
-	      	//Set found to 0
-			found = 0;
-	      
-	     	//Loop through the files and if we find a .txt file (an indicator that 
-	      	//we've previuosly marked coordinates for this image) then we add 1 to 
-	      	//found
-			for(i0 = 0; i0<maskFolderFiles.length; i0++) {
-				if(indexOf(maskFolderFiles[i0], ".txt")>0) {
-					found++;
-				}
-			}
+				Housekeeping();
 			
-			//If found doesn't equal the number of stacks we can make for this image (i.e. we haven't marked coordinates for all
-			//substacks of out input image, even if we have for some) then we continue
-			//if(found!=noCounts[i]) {		
-			//if(found==noCounts[i]) {		
+				//Work out the animal and timepoint labels for the current image based on its name
+				imageNames = newArray(4);
+				print(finalImagestoUseArray[i]);
+				procLoc = indexOf(finalImagestoUseArray[i], " processed");
+				forUse = substring(finalImagestoUseArray[i], 0, procLoc) + ".tif";
+			  	getAnimalTimepointInfo(imageNames, forUse);
 				
-				//Here we make any storage folders that aren't related to TCS and 
-				//haven't already been made
-				for(i0=0; i0<noCounts[i]; i0++) {
-					dirToMake=directories[1]+imageNames[3]+"/"+storageFolders[i0];
-					if(File.exists(dirToMake)==0) {
-						File.makeDirectory(dirToMake);
+				//Look for the files in the cell coordinates masks folder for that image
+				maskFolderFiles = getFileList(directories[1] + imageNames[3] + "/Cell Coordinate Masks/");
+		
+		      	//Set found to 0
+				found = 0;
+		      
+		     	//Loop through the files and if we find a .txt file (an indicator that 
+		      	//we've previuosly marked coordinates for this image) then we add 1 to 
+		      	//found
+				for(i0 = 0; i0<maskFolderFiles.length; i0++) {
+					if(indexOf(maskFolderFiles[i0], ".txt")>0) {
+						found++;
 					}
-				}	
-			
-				//If the cell position marking table isn't open, we create it
-				if(isOpen("Cell Position Marking")==0) {
-					Table.create("Cell Position Marking");
-				} else {
-					Table.reset("Cell Position Marking");
 				}
+				
+				//If found doesn't equal the number of stacks we can make for this image (i.e. we haven't marked coordinates for all
+				//substacks of out input image, even if we have for some) then we continue
+				if(found!=noStacks[i]) {		
 					
-				//Create an array here of the columns that will be / are in the cell
-				//position marking table
-				TableColumns = newArray("Substack", "Bad Registration", "Bad Detection", "Processed", "QC");
-					                        
-				//TableValues is an array we'll fill with the values from any existing
-				//cell position marking table for this image
-				TableValues = newArray(noCounts[i]*TableColumns.length);
-					
-				//TableResultsRefs is an array of the location where we would find any
-				//previuosly existing table, repeated for each column
-				TableResultsRefs = newArray(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv", directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv", 
-					directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv", directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv", 
-					directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv");
-						
-				//This tells the function whether the results we're getting are strings
-				TableResultsAreStrings = newArray(true, false, false, false, false);
-					
-				//Run the fillArray function to fill TableValues
-				fillArray(TableValues, TableResultsRefs, TableColumns, 
-					      TableResultsAreStrings, true);
-			
-				//Here we fill our current or new cell position marking table with data 
-				//from our TCSValues array
-				selectWindow("Cell Position Marking");
-				for(i0=0; i0<noCounts[i]; i0++) {
-					for(i1=0; i1<TableColumns.length; i1++) {
-						Table.set(TableColumns[i1], i0, TableValues[(noCounts[i]*i1)+i0]);
-						if(i1 == TableColumns.length-2) {
-							//alreadyProcessed[i0] = TableValues[(3*i1)+i0];
+					//Here we make any storage folders that aren't related to TCS and 
+					//haven't already been made
+					for(i0=0; i0<storageFolders.length; i0++) {
+						dirToMake=directories[1]+imageNames[3]+"/"+storageFolders[i0];
+						if(File.exists(dirToMake)==0) {
+							File.makeDirectory(dirToMake);
 						}
+					}	
+				
+					//If the cell position marking table isn't open, we create it
+					if(isOpen("Cell Position Marking")==0) {
+						Table.create("Cell Position Marking");
+					} else {
+						Table.reset("Cell Position Marking");
 					}
-				}
-
-				subName = newArray(noCounts[i]);
-				procForTable = newArray(noCounts[i]);
-				for(currI = 0; currI < noCounts[i], currI++) {
-					procForTable[currI] = 1;
-				}
-				//procForTable = newArray(1,1,1);
-			
-				//We need to make 3 chunks of images to analyse - so we loop 3 times
-				//Create a substack of 10um deep using our dividingArraySlices array 
-				//(i.e. 21-30um, 51-60um, and 81-90um)
-				for(i0=0; i0<noCounts[i]; i0++) {
-			
-					imgName="Substack ("+maskGenerationArray[i0]+")"; 
-					stringToSave = "Substack ("+maskGenerationArray[i0]+") positions marked"; 
-
-					subName[i0] = "Substack (" +maskGenerationArray[i0]+ ")";
 						
-					//Check if we've already generated cell locations for this substack
-					//for this image
-					//if(File.exists(directories[1] + imageNames[3] + "/Cell Coordinate Masks/"+stringToSave+".txt")==0) {
-					if(File.exists(directories[1] + imageNames[3] + "/Cell Coordinate Masks/"+stringToSave+".txt")==1) {
-
-						print("Marking ", imageNames[3], " at ", imgName);
+					//Create an array here of the columns that will be / are in the cell position marking table
+					TableColumns = newArray("Substack", "Bad Registration", "Bad Detection", "Processed", "QC");
+						                        
+					//TableValues is an array we'll fill with the values from any existing cell position marking table for this image
+					TableValues = newArray(noStacks[i]*TableColumns.length);
+						
+					//TableResultsRefs is an array of the location where we would find any
+					//previuosly existing table, repeated for each column
+					TableResultsRefs = newArray(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv", 
+						directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv", 
+						directories[1] + imageNames[3] +  "/Cell Coordinate Masks/Cell Position Marking.csv", 
+						directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv", 
+						directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv");
 							
-						//Open the processed image, make a substack, max project it
-						open(directories[1]+imageNames[3]+"/"+imageNames[3]+ " processed.tif");
-						if(is("Inverting LUT")==true) {
-							run("Invert LUT");
-						}
-						imageSlices = nSlices;
-						lastSlice = parseFloat(substring(maskGenerationArray[i0], indexOf(maskGenerationArray[i0], "-") + 1));
+					//This tells the function whether the results we're getting are strings
+					TableResultsAreStrings = newArray(true, false, false, false, false);
 						
-						if(lastSlice <= imageSlices){
-
-							selectWindow(imageNames[3]+ " processed.tif");
+					//Run the fillArray function to fill TableValues
+					fillArray(TableValues, TableResultsRefs, TableColumns, TableResultsAreStrings, true);
+				
+					//Here we fill our current or new cell position marking table with data 
+					//from our TCSValues array
+					selectWindow("Cell Position Marking");
+					for(i0=0; i0<noStacks[i]; i0++) {
+						for(i1=0; i1<TableColumns.length; i1++) {
+							Table.set(TableColumns[i1], i0, TableValues[(noStacks[i]*i1)+i0]);
+						}
+					}
+	
+					subName = newArray(noStacks[i]);
+					procForTable = newArray(noStacks[i]);
+				
+					//We loop through each substack now
+					for(i0=0; i0<noStacks[i]; i0++) {
+				
+						imgName="Substack ("+maskGenerationArray[i0]+")"; 
+						stringToSave = "Substack ("+maskGenerationArray[i0]+") positions marked"; 
+						subName[i0] = "Substack (" +maskGenerationArray[i0]+ ")";
+	
+						if(File.exists(directories[1] + imageNames[3] + "/Cell Coordinate Masks/"+stringToSave+".txt")==1) {
+							procForTable[i0] = 1;
+						//Check if we've already generated cell locations for this substack for this image
+						} else {
+							print("Marking ", imageNames[3], " at ", imgName);
+								
+							//Open the processed image, make a substack, max project it
+							open(directories[1] + imageNames[3] + "/" + imageNames[3] +" processed.tif");
+							if(is("Inverting LUT")==true) {
+								run("Invert LUT");
+							}
+	
 							rename(imageNames[3]);
 							run("Make Substack...", " slices="+maskGenerationArray[i0]+"");
 							selectWindow(imgName);
 							run("Z Project...", "projection=[Average Intensity]");
 							selectWindow("AVG_"+imgName);
 							rename("AVG");
-									
+										
 							//We use a max projection of the chunk to look for our cells, and we 
 							//set its calibration to pixels so that the coordinates we retrieve 
 							//are accurate as imageJ when plotting points plots them according 
 							//to pixel coordinates
-		
+			
 							getDimensions(width, height, channels, slices, frames);
 							run("Properties...", "channels="+channels+" slices="+slices+" frames="+frames+" unit=pixels pixel_width=1 pixel_height=1 voxel_depth=1.0000000");
 							run("8-bit");
@@ -2125,20 +1925,18 @@ if(analysisSelections[1] == true) {
 								
 							//We look for cells using the fina maxima function and ouput a list
 							//of the maxima and save these as coordinates
-							run("Find Maxima...", "noise=200 output=[Maxima Within Tolerance] exclude");
+							run("Find Maxima...", "noise=50 output=[Maxima Within Tolerance] exclude");
 							if(is("Inverting LUT")==true) {
 								run("Invert LUT");
 							}
 							selectWindow("AVG");
-							run("Find Maxima...", "noise=200 output=List exclude");
+							run("Find Maxima...", "noise=50 output=List exclude");
 							selectWindow("Results");
 							numbResults = nResults;
+							selectWindow("Results");
 							newX = Table.getColumn("X");
 							newY = Table.getColumn("Y");
-
-							//Excluding this soma code since the locations of the somas are way off given we changed our registration method
-							if(false) {
-
+	
 							//If for this image we already have somas generated then get the corodinates of the somas for this substack and add these
 							//to the maxima locations, removing any soma locations that are already represented in the maxima locations
 							if(File.exists(directories[1]+imageNames[3]+"/Somas/")==1) {
@@ -2159,21 +1957,18 @@ if(analysisSelections[1] == true) {
 										count++;
 									}
 								}
-
+	
 								//Remove zeros from our new coordinates
 								cleanX = newArray(1);
 								cleanX = removeZeros(allX, cleanX);		
-
 								cleanY = newArray(1);
 								cleanY = removeZeros(allY, cleanY);
-
+	
 								//Concatenate our new points (if any don't match) to our old points
 								newX = Array.concat(newX, cleanX);
 								newY = Array.concat(newY, cleanY);
 							}
-
-							}
-
+	
 							//Here we load in the coordinates file if it already exists and remove any of these additional points if they are already
 							//represented, then concatenate them
 							if(File.exists(directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for " + imgName + ".csv")==1) {
@@ -2181,7 +1976,7 @@ if(analysisSelections[1] == true) {
 								selectWindow("CP coordinates for " + imgName + ".csv");
 								oldX = Table.getColumn("X");
 								oldY = Table.getColumn("Y");
-
+	
 								//Looping through our new points and comparing them to our existing points, if they're the same, set their values to 0
 								for(currRow = 0; currRow < oldX.length; currRow++) {
 									rX = oldX[currRow];
@@ -2193,20 +1988,20 @@ if(analysisSelections[1] == true) {
 										}
 									}
 								}
-
+	
 								//Remove zeros from our new coordinates
 								cleanX = newArray(1);
 								cleanX = removeZeros(oldX, cleanX);		
-
+	
 								cleanY = newArray(1);
 								cleanY = removeZeros(oldY, cleanY);
-
+	
 								//Concatenate our new points (if any don't match) to our old points
 								newX = Array.concat(newX, cleanX);
 								newY = Array.concat(newY, cleanY);
-
+	
 							}
-
+	
 							//Create / reset a table to store our coordinates, set the X and Y columns appropriately, save
 							if(isOpen("CP coordinates for " + imgName + ".csv")==1) {
 								selectWindow("CP coordinates for " + imgName + ".csv");
@@ -2214,7 +2009,7 @@ if(analysisSelections[1] == true) {
 							} else {
 								Table.create("CP coordinates for " + imgName + ".csv");
 							}
-
+	
 							selectWindow("CP coordinates for " + imgName + ".csv");
 							if(newX.length == 0) {
 								Table.setColumn("X", 1);
@@ -2223,51 +2018,49 @@ if(analysisSelections[1] == true) {
 								Table.setColumn("X", newX);
 								Table.setColumn("Y", newY);
 							}
-							
+								
 							saveAs("Results", directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for " + imgName + ".csv");
-
+	
 							selectWindow("CP coordinates for " + imgName + ".csv");
 							Table.reset("CP coordinates for " + imgName + ".csv");
-							
+								
 							selectWindow("AVG Maxima");
 							run("Select None");
-
+	
 							//Save the selections around the maxima and the image itself
 							saveAs("tiff", directories[1] + imageNames[3] + "/Cell Coordinate Masks/Automated CPs for Substack (" + maskGenerationArray[i0] + ").tif");
 							selectWindow("AVG");
 							run("Select None");
 							saveAs("tiff", directories[1] + imageNames[3] + "/Cell Coordinate Masks/CP mask for Substack (" + maskGenerationArray[i0] + ").tif");
-
+	
+							//Set the values in our cell position marking table according to the 
+							//image we've just processed, set processed to 1, save the table, and 
+							//lastly save a .txt file which we use to check quickly whether we've
+							//processed this image as opening the table to read values for each
+							//image takes ages
+							File.saveString(stringToSave, directories[1]+imageNames[3]+"/Cell Coordinate Masks/"+stringToSave+".txt");
+							procForTable[i0] = 1;
 						}
-
-						//Set the values in our cell position marking table according to the 
-						//image we've just processed, set processed to 1, save the table, and 
-						//lastly save a .txt file which we use to check quickly whether we've
-						//processed this image as opening the table to read values for each
-						//image takes ages
-						File.saveString(stringToSave, directories[1]+imageNames[3]+"/Cell Coordinate Masks/"+stringToSave+".txt");
-								
+			
+						Housekeeping();
+	
 					}
-		
-					Housekeeping();
-
+						
+					//Set the values in our cell position marking table according to the 
+					//image we've just processed, set processed to 1, save the table, and 
+					//lastly save a .txt file which we use to check quickly whether we've
+					//processed this image as opening the table to read values for each
+					//image takes ages
+					selectWindow("Cell Position Marking");
+					Table.setColumn("Substack", subName);
+					Table.setColumn("Processed", procForTable);
+					Table.save(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv");
+					currName = Table.title;
+					Table.reset(currName);
+	
 				}
-					
-				//Set the values in our cell position marking table according to the 
-				//image we've just processed, set processed to 1, save the table, and 
-				//lastly save a .txt file which we use to check quickly whether we've
-				//processed this image as opening the table to read values for each
-				//image takes ages
-				selectWindow("Cell Position Marking");
-				Table.setColumn("Substack", subName);
-				Table.setColumn("Processed", procForTable);
-				Table.save(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv");
-				currName = Table.title;
-				Table.reset(currName);
-
 			}
 		}
-
 		Housekeeping();
 
 		toConcat = newArray(1);
@@ -2289,13 +2082,12 @@ if(analysisSelections[1] == true) {
 
 					//Check if we've already generated cell locations for this substack
 					//for this image
-					if(File.exists(File.getParent(images[row]) + "/Cell Coordinate Masks/"+stringToSave+".txt")==1) {
+					if(File.exists(directories[1] + images[row] + "/Cell Coordinate Masks/"+stringToSave+".txt")==1) {
 						checkIt = true;
 						i0 = 1e99;
 					}
 				}
 			
-
 				//If we haven't calculated the threshold for this image, add it to our finalImagestoUseArray
 				if(checkIt== true) {
 				
@@ -2306,254 +2098,252 @@ if(analysisSelections[1] == true) {
 
 					//If the image contains " .tif" in the name we set finalImagestoUseArray[count] to the image name without it,
 					//else we just set it to that name
-					if(lastIndexOf(images[row], " .tif") > -1 ) {
-						finalImagestoUseArray[count] = File.getName(substring(images[row], 0, lastIndexOf(images[row], " .tif")));
-					} else {
-						finalImagestoUseArray[count] = File.getName(images[row]);
-					}
+					finalImagestoUseArray[count] = images[row];
 					
 					//Increase our count by one
 					count++;
 				}
 			}
 		}
+
+		if(finalImagestoUseArray[0] != 0) {
+			//Once we've automatically generated cell masks for all images, we then loop through
+			//all the images again
+			for (i=0; i<finalImagestoUseArray.length; i++) {
+				
+				//Work out the animal and timepoint labels for the current image based on 
+				//its name
+				imageNames = newArray(4);
+				forUse = finalImagestoUseArray[i] + ".tif";
+				getAnimalTimepointInfo(imageNames, forUse);
+				
+				print("Checking ", imageNames[3]);
+				
+				//Get the list of the files in our cell coordinates subfolder
+				coordinateFiles = getFileList(directories[1] + imageNames[3] + "/Cell Coordinates/");
 		
-		//Once we've automatically generated cell masks for all images, we then loop through
-		//all the images again
-		for (i=0; i<finalImagestoUseArray.length; i++) {
+				//If we have at least a file there (we've generated some coordinates)
+				if(coordinateFiles.length!=0) {
 			
-			//Work out the animal and timepoint labels for the current image based on 
-			//its name
-			imageNames = newArray(4);
-			forUse = finalImagestoUseArray[i] + ".tif";
-			getAnimalTimepointInfo(imageNames, forUse);
 			
-			print("Checking ", imageNames[3]);
-			
-			//Get the list of the files in our cell coordinates subfolder
-			coordinateFiles = getFileList(directories[1] + imageNames[3] + "/Cell Coordinates/");
-	
-			//If we have at least a file there (we've generated some coordinates)
-			if(coordinateFiles.length!=0) {
-				
-				//If we have a cell position marking.csv window open already, just reset it instead of closing
-				if(isOpen("Cell Position Marking.csv")==true){
+					//If we have a cell position marking.csv window open already, just reset it instead of closing
+					if(isOpen("Cell Position Marking.csv")==true){
+						selectWindow("Cell Position Marking.csv");
+						Table.reset("Cell Position Marking.csv");
+					}
+					
+					//Open our cell position marking csv file
+					Table.open(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv");
+					
+					//Get out the QC column from the cell position marking table and calculate its mean
 					selectWindow("Cell Position Marking.csv");
-					Table.reset("Cell Position Marking.csv");
-				}
-				
-				//Open our cell position marking csv file
-				Table.open(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv");
-				
-				//Get out the QC column from the cell position marking table and calculate its mean
-				selectWindow("Cell Position Marking.csv");
-				QCArray = Table.getColumn("QC");
-	
-				//Get out the QC values for the substacks that we actually have coordinate files for
-				QCArray = Array.slice(QCArray, 0, coordinateFiles.length);
-				Array.getStatistics(QCArray, QCMin, QCMax, QCMean, QCSD);
-				
-				//If the mean isn't 1 (i.e. not all substacks for this image have had their masks quality controlled
-				//since once they're QC'd we set the QC value to 1, therefore when they're all done the QC value mean
-				//should =1) then we proceed
-				if(QCMean!=1) {
-	
-					//Rename our window to without the .csv
-					selectWindow("Cell Position Marking.csv");
-					Table.rename("Cell Position Marking.csv", "Cell Position Marking");
+					QCArray = Table.getColumn("QC");
 		
-					//Loop through the substacks we have coordinates for
-					for(i0=0; i0<coordinateFiles.length; i0++) {
-				
-						//Get the QC value of the current substack, and set the variables badReg and badDetection to 0
-						//(These variables set whether the image either didn't register properly or if the automatic
-						//mask detection was no good)
-						currentQC = QCArray[i0];
-						badReg = 0;
-						badDetection = 0;
+					//Get out the QC values for the substacks that we actually have coordinate files for
+					QCArray = Array.slice(QCArray, 0, coordinateFiles.length);
+					Array.getStatistics(QCArray, QCMin, QCMax, QCMean, QCSD);
+					
+					//If the mean isn't 1 (i.e. not all substacks for this image have had their masks quality controlled
+					//since once they're QC'd we set the QC value to 1, therefore when they're all done the QC value mean
+					//should =1) then we proceed
+					if(QCMean!=1) {
 		
-						//If the current substack hasn't been quality controleld
-						if(currentQC==0) {
-							
-							//Create a variable to store the name of the current substack
-							imgName="Substack ("+maskGenerationArray[i0]+")"; 
-							print(directories[1]+imageNames[3]+"/Cell Coordinate Masks/CP mask for Substack ("+maskGenerationArray[i0]+").tif");
-							
-							//Open its cell placement masks image and the image that has the automated CPs
-							open(directories[1]+imageNames[3]+"/Cell Coordinate Masks/CP mask for Substack ("+maskGenerationArray[i0]+").tif");
-							if(is("Inverting LUT")==true) {
-								run("Invert LUT");
-							}
-							
-							selectWindow("CP mask for Substack (" + maskGenerationArray[i0]+").tif");
-							rename("MAX");
-
-							print(directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
-							print(File.exists(directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for Substack ("+maskGenerationArray[i0]+").csv"));
-
-							Table.open(directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
-							selectWindow("CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
-							xPoints = Table.getColumn("X");
-							yPoints = Table.getColumn("Y");
-
-							selectWindow("MAX");
-							makeSelection("point", xPoints, yPoints);
-							setBatchMode("Exit and Display");
-	
-							//If there are cell ROIs generated
-							if(selectionType() != -1) {
-								roiManager("add");
-								selectWindow("MAX");
-								roiManager("select", 0);
-							
-								//Ask the user whether these automated masks were generated well or not
-								goodCPs = userApproval("Check that the automated CP selection has worked", "CP Checking", "Automated CPs Acceptable?");
-	
-							} else {
-								goodCPs = false;
-							}
-												
-							//If they're poor
-							if (goodCPs == false) {
-								
-								//Ask the user to check what was wrong with the image and get whether it was bad registration,
-								//bad detection, or both
-								//run("Tile");
-								waitForUser("Check whats wrong with automated CP generation");		
-								Dialog.create("What went wrong?");
-								Dialog.addCheckbox("Bad registration?", true);
-								Dialog.addCheckbox("Bad detection?", true);
-								Dialog.show();
-								badRegRaw = Dialog.getCheckbox();
-								badDetectionRaw = Dialog.getCheckbox();		
-	
-								//Convert the boolean user choices to integers
-								badReg = 0;
-								if(badRegRaw == true) {
-									badReg = 1;
-								}
-								badDetection = 0;
-								if(badDetectionRaw == true) {
-									badDetection = 1;
+						//Rename our window to without the .csv
+						selectWindow("Cell Position Marking.csv");
+						Table.rename("Cell Position Marking.csv", "Cell Position Marking");
+			
+						//Loop through the substacks we have coordinates for
+						for(i0=0; i0<coordinateFiles.length; i0++) {
+					
+							//Get the QC value of the current substack, and set the variables badReg and badDetection to 0
+							//(These variables set whether the image either didn't register properly or if the automatic
+							//mask detection was no good)
+							currentQC = QCArray[i0];
+							badReg = 0;
+							badDetection = 0;
+			
+							//If the current substack hasn't been quality controleld
+							if(currentQC==0) {
+								
+								//Create a variable to store the name of the current substack
+								imgName="Substack ("+maskGenerationArray[i0]+")"; 
+								print(directories[1]+imageNames[3]+"/Cell Coordinate Masks/CP mask for Substack ("+maskGenerationArray[i0]+").tif");
+				
+					
+								//Open its cell placement masks image and the image that has the automated CPs
+								open(directories[1]+imageNames[3]+"/Cell Coordinate Masks/CP mask for Substack ("+maskGenerationArray[i0]+").tif");
+								if(is("Inverting LUT")==true) {
+									run("Invert LUT");
 								}
 								
-							//If the CP generation was good
-							} else {
-								
-								//Set the tool to multipoint and ask the user to click on any cells the
-								//automatic placement generation missed
-								setTool("multipoint");
+								selectWindow("CP mask for Substack (" + maskGenerationArray[i0]+").tif");
+								rename("MAX");
+	
+								print(directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
+								print(File.exists(directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for Substack ("+maskGenerationArray[i0]+").csv"));
+	
+								Table.open(directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
+								selectWindow("CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
+								xPoints = Table.getColumn("X");
+								yPoints = Table.getColumn("Y");
+	
 								selectWindow("MAX");
-								roiManager("Show All");
-								waitForUser("Click on cells that were missed by automatic detection, if any");
-								
-								//If the user clicked on additional cells
-								if(selectionType()!=-1) {
-									
-									//Add the cell locations to the roiManager and measure them to get their X,Y coords
-									//in the results window
+								makeSelection("point", xPoints, yPoints);
+								setBatchMode("Exit and Display");
+		
+								//If there are cell ROIs generated
+								if(selectionType() != -1) {
 									roiManager("add");
-									run("Set Measurements...", "centroid redirect=None decimal=0");
-									run("Clear Results");
-									roiManager("Select", 1);
-									roiManager("Measure");
+									selectWindow("MAX");
+									roiManager("select", 0);
+								
+									//Ask the user whether these automated masks were generated well or not
+									goodCPs = userApproval("Check that the automated CP selection has worked", "CP Checking", "Automated CPs Acceptable?");
+		
+								} else {
+									goodCPs = false;
+								}
+													
+								//If they're poor
+								if (goodCPs == false) {
+					
+					
+									//Ask the user to check what was wrong with the image and get whether it was bad registration,
+									//bad detection, or both
+									//run("Tile");
+									waitForUser("Check whats wrong with automated CP generation");
+			
+									Dialog.create("What went wrong?");
+									Dialog.addCheckbox("Bad registration?", false);
+									Dialog.addCheckbox("Bad detection?", false);
+									Dialog.show();
+									badRegRaw = Dialog.getCheckbox();
+									badDetectionRaw = Dialog.getCheckbox();		
+		
+									//Convert the boolean user choices to integers
+									badReg = 0;
+									if(badRegRaw == true) {
+										badReg = 1;
+									}
+									badDetection = 0;
+									if(badDetectionRaw == true) {
+										badDetection = 1;
+									}
 									
+								//If the CP generation was good
+								} else {
+									
+									//Set the tool to multipoint and ask the user to click on any cells the
+									//automatic placement generation missed
+									setTool("multipoint");
+									selectWindow("MAX");
+									roiManager("Show All");
+									waitForUser("Click on cells that were missed by automatic detection, if any");
+									
+									//If the user clicked on additional cells
+									if(selectionType()!=-1) {
+										
+										//Add the cell locations to the roiManager and measure them to get their X,Y coords
+										//in the results window
+										roiManager("add");
+										run("Set Measurements...", "centroid redirect=None decimal=0");
+										run("Clear Results");
+										roiManager("Select", 1);
+										roiManager("Measure");
+										
+										setBatchMode(true);
+										
+										//Get the X,Y coords from the results window
+										selectWindow("Results");
+										X = Table.getColumn("X");
+										Y = Table.getColumn("Y");
+				
+										//Concatenate the two - the original X and Y coords and the ones we've added
+										newX = Array.concat(xPoints, X);
+										newY = Array.concat(yPoints, Y);
+		
+										//Then set the concatenated arrays as the X and Y results in the results table before
+										//saving it over the CP coordinates file
+										Table.setColumn("X", newX);
+										Table.setColumn("Y", newY);
+										Table.update;
+										saveAs("Results", directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for " + imgName + ".csv");
+										selectWindow("CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
+										run("Close");
+									}
+								
+								}
+				
+								//If the image had bad detection but otherwise the registration was fine
+								if(badDetection == 1 && badReg == 0) {
+									
+									//Delete the automatically generated masks overlay
+									if(roiManager("count")>0) {
+										roiManager("deselect");
+										roiManager("delete");
+									}
+									selectWindow("MAX");
+									
+									//Ask the user to click on cell bodies
+									setTool("multipoint");
+									setBatchMode("Exit and Display");
+									roiManager("show none");
+									run("Select None");
+									waitForUser("Click on cell bodies to select cells for analysis");
 									setBatchMode(true);
 									
-									//Get the X,Y coords from the results window
-									selectWindow("Results");
-									X = Table.getColumn("X");
-									Y = Table.getColumn("Y");
-			
-									//Concatenate the two - the original X and Y coords and the ones we've added
-									newX = Array.concat(xPoints, X);
-									newY = Array.concat(yPoints, Y);
-	
-									//Then set the concatenated arrays as the X and Y results in the results table before
-									//saving it over the CP coordinates file
-									Table.setColumn("X", newX);
-									Table.setColumn("Y", newY);
-									Table.update;
-									saveAs("Results", directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for " + imgName + ".csv");
-									selectWindow("CP coordinates for Substack ("+maskGenerationArray[i0]+").csv");
-									run("Close");
-								}
-							
-							}
-			
-							//If the image had bad detection but otherwise the registration was fine
-							if(badDetection == 1 && badReg == 0) {
-								
-								//Delete the automatically generated masks overlay
-								if(roiManager("count")>0) {
-									roiManager("deselect");
+									//Once the user has selected all the cells, we add them to roiManager before measuring them with roiManager to get their coordinates
+									roiManager("add");
+									run("Set Measurements...", "centroid redirect=None decimal=0");
+									selectWindow("MAX");
+									roiManager("Select", 0);
+									run("Clear Results");
+									roiManager("Measure");
 									roiManager("delete");
-								}
-								selectWindow("MAX");
-								
-								//Ask the user to click on cell bodies
-								setTool("multipoint");
-								setBatchMode("Exit and Display");
-								roiManager("show none");
-								run("Select None");
-								waitForUser("Click on cell bodies to select cells for analysis");
-								setBatchMode(true);
-								
-								//Once the user has selected all the cells, we add them to roiManager before measuring them with roiManager to get their coordinates
-								roiManager("add");
-								run("Set Measurements...", "centroid redirect=None decimal=0");
-								selectWindow("MAX");
-								roiManager("Select", 0);
-								run("Clear Results");
-								roiManager("Measure");
-								roiManager("delete");
+					
+									//Save the coordinates of cell placements
+									selectWindow("Results");
+									saveAs("Results", directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for " + imgName + ".csv");
 				
-								//Save the coordinates of cell placements
-								selectWindow("Results");
-								saveAs("Results", directories[1]+imageNames[3]+"/Cell Coordinates/CP coordinates for " + imgName + ".csv");
-			
-								//Set bad detection 0
-								badDetection = 0;
-			
-							//If the image had bad registration, we do nothing
-							} else {
-								setBatchMode(true);
-							}
-
-							//Future - write code so that if the image had bad registration we can rbound to manually register it
-							//Or just get out a list of bad reg so its not automated?
+									//Set bad detection 0
+									badDetection = 0;
+				
+								//If the image had bad registration, we do nothing
+								} else {
+									setBatchMode(true);
+								}
+	
+								//Future - write code so that if the image had bad registration we can rbound to manually register it
+								//Or just get out a list of bad reg so its not automated?
+								
+								//Set currentQC to 1 since we've finished quality control
+								currentQC = 1;
+				
+								//Update our cell position marking table and save it
+								selectWindow("Cell Position Marking");
+								Table.set("Bad Detection", i0, badDetection);
+								Table.set("Bad Registration", i0, badReg);
+								Table.set("QC", i0, currentQC);
+								Table.update;
+								Table.save(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv"); 
+				
+								Housekeeping();
 							
-							//Set currentQC to 1 since we've finished quality control
-							currentQC = 1;
-			
-							//Update our cell position marking table and save it
-							selectWindow("Cell Position Marking");
-							Table.set("Bad Detection", i0, badDetection);
-							Table.set("Bad Registration", i0, badReg);
-							Table.set("QC", i0, currentQC);
-							Table.update;
-							Table.save(directories[1] + imageNames[3] + "/Cell Coordinate Masks/Cell Position Marking.csv"); 
-			
-							Housekeeping();
-						
+							}
 						}
+			
+					Table.reset("Cell Position Marking");
 		
 					}
-		
-				Table.reset("Cell Position Marking");
-	
 				}
-	
 			}
-	
 		}
-	
 	}
-
+}
 
 //If the user wants to automatically generate masks of microglial cells
-if(analysisSelections[2] == true) {
-	
+if(analysisSelections[3] == true) {
+
 	//Set the background color to black otherwise this messes with the clear outside command
 	
 	loopThrough = getFileList(directories[1]);
@@ -2562,23 +2352,15 @@ if(analysisSelections[2] == true) {
 	//This is the main body of iterative thresholding, we open processed input images and use the coordinates of the cell locations previuosly 
 	//input to determine cell locations and create cell masks
 	for (i=0; i<loopThrough.length; i++) {	
-		
-		//Work out the animal and timepoint labels for the current image and create a variable for the name without .tif
-		//animalTimepoint = substring(loopThrough[i], 0, indexOf(loopThrough[i], " Microglia Morphology"));
-		//timepoint = toLowerCase(substring(animalTimepoint, lastIndexOf(animalTimepoint, " ")+1));
-		//animal = toLowerCase(substring(animalTimepoint, 0, lastIndexOf(animalTimepoint, " ")));
-		//baseName=substring(imagesInput[i], 0, indexOf(imagesInput[i], ".tif"));
-
-		imageNames = newArray(4);
-		forUse = loopThrough[i] + ".tif";
-
-		proceed = false;
 		if(loopThrough[i] != "Images To Use.csv" && loopThrough[i] != "fracLac/") {
+
+			imageNames = newArray(4);
+			forUse = File.getName(loopThrough[i]) + ".tif";
+			getAnimalTimepointInfo(imageNames, forUse);
 		
 			//Find out how many cell coordinate files there are in the basename directory, and if there's at least one
 			//we proceed, so we don't end up looking in directories where cell coordinates haven't been marked
-			coordinateFiles = getFileList(directories[1]+baseName+"/Cell Coordinates/");
-			print(directories[1]+baseName+"/Cell Coordinates/");
+			coordinateFiles = getFileList(directories[1]+imageNames[3]+"/Cell Coordinates/");
 		
 			if(coordinateFiles.length>0) {
 
@@ -2594,8 +2376,8 @@ if(analysisSelections[2] == true) {
 			
 				//This is an array of where we get the data for these values from if they previuosly exist - from the TCS Status.csv files
 				//that are saved if we've done this before
-				TCSResultsRefs = newArray(directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv", 
-										directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv");
+				TCSResultsRefs = newArray(directories[1]+imageNames[3]+"/TCS Status.csv", directories[1]+imageNames[3]+"/TCS Status.csv", 
+										directories[1]+imageNames[3]+"/TCS Status.csv", directories[1]+imageNames[3]+"/TCS Status.csv");
 	
 				//This array stores whether the values we're getting are strings or not
 				TCSResultsAreStrings = newArray(false, false, false, false);
@@ -2630,7 +2412,7 @@ if(analysisSelections[2] == true) {
 							Table.set(TCSColumns[i1], i0, TCSValues[(numberOfLoops*i1)+i0]);
 						}
 					}
-				
+		
 					selectWindow("ToBChanged");
 					for(i0 = 0; i0<Table.size; i0++) {
 						if(currentLoopValues[0] == Table.get("TCS", i0)) {
@@ -2651,7 +2433,7 @@ if(analysisSelections[2] == true) {
 					//Limits: [0] is lower limit, [1] is upper
 		
 					//This is the directory for the current TCS
-					TCSDir=directories[1]+baseName+"/"+"TCS"+currentLoopValues[0]+"/";
+					TCSDir=directories[1]+imageNames[3]+"/"+"TCS"+currentLoopValues[0]+"/";
 		
 					//Here we make a TCS specific directory for our input image if it doesn't already exist
 					if(File.exists(TCSDir)==0) {
@@ -2667,8 +2449,8 @@ if(analysisSelections[2] == true) {
 	
 						//Depending on what storageFolder we're working with, the dirToMake and parentDir vary
 						if(i0<3) {
-							dirToMake=directories[1]+baseName+"/"+storageFolders[i0];
-							parentDir=directories[1]+baseName+"/";	
+							dirToMake=directories[1]+imageNames[3]+"/"+storageFolders[i0];
+							parentDir=directories[1]+imageNames[3]+"/";	
 						} else {
 							dirToMake=TCSDir+storageFolders[i0];
 							parentDir=TCSDir;	
@@ -2696,24 +2478,23 @@ if(analysisSelections[2] == true) {
 
 						//Here we get out the cell postion marking informatino about whther the positions were makred
 						//correctly or if there were issues with the image
-						open(directories[1]+baseName+"/Cell Coordinate Masks/Cell Position Marking.csv");
+						open(directories[1]+imageNames[3]+"/Cell Coordinate Masks/Cell Position Marking.csv");
 						selectWindow("Cell Position Marking.csv");
 						QCArray = Table.getColumn("QC");
 						ProcessedArray = Table.getColumn("Processed");
 						detectionArray = Table.getColumn("Bad Detection");
 						regArray = Table.getColumn("Bad Registration");
 						Table.reset("Cell Position Marking.csv");
-						
-						coordPath = directories[1] + baseName + "/Cell Coordinates/";
 		
-						noStacks = getfileList(coordPath);
+						coordPath = directories[1] + imageNames[3] + "/Cell Coordinates/";
+		
+						noStacks = getFileList(coordPath);
 						//Here we loop through all 3 substacks of cell placements and add together all the cells in them
 						for(i0=0; i0<noStacks.length; i0++) {
 						
 							//Find the number of coordinates for the associated chunk by opening the coordinates table and finding nResults
-							imgName = substring(noStacks[i0], indexOf(noStacks[i0], "for "), indexOf(noStacks[i0], ".csv"));
-							//imgName="Substack ("+maskGenerationArray[i0]+")";
-							inputpath=directories[1]+baseName+"/Cell Coordinates/"+noStacks[i0];
+							imgName = substring(noStacks[i0], indexOf(noStacks[i0], "for ")+4, indexOf(noStacks[i0], ".csv"));
+							inputpath=directories[1]+imageNames[3]+"/Cell Coordinates/"+noStacks[i0];
 							print(ProcessedArray[i0], QCArray[i0], detectionArray[i0], regArray[i0]);
 
 							//If the image has been processed, QC'd, and theres is no bad detection or bad registration, then proceed
@@ -2721,6 +2502,7 @@ if(analysisSelections[2] == true) {
 							
 								//Add the nResults of the cell coordinates to the totalCells count
 								//run("Clear Results");
+								print(inputpath);
 								open(inputpath);
 								totalCells += Table.size;
 		
@@ -2780,8 +2562,9 @@ if(analysisSelections[2] == true) {
 		
 								//Here we open the Mask Generation.csv file from the previous TCS loop and get out the information
 								//about which mask generation was successful and store these in the maskSuccessPrev array
-								previousTCSDir=directories[1]+baseName+"/TCS"+prevLoopValues[0]+"/";
-			
+								previousTCSDir=directories[1]+imageNames[3]+"/TCS"+prevLoopValues[0]+"/";
+		
+	
 								run("Clear Results");
 								open(previousTCSDir+"Mask Generation.csv");
 								selectWindow("Mask Generation.csv");
@@ -2789,7 +2572,7 @@ if(analysisSelections[2] == true) {
 								for(i0=0; i0<resultsNo; i0++) {
 									maskSuccessPrev[i0] = Table.get("Mask Success", i0);
 								}
-								Table.reset("Mask Generation.csv");
+								Table.reset("Mask Generation.csv");
 								//Array.show(maskSuccessPrev);
 								//waitForUser("Check this line 2820");
 								Table.update;
@@ -2879,32 +2662,7 @@ if(analysisSelections[2] == true) {
 									//iniTextValuesMicrons array with the calibration information and set gottenCalibration to true
 									if(gottenCalibration == false) {
 
-										getAnimalTimepointInfo(imageNames, forUse);
-										baseName = substring(loopThrough[i], 0, lastIndexOf(loopThrough[i], "/"));
-
-										if(analysisSelections[6] == true) {
-				
-											//Fill that array with the calibration data for that animal at that 
-											//timepoint
-											getIniData(directories[3], imageNames[2], imageNames[1], iniTextValuesMicrons);
-
-										} else {
-
-											open(directories[1]+baseName+"/"+baseName+" processed.tif");
-							
-											iniTextValuesMicrons[4] = noIniFperZ;
-											iniTextValuesMicrons[3] = nSlices;
-												
-											getVoxelSize(vWidth, vHeight, vDepth, vUnit);
-											iniTextValuesMicrons[0] = vWidth;
-											iniTextValuesMicrons[1] = vHeight;
-											iniTextValuesMicrons[2] = vDepth;
-							
-											run("Close");
-
-										
-										}
-					
+										getIniData(directoryName, iniTextValuesMicrons);
 										gottenCalibration = true;
 									}
 
@@ -2912,14 +2670,14 @@ if(analysisSelections[2] == true) {
 									//waitForUser("Check if this is wrongly calibrated - last index should be 1 if wrong - also need to check how this relates to hippo vs V1");
 				
 									//This is an array to store the size of the local region in pixels (i.e. 120um in pixels)
-									LRLengthPixels=(LRSize*(1/iniTextValuesMicrons[0]);
+									LRLengthPixels=(LRSize*(1/iniTextValuesMicrons[0]));
 									//[3] is size of the local region, [0] is the pixel size
 								
 									//If the CP mask image isn't already open
 									if(!isOpen("CP mask for " + finalSub[i0] + ".tif")) {
 			
 										//We open the image then calibrate it before converting it to 8-bit
-										open(directories[1]+baseName+"/Cell Coordinate Masks/CP mask for " + finalSub[i0]+".tif");
+										open(directories[1]+imageNames[3]+"/Cell Coordinate Masks/CP mask for " + finalSub[i0]+".tif");
 										imgName = getTitle();
 										run("Select None");
 										run("Properties...", "channels=1 slices=1 frames=1 unit=um pixel_width="+iniTextValuesMicrons[0]+" pixel_height="+iniTextValuesMicrons[1]+" voxel_depth="+iniTextValuesMicrons[2]+"");
@@ -3290,8 +3048,9 @@ if(analysisSelections[2] == true) {
 								Table.set(TCSColumns[i0], TCSLoops, currentLoopValues[i0]);
 							}
 							Table.update;
-							Table.save(directories[1]+baseName+"/TCS Status.csv");
-							Housekeeping();
+							Table.save(directories[1]+imageNames[3]+"/TCS Status.csv");
+							Housekeeping();
+
 						}	
 					}	
 					
@@ -3312,61 +3071,55 @@ if(analysisSelections[2] == true) {
 	}
 }
 
-//////////////////////////Quality Control//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////Quality Control//////////////////////////////////////
 //If the user wants to perform quality control on the cells
-if(analysisSelections[3] == true) {
+if(analysisSelections[4] == true) {
 
 	//Set the background color to black otherwise this messes with the clear outside command
 	setBackgroundColor(0,0,0);
-	
+
+	//Loop through our output images
 	loopThrough = getFileList(directories[1]);
-	Array.show("file list", loopThrough);
 
 	for(i=0; i<loopThrough.length; i++) {
-	
-		imageNames = newArray(4);
-		forUse = loopThrough[i] + ".tif";
-	
+
+		//Make sure we're not working with non-image folders
 		proceed = false;
 		if(loopThrough[i] != "Images To Use.csv" && loopThrough[i] != "fracLac/") {
-			proceed = true;		
+			proceed = true;	
+			imageNames = newArray(4);
+			forUse = File.getName(loopThrough[i]) + ".tif";
+			getAnimalTimepointInfo(imageNames, forUse);	
 		}
 
 		//If a TCS status file exists already
-		if(proceed== true && File.exists(directories[1] + baseName + "/TCS Status.csv")==1) {
-
-			//Read it and get out the various TCS
-			//values we will need to cycle through during QC
-			newSelection = newArray(4);
-			open(directories[1] + baseName+"/TCS Status.csv");
+		if(proceed== true && File.exists(directories[1] + imageNames[3] + "/TCS Status.csv")==1) {
+			
+			//Read it in and get whether we've QC'd all TCS vals
+			open(directories[1] + imageNames[3]+"/TCS Status.csv");
 			selectWindow("TCS Status.csv");
 			numberOfLoops = Table.size;
-			newSelection[0] = Table.get("TCS", 0);
-			if(numberOfLoops>1) {
-				newSelection[3] = abs(Table.get("TCS",1) - Table.get("TCS",0));
-			} else {
-				newSelection[3] = 0;
-			}
-			
-			print(baseName);
+
+			print(imageNames[3]);
 			qcCol = Table.getColumn("QC Checked");
 			Array.getStatistics(qcCol, qcMin, qcMax, qcMean, qcSD);
 			selectWindow("TCS Status.csv");
 			Table.reset("TCS Status.csv");
 			
-			//If we haven't QC'd all the TCS levels for this datapoint (if we had, qcMean would be 1)
-			//then proceed
-			//if(qcMean!=1) {
-			if(qcVal == 0) {
-			
+			//If we haven't QC'd all the TCS levels for this datapoint (if we had, qcMean would be 1) then proceed
+			if(qcMean!=1) {
+
+				print("Need to QC");
 				//Fill the TCS Status table with current TCS status values if they already exist
 			
 				TCSColumns = newArray("TCS", "Masks Generated", "QC Checked", "Analysed");
 				TCSValues = newArray(numberOfLoops*TCSColumns.length);
-				//First numberOfLoops indices are TCS, then Masks Generated etc.
 				
-				TCSResultsRefs = newArray(directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv", 
-											directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv");
+				//First numberOfLoops indices are TCS, then Masks Generated etc.
+				TCSResultsRefs = newArray(directories[1]+imageNames[3]+"/TCS Status.csv", 
+					directories[1]+imageNames[3]+"/TCS Status.csv", 
+					directories[1]+imageNames[3]+"/TCS Status.csv", 
+					directories[1]+imageNames[3]+"/TCS Status.csv");
 				TCSResultsAreStrings = newArray(false, false, false, false);
 			
 				fillArray(TCSValues, TCSResultsRefs, TCSColumns, TCSResultsAreStrings, true); 
@@ -3378,39 +3131,76 @@ if(analysisSelections[3] == true) {
 						Table.set(TCSColumns[i1], i0, TCSValues[(numberOfLoops*i1)+i0]);
 					}
 				}
+				Table.update;
 		
 				//We QC all masks for all TCSs
-				for(TCSLoops=0; TCSLoops<numberOfLoops; TCSLoops++) {
-
+				for(TCSLoops=numberOfLoops-1; TCSLoops>=0; TCSLoops--) {
+					print("TCS " + TCSLoops);
+					
+					selectWindow("TCS Status");
 					currentLoopValues = newArray(TCSColumns.length);
 					//[0] is TCS, [1] is masks generated, [2] is QC checked, [3] is analysed
 
-					//Set the TCS as the lowest TCS + the increment we want to increase by, X how many times we've increased
-					//We set these variables so that TCS is the current TCS to use, and TCSLoops is the number of loops we've been through
-					currentLoopValues[0]=newSelection[0]+(newSelection[3]*TCSLoops);
-			
+					currentLoopValues[0] = Table.get("TCS", TCSLoops);
+
+					//Booleans for whether we have TCS values preceding or following this one
+					prevExists = false;
+					nextExists = false;
+
 					selectWindow("TCS Status");
 					for(i0 = 0; i0<Table.size; i0++) {
 						if(currentLoopValues[0] == Table.get("TCS", i0)) {
+							
+							selectWindow("TCS Status");
 							//Here we fill our currentLoopValues table with the TCSValues data that corresponds to the TCS value
 							//we're current processing - this will be a bunch of zeros if we haven't processed anything before
 							for(i1=0; i1<TCSColumns.length; i1++) {
 								currentLoopValues[i1] = Table.get(TCSColumns[i1], i0);
 							}
+
+							//If we're not on the first one, if we have a directory for the previous TCS get out the kept 
+							//and names columns from it
+							if(i0 > 0) {
+								previousTCSDir=directories[1]+imageNames[3]+"/TCS"+Table.get("TCS", (i0-1))+"/QC Checked.csv";
+								selectWindow("TCS Status");
+								if(File.exists(previousTCSDir) && Table.get("QC Checked", (i0-1)) == 1) {
+									prevExists = true;
+									open(previousTCSDir);
+									selectWindow("QC Checked.csv");
+									keptPrevTCS=Table.getColumn("Keep");
+									namesPrevTCS=Table.getColumn("Mask Name");
+									Table.reset("QC Checked.csv");
+								}
+							}
+
+							//If we're not on the last one get out which masks we we kept from the next TCS
+							if(i0 < Table.size-1) {
+								nextTCSDir=directories[1]+imageNames[3]+"/TCS"+Table.get("TCS", (i0+1))+"/QC Checked.csv";
+								selectWindow("TCS Status");
+								if(File.exists(nextTCSDir) && Table.get("QC Checked", (i0+1)) == 1) {
+									nextExists = true;
+									open(nextTCSDir);
+									selectWindow("QC Checked.csv");
+									keptNextTCS=Table.getColumn("Keep");
+									namesNextTCS=Table.getColumn("Mask Name");
+									Table.reset("QC Checked.csv");
+								}
+							}
+							i0 = Table.size;
 						}
 					}
 			
 					//If the QC for this TCS hasn't been done in its entirety..
 					if(currentLoopValues[2]==0) {
-		
-						TCSDir=directories[1]+baseName+"/"+"TCS"+currentLoopValues[0]+"/";
-				
+
+						//Get the paths for our storage folders
+						TCSDir=directories[1]+imageNames[3]+"/"+"TCS"+currentLoopValues[0]+"/";
 						storageFoldersArray=newArray(storageFolders.length);
 						//[2] is somas, [3] is maskDir, [4] is localregion
 						
 						for(i0=0; i0<storageFolders.length; i0++) {
 							if(i0<3) {
-								parentDir=directories[1]+baseName+"/";	
+								parentDir=directories[1]+imageNames[3]+"/";	
 							} else {
 								parentDir=TCSDir;	
 							}
@@ -3419,88 +3209,25 @@ if(analysisSelections[3] == true) {
 		
 						//Our maskName array is just a list of the files in our maskDirFiles folder
 						//Fill QC checked with preivous results if they exist
-			
 						maskDirFiles = getFileList(storageFoldersArray[3]);
-			
+
+						//Get out our cell check, keep, and traced values for each cell
 						valuesToRecord = newArray("Single Cell Check", "Keep", "Traced"); 
-			
 						analysisRecordInput = newArray(maskDirFiles.length*valuesToRecord.length);
-						//First maskDirFiles.length indices are "Analysed", then "Keep", etc
-						
 						resultsTableRefs = newArray(TCSDir+"QC Checked.csv", TCSDir+"QC Checked.csv", TCSDir+"QC Checked.csv");
-						print(TCSDir + "QC Checked.csv");
-						print(File.exists(TCSDir + "QC Checked.csv"));
-						
 						resultsAreStrings = newArray(false, false, false);
-			
 						fillArray(analysisRecordInput, resultsTableRefs, valuesToRecord, resultsAreStrings, true);
-						
+
+						//Add on our mask names to this fetched array
 						maskName=Array.copy(maskDirFiles);
-			
 						analysisRecordInput = Array.concat(maskName, analysisRecordInput);
-			
 						toAdd = newArray("Mask Name");
 						tableLabels = Array.concat(toAdd, valuesToRecord);
-			
+
+						//Repopulate the table if it hasn't already been done
 						Table.create("QC Checked");
 						selectWindow("QC Checked");
-						for(i0=0; i0<maskDirFiles.length; i0++) {
-							for(i1=0; i1<tableLabels.length; i1++) {
-								if(i1 == 0) {
-									stringValue = analysisRecordInput[(maskDirFiles.length*i1)+i0];
-									Table.set(tableLabels[i1], i0, stringValue);
-								} else {
-									Table.set(tableLabels[i1], i0, analysisRecordInput[(maskDirFiles.length*i1)+i0]);
-								}
-							}
-						}
-						Table.update;
 
-						fileNames = getFileList(directories[1]+baseName+"/");
-						TCSCount = 0;
-						TCSVals = newArray(1);
-						for(currFile = 0; currFile<fileNames.length; currFile++){
-							if(indexOf(fileNames[currFile], "/")>-1 && indexOf(fileNames[currFile], "TCS")>-1) {
-								if(TCSCount>0) {
-									toAdd = newArray(1);
-									TCSVals = Array.concat(TCSVals,toAdd);
-								}
-								TCSVals[TCSCount] = parseInt(substring(fileNames[currFile], indexOf(fileNames[currFile], "TCS")+3, indexOf(fileNames[currFile], "/")));
-								TCSCount++;
-							}
-						}
-						TCSVals = Array.sort(TCSVals);
-
-						prevExists = false;
-						nextExists = false;
-						for(i0 = 0; i0<TCSVals.length; i0++) {
-							if(TCSVals[i0] == parseInt(currentLoopValues[0])) {
-								if(i0 > 0) {
-									previousTCSDir=directories[1]+baseName+"/TCS"+TCSVals[i0-1]+"/";
-									if(File.exists(previousTCSDir)) {
-										prevExists = true;
-										open(previousTCSDir+"QC Checked.csv");
-										selectWindow("QC Checked.csv");
-										keptPrevTCS=Table.getColumn("Keep");
-										namesPrevTCS=Table.getColumn("Mask Name");
-										Table.reset("QC Checked.csv");
-									}
-								}
-								if(i0 < TCSVals.length-1) {
-									nextTCSDir=directories[1]+baseName+"/TCS"+TCSVals[i0+1]+"/";
-									if(File.exists(nextTCSDir)) {
-										nextExists = true;
-										open(nextTCSDir+"QC Checked.csv");
-										selectWindow("QC Checked.csv");
-										keptNextTCS=Table.getColumn("Keep");
-										namesNextTCS=Table.getColumn("Mask Name");
-										Table.reset("QC Checked.csv");
-									}
-								}
-							}
-						}
-	
-						//Loop through all masks generated in the chosen TCS
 						for(i0=0; i0<maskDirFiles.length; i0++) {
 			
 							currentMaskValues = newArray(4);
@@ -3515,9 +3242,9 @@ if(analysisSelections[3] == true) {
 							//have been traced
 			
 							cutName = substring(maskDirFiles[i0], indexOf(maskDirFiles[i0], "Substack"));
-							imageNames = newArray("Local region for " +cutName, "Candidate Soma Mask for " + cutName);
-							//[0] is localName, [1] is csmname
+							imageNamesArray = newArray("Local region for " +cutName, "Candidate Soma Mask for " + cutName);
 
+							//Get the x, y, and substack location of the current cell
 							print(maskName[i0]);
 							xCoord = parseInt(substring(maskName[i0], indexOf(maskName[i0], "x ")+2, indexOf(maskName[i0], "y")-1));
 							yCoord = parseInt(substring(maskName[i0], indexOf(maskName[i0], "y ")+2, indexOf(maskName[i0], ".tif")-1));
@@ -3527,88 +3254,69 @@ if(analysisSelections[3] == true) {
 			
 							//Here, we look for the kept value of the current coordinates in the previous TCS directory
 							//if it was kept previously, set keptPrevTCS to 1, otherwise to 0
-							currentKeptPrev = 1;
+							currentKeptPrev = 0;
+							currentCheckPrev = 0;
 							currentKeptNext = 0;
-							somaName = storageFoldersArray[2]+imageNames[1];
-							otherSomaName = storageFoldersArray[2]+imageNames[1];
-							if(prevExists ==true || nextExists == true) {
-								if(prevExists == true) {
-									for(i1 = 0; i1<namesPrevTCS.length; i1++) {
-										newxCoord = parseInt(substring(namesPrevTCS[i1], indexOf(namesPrevTCS[i1], "x ")+2, indexOf(namesPrevTCS[i1], "y")-1));
-										newyCoord = parseInt(substring(namesPrevTCS[i1], indexOf(namesPrevTCS[i1], "y ")+2, indexOf(namesPrevTCS[i1], ".tif")-1));
-										newsubstackLoc = substring(namesPrevTCS[i1], 0, indexOf(namesPrevTCS[i1], "x"));
-										if(maskName[i0] == namesPrevTCS[i1]) {
-											currentKeptPrev = keptPrevTCS[i1];
-											print("found prev", keptPrevTCS[i1]);
-											i1 = 1e99;
-										} else if(abs(xCoord-newxCoord) <= 10 && abs(yCoord-newyCoord) <= 10 && newsubstackLoc == substackLoc) {
-											currentKeptPrev = keptPrevTCS[i1];
-											print(maskName[i0]);
-											print(namesPrevTCS[i1]);
-											otherSomaName = storageFoldersArray[2] + "Candidate Soma Mask for " + substring(namesPrevTCS[i1], indexOf(namesPrevTCS[i1], "Substack"));
-											print(otherSomaName);
-											i1 = 1e99;
-										}
-										
-									}
-									Array.show(keptPrevTCS, namesPrevTCS);
-								}
-								if(nextExists == true) {
-									for(i1 = 0; i1<namesNextTCS.length; i1++) {
-										newxCoord = parseInt(substring(namesNextTCS[i1], indexOf(namesNextTCS[i1], "x ")+2, indexOf(namesNextTCS[i1], "y")-1));
-										newyCoord = parseInt(substring(namesNextTCS[i1], indexOf(namesNextTCS[i1], "y ")+2, indexOf(namesNextTCS[i1], ".tif")-1));
-										newsubstackLoc = substring(namesNextTCS[i1], 0, indexOf(namesNextTCS[i1], "x"));
-										if(maskName[i0] == namesNextTCS[i1]) {
-											currentKeptNext = keptNextTCS[i1];
-											print("found next", keptNextTCS[i1]);
-											i1 = 1e99;
-										} else if(abs(xCoord-newxCoord) <= 10 && abs(yCoord-newyCoord) <= 10 && newsubstackLoc == substackLoc) {
-											print("found match", keptNextTCS[i1]);
-											currentKeptNext = keptNextTCS[i1];
-											print(maskName[i0]);
-											print(namesNextTCS[i1]);
-											otherSomaName = storageFoldersArray[2] + "Candidate Soma Mask for " + substring(namesNextTCS[i1], indexOf(namesNextTCS[i1], "Substack"));
-											print(otherSomaName);
-											i1 = 1e99;
-										}
-									}
-								Array.show(keptNextTCS, namesNextTCS);
-								}
+							currentCheckNext = 0;
+							somaName = storageFoldersArray[2]+imageNamesArray[1];
+							otherSomaName = storageFoldersArray[2]+imageNamesArray[1];
+
+							//If we have a previous TCS
+							if(prevExists == true) {
+								returnArray = newArray(3);
+								outputArray = checkForSameCell(namesPrevTCS, maskName[i0], keptPrevTCS, currentKeptPrev, currentCheckPrev, xCoord, yCoord, substackLoc, storageFoldersArray[2], returnArray);
+								currentKeptPrev = outputArray[0];
+								currentCheckPrev = outputArray[1];
+								otherSomaName = outputArray[2];
 							}
 
+							//Same deal for if we have a subsequent TCS
+							if(nextExists == true) {
+								returnArray = newArray(3);
+								outputArray = checkForSameCell(namesNextTCS, maskName[i0], keptNextTCS, currentKeptNext, currentCheckNext, xCoord, yCoord, substackLoc, storageFoldersArray[2], returnArray);
+								currentKeptNext = outputArray[0];
+								currentCheckNext = outputArray[1];
+								otherSomaName = outputArray[2];
+							}
+							
 							checkMask = false;
-							//If we haven't checked the mask yet and it wasn't disregarded previously
-							//If it wasn't disregarded before and it was kept next
-							//then we don't need to check it
-							if(currentMaskValues[1] == 0 && currentKeptPrev == 1) {
-								checkMask = true;
-								print("Not checked and kept previously");
-							}
+							pass = false;
+							fail = false;
 
-							//If no soma mask exists and the mask and it wasn't disregarded previously
-							if(File.exists(somaName)==0 && File.exists(otherSomaName)==0 && currentKeptPrev==1) {
-								checkMask = true;
-								print("Need soma mask");
-							}
-			
-							//If it wasn't disregarded before and it was kept next
-							//then we don't need to check it
-							if(currentKeptPrev == 1 && currentKeptNext == 1) {
+							if(currentMaskValues[1] == 0 && currentCheckNext == 1 && currentKeptNext == 1) {
 								checkMask = false;
-								print("Kept previously and next");
-
-								//Set kept to 1
-								currentMaskValues[2]=1;
-
+								print("Checked and passed higher TCS value, no need to check lower");
+								pass = true;
+							} else if (currentMaskValues[1] == 0 && currentCheckNext == 1 && currentKeptNext == 0) {
+								checkMask = true;
+								print("Checked and failed higher TCS value, need to check lower");
+							} else if(currentMaskValues[1] == 0 && currentCheckNext == 0) {
+								checkMask = true;
+								print("Haven't checked at a higher TCS, need to check at this level");
+							} 
+							
+							if (currentMaskValues[1] == 0 && currentCheckPrev == 1 && currentKeptPrev == 0) {
+								checkMask = false;
+								print("Checked and failed at a lower TCS value, no need to check higher");
+								fail = true;
 							}
 
 							//If we're tracing processes and we haven't traced the mask and it wasn't disregarded before
-							if(selection[4] == 1 && currentMaskValues[3] == 0 && currentKeptPrev == 1) {
+							if(selection[4] == 1 && currentMaskValues[3] == 0 && fail!= true) {
 								checkMask = true;
 								print("Need to trace");
 							}
-							
 
+							//If we're not checking because we don't need to because it'll pass, set kept to 1
+							if(pass == true) {
+								currentMaskValues[2]=1;
+							}
+							//If we're not checking because it will fail, set kept to 0
+							if(fail == true) {
+								currentMaskValues[2]=0;
+							}
+
+							//If we need to QC our mask
 							if(checkMask == true) {
 			
 								print("QC for: ", maskDirFiles[i0]);
@@ -3620,7 +3328,7 @@ if(analysisSelections[3] == true) {
 								run("Select None");
 								run("Auto Threshold", "method=Default");
 								
-								open(storageFoldersArray[4]+imageNames[0]);
+								open(storageFoldersArray[4]+imageNamesArray[0]);
 								LRImage = getTitle();
 								LRTifLess = substring(LRImage, 0, indexOf(LRImage, ".tif"));
 				
@@ -3673,14 +3381,14 @@ if(analysisSelections[3] == true) {
 									run("Auto Threshold", "method=Intermodes  white");
 									logString = getInfo("log");
 									intermodesIndex = lastIndexOf(logString, "Intermodes");
-									
+
+									//This is if there is an issue with the auto thresholding so we avoid an error
 									if(intermodesIndex!=-1) {
 										print("Intermodes didn't work");
 										run("Auto Threshold", "method=Otsu  white");
 										selectWindow("Log");
 										run("Close");
 									}
-									
 									
 									run("Invert");
 									run("Open");
@@ -3719,7 +3427,7 @@ if(analysisSelections[3] == true) {
 									if(somaArea!= imageArea && nResults==1) {
 									
 										selectWindow("Mask of " + LRTifLess + "-1.tif");
-										rename(imageNames[1]);
+										rename(imageNamesArray[1]);
 										run("Create Selection");
 										roiManager("Add");
 										selectWindow(LRImage);
@@ -3728,20 +3436,18 @@ if(analysisSelections[3] == true) {
 										keep = userApproval("Check image soma mask", "Soma check", "Keep the soma mask?");
 			
 										if(keep == true) {
-											
-											selectWindow(imageNames[1]);
+											selectWindow(imageNamesArray[1]);
 											saveAs("tiff", somaName);
 											run("Close");
-			
 										}
 			
 										roiManager("select", 1);
 										roiManager("delete");
 				
+									} 
+
 									//If we have more or less than 1 particle, we have to draw our own soma mask and we do that
 									//Could incorporate this with the code above as it does very similar things?
-									} 
-									
 									if (keep==false || somaArea == imageArea) {
 				
 										waitForUser("Need to draw manual soma mask");
@@ -3819,8 +3525,9 @@ if(analysisSelections[3] == true) {
 								}
 				
 								Housekeeping();
-							
-							} else {
+
+							//If we don't need to check the mask, set this to say it has been checked
+							} else {
 								currentMaskValues[1]=1; 
 							}
 
@@ -3835,10 +3542,7 @@ if(analysisSelections[3] == true) {
 								}
 							}
 								
-			
-							Housekeeping();
-
-							
+							Housekeeping();	
 						}
 			
 						selectWindow("QC Checked");
@@ -3867,19 +3571,17 @@ if(analysisSelections[3] == true) {
 				
 				selectWindow("TCS Status");
 				Table.update;
-				Table.save(directories[1]+baseName+"/TCS Status.csv");
+				Table.save(directories[1]+imageNames[3]+"/TCS Status.csv");
 				currtitle = Table.title;
 				Table.rename(currtitle, "TCS Status");
 					
 			}
-		} else if (proceed == false) {
-			print(baseName, " used wrong objective");
 		}
 	}
 }
 
-if(analysisSelections[4] == true) {
-	/////////////////////Analysis////////////////////////////////////////////////////////////////////////////
+if(analysisSelections[5] == true) {
+	/////////////////////Analysis////////////////////////////////////////////////////////////
 
 	//Set the background color to black otherwise this messes with the clear outside command
 	setBackgroundColor(0,0,0);
@@ -3887,52 +3589,45 @@ if(analysisSelections[4] == true) {
 	//Set the path to where we copy our analysed cells to so we can run a fractal analysis on this folder in 
 	//batch at a later timepoint - if this directory doesn't exist, make it
 	fracLacPath = directories[1]+"fracLac/";
+
+	iniTextValuesMicrons = newArray(5);
+	getIniData(directoryName, iniTextValuesMicrons);
 	
 	if(File.exists(fracLacPath)==0) {
 		File.makeDirectory(fracLacPath);
 	}
 	
 	loopThrough = getFileList(directories[1]);
-	Array.show("file list", loopThrough);
 
 	for(i=0; i<loopThrough.length; i++) {
-	
-		imageNames = newArray(4);
-		forUse = loopThrough[i] + ".tif";
 	
 		proceed = false;
 		if(loopThrough[i] != "Images To Use.csv" && loopThrough[i] != "fracLac/") {
 			proceed = true;
+			imageNames = newArray(4);
+			forUse = File.getName(loopThrough[i]) + ".tif";
+			getAnimalTimepointInfo(imageNames, forUse);	
 		}
 
 		//If a TCS status file exists already
-		if(proceed== true && File.exists(directories[1] + baseName + "/TCS Status.csv")==1) {
-	
-			//Read it and get out the various TCS
-			//values we will need to cycle through during QC
-			newSelection = newArray(4);
-			open(directories[1] + baseName+"/TCS Status.csv");
+		if(proceed== true && File.exists(directories[1] + imageNames[3] + "/TCS Status.csv")==1) {
+
+			//Read it in and get whether we've QC'd all TCS vals
+			open(directories[1] + imageNames[3]+"/TCS Status.csv");
 			selectWindow("TCS Status.csv");
 			numberOfLoops = Table.size;
-			newSelection[0] = Table.get("TCS", 0);
-			if(numberOfLoops>1) {
-				newSelection[3] = abs(Table.get("TCS",1) - Table.get("TCS",0));
-			} else {
-				newSelection[3] = 0;
-			}
+			print(imageNames[3]);
 
 			//Get out the average value of whether we've analysed each TCS or not (where 1 = true and 0 = false)
 			//so that if our mean value isn't 1, it means we've not analysed all TCS values, else we have
 			selectWindow("TCS Status.csv");
 			aCol = Table.getColumn("Analysed");
 			Array.getStatistics(aCol, aMin, aMax, aMean, aSD);
-			run("Clear Results");
 			selectWindow("TCS Status.csv");
 			Table.reset("TCS Status.csv");
 			
 			//If we haven't analysed all TCS levels already
 			if(aMean!=1) {
-			//if(aMean != 1 || qcVal == 0) {
 				
 				//Clear results table just to be sure
 				run("Clear Results");
@@ -3942,12 +3637,12 @@ if(analysisSelections[4] == true) {
 				TCSValues = newArray(numberOfLoops*TCSColumns.length);
 				
 				//First numberOfLoops indices are TCS, then Masks Generated etc.
-				TCSResultsRefs = newArray(directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv", 
-											directories[1]+baseName+"/TCS Status.csv", directories[1]+baseName+"/TCS Status.csv");
+				TCSResultsRefs = newArray(directories[1]+imageNames[3]+"/TCS Status.csv", directories[1]+imageNames[3]+"/TCS Status.csv", 
+											directories[1]+imageNames[3]+"/TCS Status.csv", directories[1]+imageNames[3]+"/TCS Status.csv");
 				TCSResultsAreStrings = newArray(false, false, false, false);
 			
 				fillArray(TCSValues, TCSResultsRefs, TCSColumns, TCSResultsAreStrings, true); 
-				
+	
 				Table.create("TCS Status");
 				selectWindow("TCS Status");
 				for(i0=0; i0<numberOfLoops; i0++) {
@@ -3955,18 +3650,15 @@ if(analysisSelections[4] == true) {
 						Table.set(TCSColumns[i1], i0, TCSValues[(numberOfLoops*i1)+i0]);
 					}
 				}
-
-				print(loopThrough[i]);
 				
-				//Loop through the number of TCS loops we need to do
+				//Loop through the number of TCS loops we need to do
 				for(TCSLoops=0; TCSLoops<numberOfLoops; TCSLoops++) {
-
+			
+					selectWindow("TCS Status");
 					currentLoopValues = newArray(TCSColumns.length);
 					//[0] is TCS, [1] is masks generated, [2] is QC checked, [3] is analysed
 
-					//Set the TCS as the lowest TCS + the increment we want to increase by, X how many times we've increased
-					//We set these variables so that TCS is the current TCS to use, and TCSLoops is the number of loops we've been through
-					currentLoopValues[0]=newSelection[0]+(newSelection[3]*TCSLoops);
+					currentLoopValues[0] = Table.get("TCS", TCSLoops);
 			
 					selectWindow("TCS Status");
 					for(i0 = 0; i0<Table.size; i0++) {
@@ -3976,14 +3668,14 @@ if(analysisSelections[4] == true) {
 							for(i1=0; i1<TCSColumns.length; i1++) {
 								currentLoopValues[i1] = Table.get(TCSColumns[i1], i0);
 							}
+							i0 = Table.size;
 						}
 					}
 									
-					//if(currentLoopValues[2] == 1 && currentLoopValues[3] == 0) {
-					if(currentLoopValues[2] == 1) {
+					if(currentLoopValues[2] == 1 && currentLoopValues[3] == 0) {
 
 						//Set the directory for the current TCS value
-						TCSDir=directories[1]+baseName+"/"+"TCS"+currentLoopValues[0]+"/";
+						TCSDir=directories[1]+imageNames[3]+"/"+"TCS"+currentLoopValues[0]+"/";
 				
 						//Store the directories we'll refer to for the listed properties of the cells and fill it
 						storageFoldersArray=newArray(storageFolders.length);
@@ -3992,7 +3684,7 @@ if(analysisSelections[4] == true) {
 						
 						for(i0=0; i0<storageFolders.length; i0++) {
 							if(i0<3) {
-								parentDir=directories[1]+baseName+"/";	
+								parentDir=directories[1]+imageNames[3]+"/";	
 							} else {
 								parentDir=TCSDir;	
 							}
@@ -4007,7 +3699,7 @@ if(analysisSelections[4] == true) {
 
 						somaFiles = getFileList(storageFoldersArray[2]);
 			
-						//Get the list of cell masks present
+						//Get the list of cell masks present
 						maskDirFiles = getFileList(storageFoldersArray[3]);
 			
 						//oldParams is a list of the parameters we measure using the normal measurements function in
@@ -4050,39 +3742,27 @@ if(analysisSelections[4] == true) {
 						experimentName = newArray(maskDirFiles.length);
 						cellName = newArray(maskDirFiles.length);
 						for(i0=0; i0<maskDirFiles.length; i0++) {
-							experimentName[i0] = baseName;
+							experimentName[i0] = imageNames[3];
 							cellName[i0] = substring(maskDirFiles[i0], indexOf(maskDirFiles[i0], "x"), indexOf(maskDirFiles[i0], ".tif")); 
 						}
 						
 						TCSForParameters=newArray(maskDirFiles.length);
 						Array.fill(TCSForParameters, currentLoopValues[0]);
 						//cellName=Array.copy(maskDirFiles);
-	
-						wrongObjArray = newArray(maskDirFiles.length);
-						fillArray(wrongObjArray, TCSDir+"Cell Parameters.csv", "Wrong Objective", false, false);
 						
 						analysisRecordInput = Array.concat(analysisRecordInput, substackLoc);
 						analysisRecordInput = Array.concat(analysisRecordInput, experimentName);
 						analysisRecordInput = Array.concat(analysisRecordInput, TCSForParameters);
 						analysisRecordInput = Array.concat(analysisRecordInput, cellName);
-						analysisRecordInput = Array.concat(analysisRecordInput, wrongObjArray);
 			
 						//Fill our cell parameters with all this concatenated data and the names for it all
-						toAdd = newArray("Stack Position", "Experiment Name", "TCS", "Cell Name", "Wrong Objective");
+						toAdd = newArray("Stack Position", "Experiment Name", "TCS", "Cell Name");
 						tableLabels = Array.concat(valuesToRecord, toAdd);
 			
 						Table.create("Cell Parameters");
 						selectWindow("Cell Parameters");
 
-						for(i0=0; i0<maskDirFiles.length; i0++) {
-							for(i1=0; i1<tableLabels.length; i1++) {
-									if(i1 == 18 || i1 == 19 || i1 == 21) {
-										stringValue = analysisRecordInput[(maskDirFiles.length*i1)+i0];
-										Table.set(tableLabels[i1], i0, stringValue);
-									}
-									Table.set(tableLabels[i1], i0, analysisRecordInput[(maskDirFiles.length*i1)+i0]);
-							}
-						}
+						rowToAdd = 0;
 						
 						//Loop through the input files
 						for(i0=0; i0<maskDirFiles.length; i0++) {
@@ -4096,9 +3776,9 @@ if(analysisSelections[4] == true) {
 								currentMaskValues[i1] = analysisRecordInput[(maskDirFiles.length*i1)+i0];
 							}
 			
-							//If we haven't analysed the image yet and we're keeping it (acc. to QC), then we enter here
-							//if(imagesKept[i0] == 1 && currentMaskValues[0] == 0) {
-							if(imagesKept[i0] == 1) {
+							//If we haven't analysed the image yet and we're keeping it (acc. to QC), then we enter here
+
+							if(imagesKept[i0] == 1 && currentMaskValues[0] == 0) {
 
 								print(maskDirFiles[i0]);
 								
@@ -4333,7 +4013,7 @@ if(analysisSelections[4] == true) {
 								//}
 								
 								run("Properties...", "channels="+maskChannels+" slices="+maskSlices+" frames="+maskFrames+" unit=um pixel_width="+iniTextValuesMicrons[0]+" pixel_height="+iniTextValuesMicrons[1]+" voxel_depth="+iniTextValuesMicrons[2]+"");
-								run("Sholl Analysis...", "starting="+startradius+" ending="+maskGenerationArray[3]+" radius_step=0 enclosing=1 #_primary=0 infer fit linear polynomial=[Best fitting degree] linear-norm semi-log log-log normalizer=Area create save directory=["+storageFoldersArray[5]+"] do");
+								run("Sholl Analysis...", "starting="+startradius+" ending="+LRSize+" radius_step=0 enclosing=1 #_primary=0 infer fit linear polynomial=[Best fitting degree] linear-norm semi-log log-log normalizer=Area create save directory=["+storageFoldersArray[5]+"] do");
 
 								saveAs("Results", storageFoldersArray[5]+substring(maskDirFiles[i0], indexOf(toLowerCase(maskDirFiles[i0]), "substack"), indexOf(maskDirFiles[i0], ".tif")) + ".csv");
 								selectWindow(substring(maskDirFiles[i0], indexOf(toLowerCase(maskDirFiles[i0]), "substack"), indexOf(maskDirFiles[i0], ".tif")) + ".csv");
@@ -4341,34 +4021,34 @@ if(analysisSelections[4] == true) {
 								run("Clear Results");
 			
 								Housekeeping();
-								
+		
+						
 								//Set the fact we've analysed the cell to 1 (true)
 								currentMaskValues[0] = 1;
 
 								//Concatenate the measured values together, with the info about the cell
 								newValsOne = Array.concat(currentMaskValues, storeValues);
-								toAdd = newArray(substackLoc[i0], baseName, currentLoopValues[0], cellName[i0], wrongObjArray[i0]);
+								toAdd = newArray(substackLoc[i0], imageNames[3], currentLoopValues[0], cellName[i0]);
 								newVals = Array.concat(newValsOne, toAdd);
-								
+
 								//Here we update and save our cell parameters table
 								selectWindow("Cell Parameters");
 								for(i1 = 0; i1<tableLabels.length; i1++) {
 									if(i1 == 18 || i1 == 19 || i1 == 21) {
 										stringValue = newVals[i1];
-										Table.set(tableLabels[i1], i0, stringValue);
+										Table.set(tableLabels[i1], rowToAdd, stringValue);
 									} else if (i1==1 || i1==2 || i1 == 12 || i1 == 15 || i1 == 16) {
 										numberToStore = newVals[i1] * iniTextValuesMicrons[0];
-										Table.set(tableLabels[i1], i0, numberToStore);
+										Table.set(tableLabels[i1], rowToAdd, numberToStore);
 									} else if (i1==5 || i1==6 || i1 == 17) {
 										numberToStore = newVals[i1] * pow(iniTextValuesMicrons[0],2);
-										Table.set(tableLabels[i1], i0, numberToStore);
+										Table.set(tableLabels[i1], rowToAdd, numberToStore);
 									} else {
-										Table.set(tableLabels[i1], i0, newVals[i1]);
+										Table.set(tableLabels[i1], rowToAdd, newVals[i1]);
 									}
 								}
-		
-								Table.set("Wrong Objective", i0, iniTextValuesMicrons[5]);
 								Table.update;
+								rowToAdd++;
 							
 							}	
 						
@@ -4394,7 +4074,7 @@ if(analysisSelections[4] == true) {
 				}
 
 				selectWindow("TCS Status");
-				Table.save(directories[1]+baseName+"/TCS Status.csv");
+				Table.save(directories[1]+imageNames[3]+"/TCS Status.csv");
 				currTCSTitle = Table.title;
 				Table.rename(currTCSTitle, "TCS Status");
 			
@@ -4403,3 +4083,4 @@ if(analysisSelections[4] == true) {
 	}
 }
 print("Morphological analysis complete");
+

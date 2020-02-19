@@ -4047,7 +4047,6 @@ if(analysisSelections[5] == true) {
 										Table.set(tableLabels[i1], rowToAdd, newVals[i1]);
 									}
 								}
-		
 								Table.update;
 								rowToAdd++;
 							
