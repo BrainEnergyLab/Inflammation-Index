@@ -43,6 +43,8 @@ This is a tickbox where users can indicate if rather than using the automated me
 
 This is a string value that indicates which string identifier to use to identify images to process. This can be useful if the microglia images are stored with other images, or if the user wants to limit processing to a single animal / treatment. It cannot be empty and defaults to "Morphology". For the first use of this script, enter a string that identifies images from the positive control inflammation experiment.
 
+Once registered and motion corrected, the stack is reordered in Z according to the similarity between Z planes. This reordering in Z is done according to image similarity using the Z Spacing Correction plugin, and is done because motion during image acquisition can cause the apparent Z positon of an image to be different to its actual Z position.
+
 Once run, this section of the script saves processed image stacks in the working directory in the Output folder, in folders labelled with the animal name and treatment/timepoint the image was sourced from.
 
 ## "QC Motion Processing"
@@ -68,6 +70,9 @@ In this section the user is asked for a number of inputs:
 - What increment would you like to increase mask size by per loop?
 
 Here the user indicates the starting (lower limit) and end (upper limit) mask sizes to loop through and the increment by which to do this, as well as the range around the mask size that cell areas can fall within. For the initial run of this Fiji script, which should be limited to the positive control inflammation experiment images, a combination of lower-upper values of 200-800 is recommended (though a smaller range can be used to save time), with an error of 100 and an increase of 100 per loop. This is so that further on in the pipeline, inflammation indices can be constructed for each mask size trialled, and the mask size associated with the inflammation index with the best ability to detect inflammatory morphological changes can then be set as the exclusive value to run on all other data.
+
+The formula for iteratively changing the threshold is as follows:
+Next Threshold = Current Threshold + Current Threshold * ((Current Area - Mask Size) / (Number of Iterations * Mask Size))
 
 ## "Quality control masks"
 ## Approve Generated Cell Masks
