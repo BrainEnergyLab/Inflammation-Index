@@ -112,6 +112,7 @@ morphPreProcessing <- function(pixelSize,
           temp = 
             fread(x, sep = y, na.strings = "NaN", encoding = z,header = T)
         }
+        temp = as.data.table(temp)
         temp[, Location := x]
         return(temp)
       }, x$Locations, x$Sep, x$fileEncoding))
