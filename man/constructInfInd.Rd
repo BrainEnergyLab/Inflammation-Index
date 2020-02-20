@@ -52,11 +52,11 @@ and install them if necessary
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-PCOut = 
-  constructInfInd(morphPreProcessingOutput, 
-    LPSGroups = c("D56", "LPS"), 
-    method = "p value", 
-    otherExclusions = list("Col" = "Diet", "Cond" = "Control"))
+%%PCOut = 
+%%  constructInfInd(morphPreProcessingOutput, 
+%%    LPSGroups = c("D56", "LPS"), 
+%%    method = "p value", 
+%%    otherExclusions = list("Col" = "Diet", "Cond" = "Control"))
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

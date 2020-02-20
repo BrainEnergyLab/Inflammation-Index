@@ -49,11 +49,11 @@ and if not found will install them
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-output = 
-  morphPreProcessing(
-    pixelSize = 0.58, morphologyWD = getwd(), 
-    animalIDs = c("BG1L", "BG2L"), treatmentIDs = c("Pre-LPS", "LPS"),
-    useFrac = T)
+%%output = 
+%%  morphPreProcessing(
+%%    pixelSize = 0.58, morphologyWD = getwd(), 
+%%    animalIDs = c("BG1L", "BG2L"), treatmentIDs = c("Pre-LPS", "LPS"),
+%%    useFrac = T)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

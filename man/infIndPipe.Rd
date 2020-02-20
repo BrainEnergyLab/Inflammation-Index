@@ -54,12 +54,12 @@ and if not found will install them
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-dataOut = 
-  infInd(pixelSize = 0.58, morphologyWD = getwd(),
-          animalIDs = c("BG!L", "BG1R"), treatmentIDs = c("D1", "D2", "LPS"), 
-          LPSGroups = c("D2", "LPS"), TCSExclude = NULL,
-          method = "AUC", useFrac = T, 
-          otherExclusions = list("Col" = "Diet", "Cond" = "Control"))
+%% dataOut = 
+%%  infInd(pixelSize = 0.58, morphologyWD = getwd(),
+%%         animalIDs = c("BG!L", "BG1R"), treatmentIDs = c("D1", "D2", "LPS"), 
+%%          LPSGroups = c("D2", "LPS"), TCSExclude = NULL,
+%%          method = "AUC", useFrac = T, 
+%%          otherExclusions = list("Col" = "Diet", "Cond" = "Control"))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

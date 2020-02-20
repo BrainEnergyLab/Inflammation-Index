@@ -36,15 +36,6 @@ morphPreProcessing <- function(pixelSize,
     return(NULL)
   }
   
-  # If our packages are not installed, install them
-  list.of.packages <- c("stringr", "tidyr", "data.table")
-  new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-  if(length(new.packages)) install.packages(new.packages)
-  
-  require("stringr")
-  require("tidyr")
-  require("data.table")
-  
   # List to store the pattern we'll search in our directory for each data type,
   # as well as the character that separates fields in the data, and the 
   # character that separates headers, also fileEncoding argument since on some
@@ -112,7 +103,8 @@ morphPreProcessing <- function(pixelSize,
           temp = 
             fread(x, sep = y, na.strings = "NaN", encoding = z,header = T)
         }
-        set(temp, j = "Location", value = x)
+        
+        temp[, Location := x]
         return(temp)
       }, x$Locations, x$Sep, x$fileEncoding))
       
@@ -413,15 +405,6 @@ constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL) {
   if(exit == T) {
     return(NULL)
   }
-  
-  # If our packages are not installed, install them
-  list.of.packages <- c("data.table", "ROCR", "nlme")
-  new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-  if(length(new.packages)) install.packages(new.packages)
-  
-  require("data.table")
-  require("ROCR")
-  require("nlme")
   
   if(is.null(otherExclusions)) {
     labCols = 
