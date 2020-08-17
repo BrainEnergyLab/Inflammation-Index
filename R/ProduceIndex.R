@@ -375,10 +375,273 @@ morphPreProcessing <- function(pixelSize,
   
 }
 
+filter_by_training_data = function(inDat, LPSGroups, otherExclusions) {
+  # If we are passing in otherExclusions, limit our training data to what is specified
+  procDat = inDat[Treatment %in% LPSGroups]
+  if(is.null(otherExclusions) == F) {
+    for(currCol in 1:length(otherExclusions$Col)) {
+      if(otherExclusions$Col[currCol] %in% names(procDat)) {
+        procDat = procDat[as.vector(procDat[, otherExclusions$Col[currCol], with = F] == otherExclusions$Cond[currCol])]
+      }
+    }
+  }
+  return(procDat)
+}
+
+format_rocr_input = function(procDat, labCols) {
+  
+  # Gather the data across all measurements and columns we're using
+  aggData = 
+    as.data.table(gather(procDat, Parameter, Value, (which(!(names(procDat) %in% labCols)))))
+  aggData[, c("Parameter", "Value", "Treatment") := list(factor(Parameter, levels = unique(Parameter)), as.numeric(Value), as.factor(Treatment))]
+  
+  # Order our gathered data by parameter name
+  aggData = 
+    aggData[order(Parameter), c("CellNo","Animal","Treatment","TCS","Parameter","Value")]
+  
+  # Here we then spread the data but put our columns in alphabetical order
+  merged = spread(aggData, Parameter, Value)
+  merged = merged[order(merged$Treatment), ]
+  toMove = 
+    c("Animal", "Treatment", "CellNo", "TCS")
+  
+  return(list('aggData' = aggData,
+              'merged' = merged,
+              'toMove' = toMove))
+  
+}
+
+get_ROC_values = function(aggData, currParam) {
+  
+  forPref = 
+    aggData[Parameter == currParam, ]
+  pred = ROCR::prediction(aggData[Parameter == currParam, Value], aggData[Parameter == currParam, Treatment])
+  perf = ROCR::performance(pred, "auc")
+  forPlot =  ROCR::performance(pred,"tpr","fpr")
+  AUC = perf@y.values[[1]]
+  return(data.table(
+    #"FPR" = unlist(forPlot@x.values), "TPR" = unlist(forPlot@y.values),
+    "AUC" = AUC, "Parameter" = currParam))
+  
+  return(unique(rbindlist(ROCList)[, list(AUC, Parameter)]))
+}
+
+identify_variant_percentile_metrics = function(topParams) {
+  check_list = list()
+  for(currParam in topParams) {
+    toCheck = paste(toupper(currParam), "[P10-P90]", sep = "")
+    check_list[[currParam]] = toCheck
+  }
+  
+  return(check_list)
+}
+
+identify_variant_sholl_metrics = function(topParams) {
+  check_list = list()
+  for(currParam in topParams) {
+    # If we have any measures based on the fit or sampled data, check to see if
+    # there is a duplicate and pick the best one
+    if(grepl("(FIT)", toupper(currParam)) || grepl("(SAMPLED)", toupper(currParam))) {
+      withoutPs = strsplit(toupper(currParam), "\\(")[[1]][1]
+      if(grepl("(FIT)", toupper(currParam))) {
+        toCheck = paste(withoutPs, "(SAMPLED)", sep = "")
+        check_list[[currParam]] = toCheck
+      } else if (grepl("(SAMPLED)", toupper(currParam))) {
+        toCheck = paste(withoutPs, "(FIT)", sep = "")
+        check_list[[currParam]] = toCheck
+      }
+    }
+  }
+  
+  return(check_list)
+}
+
+identify_variant_hcl_metrics = function(topParams){
+  check_list = list()
+  count = 1
+  for(currParam in topParams) {
+    # If we have measures that are based on the circle centre, check if there is
+    # the same measure based on the centre of mass, if so, remove the one with
+    # the lowest AUC
+    if(grepl(paste(currParam, "fromHull'sCentreofMass", sep = ""), (topParams)) || grepl(paste(currParam, "fromCircle'sCentre", sep = ""), (topParams))) {
+      toCheck = c(currParam, paste(currParam, "fromHull'sCentreofMass", sep = ""), paste(currParam, "fromCircle'sCentre", sep = ""))
+      check_list[[count]] = toCheck
+      count = count + 1
+    }
+    
+    if(grepl("fromHull'sCentreofMass", currParam) || grepl("fromCircle'sCentre", currParam)) {
+      without = strsplit(toupper(currParam), "FROM")[[1]][1]
+      toCheck = c(currParam, paste(without, "fromHull'sCentreofMass", sep = ""), paste(without, "fromCircle'sCentre", sep = ""))
+      check_list[[count]] = toCheck
+      count = count + 1
+    }
+    
+    without = strsplit(toupper(currParam), "FROM")[[1]][1]
+    if(grepl(paste(without, toupper("fromHull'sCentreofMass"), sep = ""), toupper(topParams)) || grepl(paste(without, toupper("fromCircle'sCentre"), sep = ""), toupper(topParams))) {
+      toCheck = c(currParam, paste(currParam, "fromHull'sCentreofMass", sep = ""), paste(currParam, "fromCircle'sCentre", sep = ""))
+      check_list[[count]] = toCheck
+      count = count + 1
+    }
+    
+  }
+  return(check_list)
+}
+
+identify_all_variants_to_check = function(topParams) {
+  
+  check_variant_perc = identify_variant_percentile_metrics(topParams)
+  
+  check_variant_sholl = identify_variant_sholl_metrics(topParams)
+  
+  check_variant_hcl = identify_variant_hcl_metrics(topParams)
+  
+  total_check_list = c(check_variant_perc, check_variant_sholl, check_variant_hcl)
+  
+  return(total_check_list)
+  
+}
+
+remove_worst_duplicate_metric = function(paramByAuc, toCheck, topParams){
+  if(sum(grepl(paste(toupper(toCheck), collapse = '|'), toupper(topParams)))>0) {
+    getRid = 
+      paramByAuc[toupper(Parameter) %in% toupper(toCheck), Parameter][which.min(paramByAuc[toupper(Parameter) %in% toupper(toCheck), AUC])]
+    topParams = topParams[!(topParams %in% getRid)]
+  }
+  return(topParams)
+}
+
+remove_worst_performing_variants = function(topParams, paramByAuc) {
+  
+  # Identify all the variant metrics in topParams
+  total_check_list = identify_all_variants_to_check(topParams)
+  
+  # For each metric present in two variants, remove the lowest performing variant re: AUC value
+  for(curr_element in 1:length(total_check_list)){
+    topParams = remove_worst_duplicate_metric(paramByAuc, total_check_list[[curr_element]], topParams)
+  }
+  
+  return(topParams)
+  
+} 
+
+format_top_metric_data = function(format_list, topParams) {
+  
+  # Put together our metric columns that are in topParams with identifying
+  # and remove any rows with NAs
+  forInfIndex = format_list$merged[, c(format_list$toMove, topParams), with = F]
+  forInfIndex = forInfIndex[complete.cases(forInfIndex)]
+  
+  # Cbind our identifying columns with our metric columns that have been converted to numeric (just to make sure they are)
+  forInfIndex = 
+    cbind(forInfIndex[, (format_list$toMove), with = F], forInfIndex[, sapply(.SD, function(x) as.numeric(x)), .SDcols = topParams])
+  
+  # Remove any columns where variance is 0 - identify these columns then set their values to NULL
+  zeroVar = topParams[which(forInfIndex[, sapply(.SD, function(x) var(scale(as.numeric(x)), na.rm = T)), .SDcols = topParams] == 0)]
+  if(length(zeroVar)!= 0) {
+    temp = list()
+    length(temp) = length(zeroVar)
+    forInfIndex[, (zeroVar) := temp]
+  }
+  
+  # If we now have no columns, warn the user
+  if(ncol(forInfIndex)==4) {
+    print("None of the best performing metrics were retained")
+    return(NULL)
+  } else {
+    return(forInfIndex)
+  }
+  
+}
+
+get_training_pca = function(forInfIndex, topParams, format_list) {
+  
+  # Run a PCA on the data and then get labels for each row
+  PCA = prcomp(forInfIndex[, (topParams), with = F], center = T, scale = T)
+  allDat = cbind(forInfIndex[, (format_list$toMove), with = F], PCA$x[,"PC1"])
+  setnames(allDat, old = "V2", new = "PC1")
+  
+  return(list('PCA' = PCA,
+              'allDat' = allDat))
+  
+}
+
+get_training_pval = function(allDat){
+  
+  lmMod = 
+    lme(PC1 ~ Treatment, random = ~1|Animal,
+        data = allDat, control = lmeControl(msMaxIter = 100, opt = 'optim'))
+  
+  pval = as.data.table(anova(lmMod))[2, "p-value"]
+  
+  return(list('model' = lmMod,
+              'pval' = pval$'p-value'))
+  
+}
+
+get_training_auc = function(allDat){
+  
+  pred = ROCR::prediction(allDat[, PC1], allDat[, Treatment])
+  perf = ROCR::performance(pred, "auc")
+  forPlot =  ROCR::performance(pred,"tpr","fpr")
+  AUC = perf@y.values[[1]]
+  
+  return(AUC)
+  
+}
+
+get_inf_ind_metrics = function(paramByAuc, howMany, format_list, method) {
+  
+  # Get the top parameters by AUC
+  topParams = paramByAuc[AUC %in% tail(sort(AUC),howMany), Parameter]    
+  
+  topParams = as.vector(remove_worst_performing_variants(topParams, paramByAuc))
+  
+  # Format a data.table of the best performing metrics
+  forInfIndex = format_top_metric_data(format_list, topParams)
+  
+  # If we return actual formmated data
+  if(is.null(forInfIndex) == F) {
+    
+    # Get our initial inflammation index and calculate pvalue and AUC value for comparison between training conditions
+    pca_out = get_training_pca(forInfIndex, topParams, format_list)
+    
+    if(method == 'p value') {
+      lmMod = get_training_pval(pca_out$allDat)
+      AUC = NA
+    } else {
+      lmMod = list('pval' = NA)
+      AUC = get_training_auc(pca_out$allDat)
+      
+    }
+    
+    # Else set our pval, AUC, and PCA values to NULL as the formatted data was empty
+  } else {
+    
+    AUC = NA
+    lmMod = list('pval' = NA)
+    pca_out = list('PCA' = NA)
+    
+  }  
+  
+  tableOut = 
+    data.table("Parameters" = topParams, "Vals" = howMany, 
+               'p-value' = lmMod$pval,"AUC" = AUC)
+  
+  return(list('PCAOut' = pca_out$PCA,
+              'tableOut' = tableOut))
+}
+
 # Run on the output of the morphPreProcessing function, we look through TCS values and
 # find the best TCS and combination of descriptors to distinguish between LPS and nonLPS
 # using "method"
-constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL) {
+constructInfIndTest <- function(inDat, LPSGroups, method, otherExclusions = NULL,
+                                noDesc = 1:2) {
+  # INPUTS
+  # inDat = data.table containing the output from morphPreProcessing
+  # LPSGroups = vector of strings identifying the treatment values that specify our positive control conditions
+  # Method is a string of 'p value' or 'AUC' specifying how to choose our best discriminators
+  # otherExclusions is a list with element 'column' that gives the column name to look in and 'cond' that gives the condition in
+  #   that column to limit our data to for training purposes (besides just LPSGroups)
   
   exit = F
   
@@ -417,162 +680,35 @@ constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL) {
   PCAOut = list()
   addIndex = 1
   
-  procDat = inDat[Treatment %in% LPSGroups]
+  # Get out our training data
+  procDat = filter_by_training_data(inDat, LPSGroups, otherExclusions)
   
-  if(is.null(otherExclusions) == F) {
-    for(currCol in 1:length(otherExclusions$Col)) {
-      if(otherExclusions$Col[currCol] %in% names(procDat)) {
-        procDat = procDat[as.vector(procDat[, otherExclusions$Col[currCol], with = F] == otherExclusions$Cond[currCol])]
-      }
-    }
-  }
-  
+  # For each TCS value we have in our training data
   for(currTCS in unique(procDat$TCS)) {
     
     PCAOut[[currTCS]] = list()
     
-    # print(currTCS)
-    # Gather the data across all parameters
+    # Get out gathered data for this TCS value
+    format_list = format_rocr_input(procDat[TCS == currTCS], labCols)
     
-    aggData = 
-      as.data.table(gather(procDat[TCS == currTCS, ], Parameter, Value, (which(!(names(procDat) %in% labCols)))))
-    aggData[, c("Parameter", "Value") := list(factor(Parameter, levels = unique(Parameter)), as.numeric(Value))]
+    # Get out AUC values for every metric in our gathered data
+    ROC_list = lapply(unique(format_list$aggData$Parameter), function(x, aggData) {
+      get_ROC_values(aggData, currParam = x)
+    }, format_list$aggData)
     
-    # We aggregate our data by animal to create an animals as subjects dataset,
-    # but since it is already aggregated by cell, these are the columns of
-    # our cell data that we want to retain
-    aggData = 
-      aggData[order(Parameter), c("CellNo","Animal","Treatment","TCS","Parameter","Value")]
+    paramByAuc = rbindlist(ROC_list)
     
-    merged = spread(aggData, Parameter, Value)
-    merged = merged[order(merged$Treatment), ]
-    toMove = 
-      c("Animal", "Treatment", "CellNo", "TCS")
-
-    #########################
-    #### Inf Index Parameter Selection
-    #############
-    
-    # We want to build an inflammation index for our cells using the LPS data, so
-    # first we measure how effective each one of our many variables is at 
-    # separating our subjects between LPS and non LPS
-    # Here we use the cleanCols function on data, then 
-    # we split our data by each parameter
-    aggData[, Treatment:=as.factor(Treatment)]
-    ROCList = list()
-    for(currParam in unique(aggData$Parameter)) {
-      forPref = 
-        aggData[Parameter == currParam, ]
-      pred = ROCR::prediction(aggData[Parameter == currParam, Value], aggData[Parameter == currParam, Treatment])
-      perf = ROCR::performance(pred, "auc")
-      forPlot =  ROCR::performance(pred,"tpr","fpr")
-      AUC = perf@y.values[[1]]
-      ROCList[[currParam]] = 
-        data.table("FPR" = unlist(forPlot@x.values), "TPR" = unlist(forPlot@y.values),
-                   "Measure" = currParam, "TCS" = currTCS, "AUC" = AUC, "Parameter" = currParam)
-    }
-    paramByAuc = unique(rbindlist(ROCList)[, list(AUC, Parameter)])
-
-    for(howMany in 1:15) {
+    # Loop through whether we're using the 1st, 1st+2nd, 1st+2nd+3rd etc. best discriminators
+    for(howMany in noDesc) {
       
-      # print(howMany)
+      # Get the PCA of our inflammation index, and a table of evaluation metrics
+      inf_ind_metrics = get_inf_ind_metrics(paramByAuc, howMany, format_list, method)
       
-      topParams = paramByAuc[AUC %in% tail(sort(AUC),howMany), Parameter]
+      # Return our inflammation index PCA and pval and AUC values
+      PCAOut[[currTCS]][[howMany]] = inf_ind_metrics$PCAOut
       
-      # Check here if oany of the measures are also present in their percentile
-      # restricted form, if so, select the one with the best AUC and remove the other
-      for(currParam in topParams) {
-        toCheck = paste(toupper(currParam), "[P10-P90]", sep = "")
-        if(sum(grepl(toCheck, toupper(topParams), fixed = T))>0) {
-          getRid = 
-            paramByAuc[toupper(Parameter) %in% c(toupper(currParam), toCheck), Parameter][which.min(paramByAuc[toupper(Parameter) %in% c(toupper(currParam), toCheck), AUC])]
-          topParams = topParams[!(topParams %in% getRid)]
-        }
-        
-        # If we have any measures based on the fit or sampled data, check to see if
-        # there is a duplicate and pick the best one
-        if(grepl("(FIT)", toupper(currParam)) || grepl("(SAMPLED)", toupper(currParam))) {
-          withoutPs = strsplit(toupper(currParam), "\\(")[[1]][1]
-          if(grepl("(FIT)", toupper(currParam))) {
-            toCheck = paste(withoutPs, "(SAMPLED)", sep = "")
-          } else if (grepl("(SAMPLED)", toupper(currParam))) {
-            toCheck = paste(withoutPs, "(FIT)", sep = "")
-          }
-          if(sum(grepl(toCheck, toupper(topParams), fixed = T))>0) {
-            getRid = 
-              paramByAuc[toupper(Parameter) %in% c(toupper(currParam), toCheck), Parameter][which.min(paramByAuc[toupper(Parameter) %in% c(toupper(currParam), toCheck), AUC])]
-            topParams = topParams[!(topParams %in% getRid)]
-          }
-        }
-        
-        # If we have measures that are based on the circle centre, check if there is
-        # the same measure based on the centre of mass, if so, remove the one with
-        # the lowest AUC
-        if(grepl(paste(currParam, "fromfromHull'sCentreofMass", sep = ""), (topParams)) || grepl(paste(currParam, "fromCircle'sCentre", sep = ""), (topParams))) {
-          toCheck = c(currParam, paste(currParam, "fromfromHull'sCentreofMass", sep = ""), paste(currParam, "fromCircle'sCentre", sep = ""))
-        getRid = 
-          paramByAuc[toupper(Parameter) %in% toupper(toCheck), Parameter][which.min(paramByAuc[toupper(Parameter) %in% toupper(toCheck), AUC])]
-        topParams = topParams[!(topParams %in% getRid)]
-        }
-        
-        if(grepl("fromfromHull'sCentreofMass", currParam) || grepl("fromCircle'sCentre", currParam)) {
-          without = strsplit(toupper(currParam), "FROM")[[1]][1]
-          toCheck = c(currParam, paste(without, "fromfromHull'sCentreofMass", sep = ""), paste(without, "fromCircle'sCentre", sep = ""))
-          getRid = 
-            paramByAuc[toupper(Parameter) %in% toupper(toCheck), Parameter][which.min(paramByAuc[toupper(Parameter) %in% toupper(toCheck), AUC])]
-          topParams = topParams[!(topParams %in% getRid)]
-        }
-          
-        
-        without = strsplit(toupper(currParam), "FROM")[[1]][1]
-        if(grepl(paste(without, toupper("fromfromHull'sCentreofMass"), sep = ""), toupper(topParams)) || grepl(paste(without, toupper("fromCircle'sCentre"), sep = ""), toupper(topParams))) {
-          toCheck = c(currParam, paste(currParam, "fromfromHull'sCentreofMass", sep = ""), paste(currParam, "fromCircle'sCentre", sep = ""))
-          getRid = 
-            paramByAuc[toupper(Parameter) %in% toupper(toCheck), Parameter][which.min(paramByAuc[toupper(Parameter) %in% toupper(toCheck), AUC])]
-          topParams = topParams[!(topParams %in% getRid)]
-        }
-      }
-      
-      # Put together our selected columns (rather than having an aggregated data table)
-      # and remove any rows with NAs
-      forInfIndex = merged[, c(toMove, topParams), with = F]
-      forInfIndex = forInfIndex[complete.cases(forInfIndex)]
-      
-      # Merge together columns after making sure they're numeric
-      forInfIndex = 
-        cbind(forInfIndex[, (toMove), with = F], forInfIndex[, sapply(.SD, function(x) as.numeric(x)), .SDcols = topParams])
-      
-      # Remove any columns where variance is 0
-      zeroVar = topParams[which(forInfIndex[, sapply(.SD, function(x) var(scale(as.numeric(x)), na.rm = T)), .SDcols = topParams] == 0)]
-      if(length(zeroVar)!= 0) {
-        temp = list()
-        length(temp) = length(zeroVar)
-        forInfIndex[, (zeroVar) := temp]
-      }
-      
-      if(ncol(forInfIndex)==4) {
-        print("check")
-      }
-      
-      # Run a PCA on the data and then get labels for each row
-      PCA = prcomp(forInfIndex[, (topParams), with = F], center = T, scale = T)
-      allDat = cbind(forInfIndex[, (toMove), with = F], PCA$x[,"PC1"])
-      setnames(allDat, old = "V2", new = "PC1")
-      
-      lmMod = 
-        lme(PC1 ~ Treatment, random = ~1|Animal,
-            data = allDat, control = lmeControl(msMaxIter = 100, opt = 'optim'))
-      
-      pred = ROCR::prediction(allDat[, PC1], allDat[, Treatment])
-      perf = ROCR::performance(pred, "auc")
-      forPlot =  ROCR::performance(pred,"tpr","fpr")
-      AUC = perf@y.values[[1]]
-      
-      PCAOut[[currTCS]][[howMany]] = PCA
-      
-      tableOut[[addIndex]] = 
-        data.table("Parameters" = topParams, "Vals" = howMany, "TCS" = currTCS,
-                   as.data.table(anova(lmMod))[2, "p-value"],"AUC" = AUC)
+      tableOut[[addIndex]] = inf_ind_metrics$tableOut
+      tableOut[[addIndex]][, TCS := currTCS]
       
       addIndex = addIndex+1
       
@@ -595,14 +731,16 @@ constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL) {
     toUse = PCAOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
     TCSToUse = forComp[which.max(forComp$AUC), TCS]
   }
-
+  
+  # Apply our inflammation index to our input data
   dataToReturn = inDat[TCS == TCSToUse]
   dataToReturn[, InfInd := predict(toUse, newdata = dataToReturn)[,1]]
-
+  
   backList = list("PCA Object" = toUse,
                   "Data" = dataToReturn)
   
 }
+
 
 # Functino wraps the preprocessing and constructInfInd functions in one
 infInd <- 
