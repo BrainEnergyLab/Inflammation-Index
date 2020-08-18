@@ -50,14 +50,17 @@ morphPreProcessing <- function(pixelSize,
            list("Pattern" = "[0-9] \\.csv","Sep" = ",","HeadSep" = ",",
                 "fileEncoding" = "Latin-1","forInfo" = "Location"))
   
+  # Specify the directories to search through, and the storageList for non-FracLac results
   dirToUse = list(morphologyWD)
-  
   passList = list(storageList)
   
+  # If we're using the fraclac outpu
   if(useFrac == T) {
     
+    # List the files in the morphology WD input that have fracLac in the name
     lacDir = dir(path = morphologyWD, pattern = "fracLac", full.names = T, recursive = F, ignore.case = T)
     
+    # Create a storeList-like object for fracLac
     fracList = list("Hull and Circularity" = 
                       list("Pattern" = "Hull and Circle Results.txt","Sep" = "\t",
                            "HeadSep" = "\t","fileEncoding" = "unknown","forInfo" = "ID"),
@@ -65,6 +68,7 @@ morphPreProcessing <- function(pixelSize,
                       list("Pattern" = "Scan Types.txt","Sep" = "\t","HeadSep" = "\t",
                            "fileEncoding" = "unknown","forInfo" = "ID"))
     
+    # Put together the storageList and fracList, as well as the directories to search within
     storageList = c(storageList, fracList)
     dirToUse = c(morphologyWD, lacDir)
     passList = list(storageList[1:2], storageList[3:4])
@@ -375,9 +379,13 @@ morphPreProcessing <- function(pixelSize,
   
 }
 
-filter_by_training_data = function(inDat, LPSGroups, otherExclusions) {
-  # If we are passing in otherExclusions, limit our training data to what is specified
-  procDat = inDat[Treatment %in% LPSGroups]
+# Takes in the data.table output by morphPreProcessing(), a vector of which groups are the positive control groups in the
+# data, and a list indicating what other conditions to specify for the positive control data
+# Returns the positive control data
+filter_by_training_data = function(inDat, posControlGroups, otherExclusions) {
+
+  # Get out the positive control data, and if we have specified otherExclusions, get out the data that corresponds to this 
+  procDat = inDat[Treatment %in% posControlGroups]
   if(is.null(otherExclusions) == F) {
     for(currCol in 1:length(otherExclusions$Col)) {
       if(otherExclusions$Col[currCol] %in% names(procDat)) {
@@ -388,9 +396,12 @@ filter_by_training_data = function(inDat, LPSGroups, otherExclusions) {
   return(procDat)
 }
 
+# Takes the output of filter_by_training_data, and a vector of column names that label our data
+# Returns a list including the data where all metrics are gathered into a single column (aggData),
+# as well as data where each column is a metric (merged), and a vector of which label column names we have (toMove)
 format_rocr_input = function(procDat, labCols) {
   
-  # Gather the data across all measurements and columns we're using
+  # Gather the data across all measurements and label columns we're using
   aggData = 
     as.data.table(gather(procDat, Parameter, Value, (which(!(names(procDat) %in% labCols)))))
   aggData[, c("Parameter", "Value", "Treatment") := list(factor(Parameter, levels = unique(Parameter)), as.numeric(Value), as.factor(Treatment))]
@@ -411,8 +422,11 @@ format_rocr_input = function(procDat, labCols) {
   
 }
 
+# Takes the aggData output by format_rocr_input and the name of a metric
+# Returns a data.table indicating the AUC value from an ROC-AUC analysis for the metric
 get_ROC_values = function(aggData, currParam) {
   
+  # For the current metric, calculate an ROC curve for it and return the AUC value
   forPref = 
     aggData[Parameter == currParam, ]
   pred = ROCR::prediction(aggData[Parameter == currParam, Value], aggData[Parameter == currParam, Treatment])
@@ -426,6 +440,8 @@ get_ROC_values = function(aggData, currParam) {
   return(unique(rbindlist(ROCList)[, list(AUC, Parameter)]))
 }
 
+# Takes a vector of metric names
+# Returns a list where we paste the string associated with sholl analysis percentile metrics
 identify_variant_percentile_metrics = function(topParams) {
   check_list = list()
   for(currParam in topParams) {
@@ -436,6 +452,8 @@ identify_variant_percentile_metrics = function(topParams) {
   return(check_list)
 }
 
+# Takes vector of metric names
+# Returns a list with the strings associated with the sholl analysis fit or sampled metrics
 identify_variant_sholl_metrics = function(topParams) {
   check_list = list()
   for(currParam in topParams) {
@@ -456,6 +474,8 @@ identify_variant_sholl_metrics = function(topParams) {
   return(check_list)
 }
 
+# Takes a vector of metric names
+# Returns a list with the strings attached to check for variants of the hull and circularity morphometric measures
 identify_variant_hcl_metrics = function(topParams){
   check_list = list()
   count = 1
@@ -487,6 +507,9 @@ identify_variant_hcl_metrics = function(topParams){
   return(check_list)
 }
 
+# Takes a vector of metrics
+# Acts as a wrapper function that gets lists of metric names to check (i.e. the possible variants the metrics vector input)
+# Returns all these lists joined together
 identify_all_variants_to_check = function(topParams) {
   
   check_variant_perc = identify_variant_percentile_metrics(topParams)
@@ -501,6 +524,10 @@ identify_all_variants_to_check = function(topParams) {
   
 }
 
+# Takes a data.table output by get_ROC_values (where we need to have the parameters that are in the topParams input), 
+# a list output by identify_all_variants_to_check (or its constituent functions), and a vector of metrics
+# Returns a vector of metrics where the worst performing variant of any metrics present in two forms in the input vector
+# is removed
 remove_worst_duplicate_metric = function(paramByAuc, toCheck, topParams){
   if(sum(grepl(paste(toupper(toCheck), collapse = '|'), toupper(topParams)))>0) {
     getRid = 
@@ -510,6 +537,10 @@ remove_worst_duplicate_metric = function(paramByAuc, toCheck, topParams){
   return(topParams)
 }
 
+# Takes a vector of metrics, and a data.table output by get_ROC_values
+# Acts as a wrapper around iedntify_all_variants_to_check so we can get all the variants names to check
+# Then removes the worst performing variants
+# Returns a vector of metric names with the worst performing metrics removed
 remove_worst_performing_variants = function(topParams, paramByAuc) {
   
   # Identify all the variant metrics in topParams
@@ -524,6 +555,10 @@ remove_worst_performing_variants = function(topParams, paramByAuc) {
   
 } 
 
+# Takes the output of format_rocr_input and the output of remove_worst_performing_variants
+# Returns a data.table with the columns specified in topParams and the label columns
+# specified in forInfIndex
+# Excludes columns that have 0 variance
 format_top_metric_data = function(format_list, topParams) {
   
   # Put together our metric columns that are in topParams with identifying
@@ -553,6 +588,9 @@ format_top_metric_data = function(format_list, topParams) {
   
 }
 
+# Takes the output of format_top_metric_data, the vector of metrics output by remove_worst_performing_Variants,
+# and the output of format_rocr_input
+# Returns a PCA run on the forInfIndex data, and a copy of forInfIndex with the first PC appended as a final column
 get_training_pca = function(forInfIndex, topParams, format_list) {
   
   # Run a PCA on the data and then get labels for each row
@@ -565,6 +603,8 @@ get_training_pca = function(forInfIndex, topParams, format_list) {
   
 }
 
+# Takes the allDat object output by get_training_pca, runs a LMM on it to calculate the p values of the positive control conditions
+# Returns the model and the p value
 get_training_pval = function(allDat){
   
   lmMod = 
@@ -578,6 +618,8 @@ get_training_pval = function(allDat){
   
 }
 
+# Takes the allDat object output by get_training_pca, calculates the AUC of an ROC analysis using the positive control conditions
+# Returns the AUC values
 get_training_auc = function(allDat){
   
   pred = ROCR::prediction(allDat[, PC1], allDat[, Treatment])
@@ -589,6 +631,11 @@ get_training_auc = function(allDat){
   
 }
 
+# Takes the output of get_ROC_values, the number of best preidctors to use, the output of format_rocr_input,
+# and a string of 'p value' or AUC to specify which to use to identify the best inflamation index
+# Creates an inflammation index using the howMany best metrics and evaluated using the string in method
+# Returns a data.table including the best metrics used, the p value / AUC of the inflammation index for this
+# positive control condition
 get_inf_ind_metrics = function(paramByAuc, howMany, format_list, method) {
   
   # Get the top parameters by AUC
@@ -718,6 +765,7 @@ constructInfIndTest <- function(inDat, LPSGroups, method, otherExclusions = NULL
   
   forComp = unique(rbindlist(tableOut)[, list(Vals, TCS, `p-value`, AUC)])
   
+  # Print thee TCS, no. discriminators that had the best discrmination between psotive control condtions
   if(method == "p value") {
     print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
     print(paste("Best No. Discriminators", forComp[which.min(forComp$`p-value`), Vals]))
@@ -732,10 +780,11 @@ constructInfIndTest <- function(inDat, LPSGroups, method, otherExclusions = NULL
     TCSToUse = forComp[which.max(forComp$AUC), TCS]
   }
   
-  # Apply our inflammation index to our input data
+  # Apply our final inflammation index to our input data
   dataToReturn = inDat[TCS == TCSToUse]
   dataToReturn[, InfInd := predict(toUse, newdata = dataToReturn)[,1]]
   
+  # Return the input data with the final index applied, as well as the PCA this is based on
   backList = list("PCA Object" = toUse,
                   "Data" = dataToReturn)
   
@@ -748,7 +797,7 @@ infInd <-
            animalIDs, treatmentIDs, LPSGroups, method,
            useFrac = NULL, otherExclusions = NULL) {
     
-    
+    # If there is a fraclac directory specify useFrac as T
     if(is.null(useFrac)) {
       if(length(dir(path = morphologyWD, pattern = "fracLac", full.names = T, recursive = F, ignore.case = T)>0)) {
         useFrac = T
@@ -759,16 +808,19 @@ infInd <-
     ########################### Get Morphology Data ################################
     ################################################################################
     
+    # Get our formatted data
     output = 
       morphPreProcessing(
         pixelSize = pixelSize, morphologyWD = morphologyWD, 
         TCSExclude = TCSExclude, animalIDs = animalIDs, treatmentIDs = treatmentIDs,
         useFrac = useFrac)
     
+    # Construct our inflammation index and apply it
     PCOut = 
       constructInfInd(output, LPSGroups = LPSGroups, method = method, 
                       otherExclusions = otherExclusions)
     
+    # Return our data
     returnList = list("PreProcData" = output,
                       "PCA Object" = PCOut$`PCA Object`,
                       "ProcData" = PCOut$Data)
