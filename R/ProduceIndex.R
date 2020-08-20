@@ -1,40 +1,21 @@
-# This function is for preprocessing the microglial morphology data output by 
-# the MicrogliaMorphologyAnalysis.ijm ImageJ script
-morphPreProcessing <- function(pixelSize,
-                               morphologyWD,
-                               TCSExclude = NULL,
-                               animalIDs,
-                               treatmentIDs,
-                               useFrac = NULL) {
-  
-  exit = F
-  if(is.null(pixelSize)) {
-    exit = T
-    print("Need to provide a pixelSize in um")
-  }
-  
-  if(is.null(morphologyWD)) {
-    exit = T
-    print("Need to provide a directory (morphologyWD) for input files")
-  }
-  
-  if(is.null(animalIDs)) {
-    exit = T
-    print("Need to provide a vector of animal IDs")
+read_in_file = function(locations, seperators, fileEncoding) {
+  if(grepl("Scan", locations)) {
+    gotGaps = strsplit(readLines(file(locations, encoding = 'UTF-8')), "\t")
+    closeAllConnections()
+    asMatrix = do.call(rbind, gotGaps)
+    temp = as.data.frame(asMatrix[-1,])
+    names(temp) = asMatrix[1,]
+    temp = as.data.table(temp)
   } else {
-    animalIDs = toupper(animalIDs)
+    temp = fread(locations, sep = seperators, na.string = 'NaN', encoding = fileEncoding, header = T)
   }
   
-  if(is.null(treatmentIDs)) {
-    exit = T
-    print("Need to provide a vector of treatment IDs")
-  } else {
-    treatmentIDs = toupper(treatmentIDs)
-  }
+  temp[, Location := locations]
   
-  if(exit == T) {
-    return(NULL)
-  }
+  return(temp)
+}
+
+pass_into_reading_function = function(morphologyWD, useFrac) {
   
   # List to store the pattern we'll search in our directory for each data type,
   # as well as the character that separates fields in the data, and the 
@@ -75,45 +56,45 @@ morphPreProcessing <- function(pixelSize,
     
   }
   
+  return(list("passList" = passList, 
+              "storageList" = storageList,
+              "dirToUse" = dirToUse))
+  
+}
+
+read_in_raw_data = function(passList, dirToUse, useFrac, TCSExclude) {
   
   # Loop through the first 3 then last 2 parts of storageList, changing where
-  # we grab our data from for each
-  comboList = Map(function(e, f) {
+  # we grab our data from for each and read in our data and combine into a single data.table
+  comboList = Map(function(e, f, TCSExclude) {
     
     # For each element in storageList, add a locations, files, and labels 
     # section which contains strings of the paths of all the files, data frames
     # for each file, and the animal and timepoint label of that file
-    out = lapply(e, function(x, y) {
+    out = lapply(e, function(x, y, TCSExclude) {
       
+      # Get the locations of the files we need to load in and remove any NULL locations
       x$Locations = list.files(path = y, pattern = x$Pattern, full.names = T, 
                                recursive = T, ignore.case = T);
       x$Locations[sapply(x$Locations, is.null)] <- NULL
       
-      if(is.null(TCSExclude)==F) {
+      # If we're excluding certain TCS values, remove them from the location vector
+      if(TCSExclude!=F) {
         # Exclude TCS values
         x$Locations = x$Locations[!str_detect(x$Locations, paste(TCSExclude, collapse = "|"))]
         x$Locations = x$Locations[is.na(x$Locations)==F]
       }
       
-      x$Files = rbindlist(Map(function(x, y, z) {
-        if(grepl("Scan", x)) {
-          gotGaps = strsplit(readLines(file(x, encoding = "UTF-8")), "\t")
-          closeAllConnections()
-          asMatrix = do.call(rbind, gotGaps)
-          temp = as.data.frame(asMatrix[-1,])
-          names(temp) = asMatrix[1,]
-          temp = as.data.table(temp)
-        } else {
-          temp = 
-            fread(x, sep = y, na.strings = "NaN", encoding = z,header = T)
-        }
+      # For each location read in the file using the read_in_file function
+      x$Files = rbindlist(Map(function(locations, seperators, fileEncoding) {
         
-        temp[, Location := x]
+        temp = read_in_file(locations, seperators, fileEncoding)
         return(temp)
+        
       }, x$Locations, x$Sep, x$fileEncoding))
       
-      return(x)}, f)
-  }, passList, dirToUse)
+      return(x)}, f, TCSExclude)
+  }, passList, dirToUse, ifelse(is.null(TCSExclude), F, TCSExclude))
   
   if(useFrac == T) {
     # Put the output together into a single list
@@ -121,6 +102,22 @@ morphPreProcessing <- function(pixelSize,
   } else {
     storageList = comboList[[1]]
   }
+  
+  return(storageList)
+  
+}
+
+fill_to_add = function(storageListElement) {
+  return(list("TCS" = 
+                with(storageListElement$Files,
+                     substring(unlist(Location),regexpr("^(TCS)[0-9]*", unlist(Location)) +3, 
+                               attributes(regexpr("^(TCS)[0-9]*", unlist(Location)))$match.length)),
+              "CellName" = with(storageListElement$Files,
+                                substring(as.character(Location), regexpr("CANDIDATE", toupper(as.character(Location))),
+                                          regexpr("TIF", toupper(as.character(Location)))-1))))
+}
+
+create_map_stuff = function(useFrac, storageList) {
   
   # mapStuff is a bunch of stuff we need to add onto each data type that its 
   # missing, this is either cell identifiers, or values for the TCS. These are
@@ -145,54 +142,39 @@ morphPreProcessing <- function(pixelSize,
              "Samples/radius", "Enclosing radius cutoff", "I branches (user)"))
   
   if(useFrac == T) {
-    storageList$`Hull and Circularity`$Files[, Location := NULL]
-    storageList$`FracLac`$Files[, Location := NULL]
-    # Change the names of the hull and circularity files so that we remove the
-    # NA column name at the end and shift the names to the right by 1, relabelling
-    # the first column as ID
-    names(storageList$`Hull and Circularity`$Files)[1] = "Location"
     
-    # Remove the last column in the fracLac file as its empty, then change the 
-    # name of the first column to ID
-    names(storageList$FracLac$Files)[1] = "Location"
+    toAdd = list("Hull and Circularity" = list(),
+                 "FracLac" = list())
     
-    # For the ID value, get the characters to the left of the underscore
-    storageList$FracLac$Files[, Location := sapply(strsplit(as.character(Location), "_"),function(x) x[1])]
+    for(curr_element in names(toAdd)) {
+      if(sum(grepl('Location', names(storageList[[curr_element]]$Files)))>1) {
+        storageList[[curr_element]]$Files[, Location := NULL]
+      }
+      
+      # Change the names of the hull and circularity files so that we remove the
+      # NA column name at the end and shift the names to the right by 1, relabelling
+      # the first column as ID
+      names(storageList[[curr_element]]$Files)[1] = 'Location' 
+      
+      if(curr_element == 'FracLac') {
+        # For the ID value, get the characters to the left of the underscore
+        storageList[[curr_element]]$Files[, Location := sapply(strsplit(as.character(Location), "_"),function(x) x[1])]
+        
+        # Retain every 2nd row of the FracLac data (the data is in triplicate, where
+        # the first and 3rd row are readings with formula for fractal dimensions
+        # that we don't want to use)
+        storageList[[curr_element]]$Files = 
+          storageList[[curr_element]]$Files[rep(c(F,T,F), nrow(storageList[[curr_element]]$Files)/3),]
+        
+        # Change the names for the fractal dimension and lacunarity measurements to be
+        # readable
+        names(storageList[[curr_element]]$Files)[grep("^6. ", names(storageList[[curr_element]]$Files))] = "FractalDimension"
+        names(storageList[[curr_element]]$Files)[grep("^16. ", names(storageList[[curr_element]]$Files))] = "Lacunarity"
+        
+      } 
+      toAdd[[curr_element]] = fill_to_add(storageList[[curr_element]])
+    }
     
-    # Retain every 2nd row of the FracLac data (the data is in triplicate, where
-    # the first and 3rd row are readings with formula for fractal dimensions
-    # that we don't want to use)
-    storageList$FracLac$Files = 
-      storageList$FracLac$Files[rep(c(F,T,F), nrow(storageList$FracLac$Files)/3),]
-    
-    # Change the names for the fractal dimension and lacunarity measurements to be
-    # readable
-    names(storageList$FracLac$Files)[grep("^6. ", names(storageList$FracLac$Files))] = "FractalDimension"
-    names(storageList$FracLac$Files)[grep("^16. ", names(storageList$FracLac$Files))] = "Lacunarity"
-    
-    toAdd = list("Hull and Circularity" = 
-                   list("TCS" = 
-                          with(storageList$`Hull and Circularity`$Files,
-                               substring(unlist(Location),regexpr("^(TCS)[0-9]*", 
-                                                                  unlist(Location)) +3, 
-                                         attributes(regexpr("^(TCS)[0-9]*", 
-                                                            unlist(Location)))$match.length)),
-                        "CellName" = 
-                          with(storageList$`Hull and Circularity`$Files,
-                               substring(as.character(Location), regexpr("CANDIDATE", 
-                                                                         toupper(as.character(Location))),
-                                         regexpr("TIF", toupper(as.character(Location)))-1))),
-                 "FracLac" = 
-                   list("TCS" = 
-                          with(storageList$FracLac$Files,
-                               substring(unlist(Location),regexpr("^(TCS)[0-9]*", 
-                                                                  unlist(Location)) +3, 
-                                         attributes(regexpr("^(TCS)[0-9]*", 
-                                                            unlist(Location)))$match.length)),
-                        "CellName" =
-                          with(storageList$FracLac$Files,
-                               substring(as.character(Location), regexpr("CANDIDATE", toupper(as.character(Location))),
-                                         regexpr("TIF", toupper(as.character(Location)))-1))))
     mapStuff = c(mapStuff,toAdd)
     
   }
@@ -205,6 +187,55 @@ morphPreProcessing <- function(pixelSize,
   for(currMap in names(mapStuff)) {
     storageList[[currMap]]$Files = cbind(storageList[[currMap]]$Files, as.data.table(mapStuff[[currMap]]))
   }
+  
+  return(storageList)
+  
+}
+
+# This function is for preprocessing the microglial morphology data output by 
+# the MicrogliaMorphologyAnalysis.ijm ImageJ script
+morphPreProcessing <- function(pixelSize,
+                               morphologyWD,
+                               TCSExclude = NULL,
+                               animalIDs,
+                               treatmentIDs,
+                               useFrac = NULL) {
+  
+  exit = F
+  if(is.null(pixelSize)) {
+    exit = T
+    print("Need to provide a pixelSize in um")
+  }
+  
+  if(is.null(morphologyWD)) {
+    exit = T
+    print("Need to provide a directory (morphologyWD) for input files")
+  }
+  
+  if(is.null(animalIDs)) {
+    exit = T
+    print("Need to provide a vector of animal IDs")
+  } else {
+    animalIDs = toupper(animalIDs)
+  }
+  
+  if(is.null(treatmentIDs)) {
+    exit = T
+    print("Need to provide a vector of treatment IDs")
+  } else {
+    treatmentIDs = toupper(treatmentIDs)
+  }
+  
+  if(exit == T) {
+    return(NULL)
+  }
+  
+  # Format our locations, seperators, encoding info to pass into our data reading function
+  pass_list = pass_into_reading_function(morphologyWD, useFrac)
+  # Read in our raw csv files
+  storageList = read_in_raw_data(pass_list$passList, pass_list$dirToUse, useFrac, TCSExclude)
+  # Alter storageList with info we need to add on (called mapstuff in the function)
+  storageList = add_info_to_storagelist(useFrac, storageList)
   
   # Next we subset out cells we don't want to keep in our cell parameter data
   # by removing cells that weren't analysed in ImageJ because they didn't pass
@@ -383,7 +414,7 @@ morphPreProcessing <- function(pixelSize,
 # data, and a list indicating what other conditions to specify for the positive control data
 # Returns the positive control data
 filter_by_training_data = function(inDat, posControlGroups, otherExclusions) {
-
+  
   # Get out the positive control data, and if we have specified otherExclusions, get out the data that corresponds to this 
   procDat = inDat[Treatment %in% posControlGroups]
   if(is.null(otherExclusions) == F) {
