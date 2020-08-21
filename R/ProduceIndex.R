@@ -1,4 +1,7 @@
 read_in_file = function(locations, seperators, fileEncoding) {
+  # Takes the location of a file, what seperators are in the file, and what encoding
+  # If it's a FracLac file, we read it in as lines, else using fread
+  # Return the read in data.table
   if(grepl("Scan", locations)) {
     gotGaps = strsplit(readLines(file(locations, encoding = 'UTF-8')), "\t")
     closeAllConnections()
@@ -15,7 +18,11 @@ read_in_file = function(locations, seperators, fileEncoding) {
   return(temp)
 }
 
-pass_into_reading_function = function(morphologyWD, useFrac) {
+get_file_locations = function(morphologyWD, useFrac) {
+  # Takes the directory where our morphology data is stored, and a boolean of whether we're using
+  # FracLac data or not
+  # If we're using FracLac, we  append / remove FracLac specific values to the lists we return containing the
+  # directories to look into
   
   # List to store the pattern we'll search in our directory for each data type,
   # as well as the character that separates fields in the data, and the 
@@ -24,86 +31,74 @@ pass_into_reading_function = function(morphologyWD, useFrac) {
   # animal/timepoint info in forInfo
   storageList = 
     list("Cell Parameters" = 
-           list("Pattern" = "Cell Parameters.csv", "Sep" = ",",
-                "HeadSep" = ",", "fileEncoding" = "unknown",
-                "forInfo" = "Location"),
+           list("Sep" = ",",
+                "fileEncoding" = "unknown",
+                "forInfo" = "Location",
+                "Locations" = dir(path = morphologyWD, pattern = "Cell Parameters.csv", full.names = T,
+                                  recursive = T, ignore.case = T)),
          "Sholl Parameters" = 
-           list("Pattern" = "[0-9] \\.csv","Sep" = ",","HeadSep" = ",",
-                "fileEncoding" = "Latin-1","forInfo" = "Location"))
-  
-  # Specify the directories to search through, and the storageList for non-FracLac results
-  dirToUse = list(morphologyWD)
-  passList = list(storageList)
-  
-  # If we're using the fraclac outpu
-  if(useFrac == T) {
-    
-    # List the files in the morphology WD input that have fracLac in the name
-    lacDir = dir(path = morphologyWD, pattern = "fracLac", full.names = T, recursive = F, ignore.case = T)
-    
-    # Create a storeList-like object for fracLac
-    fracList = list("Hull and Circularity" = 
-                      list("Pattern" = "Hull and Circle Results.txt","Sep" = "\t",
-                           "HeadSep" = "\t","fileEncoding" = "unknown","forInfo" = "ID"),
-                    "FracLac" = 
-                      list("Pattern" = "Scan Types.txt","Sep" = "\t","HeadSep" = "\t",
-                           "fileEncoding" = "unknown","forInfo" = "ID"))
-    
-    # Put together the storageList and fracList, as well as the directories to search within
-    storageList = c(storageList, fracList)
-    dirToUse = c(morphologyWD, lacDir)
-    passList = list(storageList[1:2], storageList[3:4])
-    
-  }
-  
-  return(list("passList" = passList, 
-              "storageList" = storageList,
-              "dirToUse" = dirToUse))
-  
-}
-
-read_in_raw_data = function(passList, dirToUse, useFrac, TCSExclude) {
-  
-  # Loop through the first 3 then last 2 parts of storageList, changing where
-  # we grab our data from for each and read in our data and combine into a single data.table
-  comboList = Map(function(e, f, TCSExclude) {
-    
-    # For each element in storageList, add a locations, files, and labels 
-    # section which contains strings of the paths of all the files, data frames
-    # for each file, and the animal and timepoint label of that file
-    out = lapply(e, function(x, y, TCSExclude) {
-      
-      # Get the locations of the files we need to load in and remove any NULL locations
-      x$Locations = list.files(path = y, pattern = x$Pattern, full.names = T, 
-                               recursive = T, ignore.case = T);
-      x$Locations[sapply(x$Locations, is.null)] <- NULL
-      
-      # If we're excluding certain TCS values, remove them from the location vector
-      if(TCSExclude!=F) {
-        # Exclude TCS values
-        x$Locations = x$Locations[!str_detect(x$Locations, paste(TCSExclude, collapse = "|"))]
-        x$Locations = x$Locations[is.na(x$Locations)==F]
-      }
-      
-      # For each location read in the file using the read_in_file function
-      x$Files = rbindlist(Map(function(locations, seperators, fileEncoding) {
-        
-        temp = read_in_file(locations, seperators, fileEncoding)
-        return(temp)
-        
-      }, x$Locations, x$Sep, x$fileEncoding))
-      
-      return(x)}, f, TCSExclude)
-  }, passList, dirToUse, ifelse(is.null(TCSExclude), F, TCSExclude))
+           list("Sep" = ",",
+                "fileEncoding" = "Latin-1",
+                "forInfo" = "Location",
+                "Locations" = dir(path = morphologyWD, 
+                                  pattern = 'Substack \\(\\d+-\\d+\\) x \\d* y \\d* \\.csv$', 
+                                  full.names = T, recursive = T, ignore.case = T)))
   
   if(useFrac == T) {
-    # Put the output together into a single list
-    storageList = c(comboList[[1]], comboList[[2]])
-  } else {
-    storageList = comboList[[1]]
+    
+    main_fracLac_dir = 
+      dir(path = morphologyWD, pattern = "fracLac", full.names = T, 
+          recursive = F, ignore.case = T)
+    
+    storageList$`"Hull and Circularity"` = 
+      list("Sep" = "\t",
+           "fileEncoding" = "unknown",
+           "forInfo" = "ID",
+           "Locations" = dir(path = main_fracLac_dir, 
+                             pattern = "Hull and Circle Results.txt", full.names = T, 
+                             recursive = T, ignore.case = T))
+    storageList$`"FracLac"` = 
+      list("Sep" = "\t",
+           "fileEncoding" = "unknown",
+           "forInfo" = "ID",
+           "Locations" = dir(path = main_fracLac_dir, 
+                             pattern = "Scan Types.txt", full.names = T, 
+                             recursive = T, ignore.case = T))
+    
   }
   
   return(storageList)
+  
+}
+
+
+read_in_raw_data = function(storageList, TCSExclude) {
+  
+  # For every element in storageList (sholl parameters, cell descriptors etc.)
+  comboList = lapply(storageList, function(storageList, TCSExclude) {
+    
+    # Clean up the locations vector by removing NULLs
+    storageList$Locations[sapply(storageList$Locations, is.null)] <- NULL
+    
+    # If we're excluding certain TCS values, remove them from the location vector
+    if(is.null(TCSExclude) == F) {
+      storageList$Locations = storageList$Locations[!str_detect(storageList$Locations, paste(TCSExclude, collapse = "|"))]
+      storageList$Locations = storageList$Locations[is.na(storageList$Locations)==F]
+    }
+    
+    # For each location read in the file using the read_in_file function
+    storageList$Files = rbindlist(lapply(storageList$Locations, function(locations, seperators, fileEncoding) {
+      
+      temp = read_in_file(locations, seperators, fileEncoding)
+      return(temp)
+      
+    }, storageList$Sep, storageList$fileEncoding))
+    
+    return(storageList)
+    
+  }, TCSExclude)
+  
+  return(comboList)
   
 }
 
@@ -231,7 +226,7 @@ morphPreProcessing <- function(pixelSize,
   }
   
   # Format our locations, seperators, encoding info to pass into our data reading function
-  pass_list = pass_into_reading_function(morphologyWD, useFrac)
+  passList = get_file_locations(morphologyWD, useFrac)
   # Read in our raw csv files
   storageList = read_in_raw_data(pass_list$passList, pass_list$dirToUse, useFrac, TCSExclude)
   # Alter storageList with info we need to add on (called mapstuff in the function)
