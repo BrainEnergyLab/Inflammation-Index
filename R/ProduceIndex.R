@@ -154,18 +154,18 @@ list("Sholl Parameters" =
 
 if(useFrac == T) {
 
-# A vector of the fracLac columns we want to keep
-fracToKeep = 
-c("Animal", "Treatment", "TCS", "CellName", "UniqueID", "FractalDimension", "Lacunarity", "Location")
+	# A vector of the fracLac columns we want to keep
+	fracToKeep = 
+	c("Animal", "Treatment", "TCS", "CellName", "UniqueID", "FractalDimension", "Lacunarity", "Location")
 
-fracColsToRemove = list(
-	"Hull and Circularity" = 
-	c("MEAN FOREGROUND PIXELS", "TOTAL PIXELS", "Hull's Centre of Mass",
-		"Width of Bounding Rectangle", "Height of Bounding Rectangle",
-		"Circle's Centre", "Method Used to Calculate Circle"),
-	"FracLac" =  unique(names(storageList$FracLac$Files)[!(names(storageList$FracLac$Files) %in% fracToKeep)]))
+	fracColsToRemove = list(
+		"Hull and Circularity" = 
+		c("MEAN FOREGROUND PIXELS", "TOTAL PIXELS", "Hull's Centre of Mass",
+			"Width of Bounding Rectangle", "Height of Bounding Rectangle",
+			"Circle's Centre", "Method Used to Calculate Circle"),
+		"FracLac" =  unique(names(storageList$FracLac$Files)[!(names(storageList$FracLac$Files) %in% fracToKeep)]))
 
-colsToRemove = c(colsToRemove, fracColsToRemove)
+	colsToRemove = c(colsToRemove, fracColsToRemove)
 
 }
 
@@ -180,25 +180,25 @@ return(storageList)
 add_missing_info = function(storageList) {
 # Adds in info that is missing from our data using the mapStuff list and fill_to_add() output
 
-	mapStuff = 
-	list(
-		"Sholl Parameters" = 
-		list("TCS" = 
-			with(storageList$`Sholl Parameters`, 
-				substring(Locations, regexpr("TCS", Locations)+3, 
-					regexpr("/Results", Locations)-1))))
+mapStuff = 
+list(
+	"Sholl Parameters" = 
+	list("TCS" = 
+		with(storageList$`Sholl Parameters`, 
+			substring(Locations, regexpr("TCS", Locations)+3, 
+				regexpr("/Results", Locations)-1))))
 
-	if(useFrac == T) {
+if(useFrac == T) {
 
-		frac_names = c('FracLac', 'Hull and Circularity')
+	frac_names = c('FracLac', 'Hull and Circularity')
 
-		for(curr_element in frac_names) {
-			storageList[[curr_element]]$Files[, Location := NULL]
+	for(curr_element in frac_names) {
+		storageList[[curr_element]]$Files[, Location := NULL]
 
-# Change the names of the hull and circularity files so that we remove the
-# NA column name at the end and shift the names to the right by 1, relabelling
-# the first column as ID
-names(storageList[[curr_element]]$Files)[1] = 'Location' 
+	# Change the names of the hull and circularity files so that we remove the
+	# NA column name at the end and shift the names to the right by 1, relabelling
+	# the first column as ID
+	names(storageList[[curr_element]]$Files)[1] = 'Location' 
 }
 
 storageList$FracLac$Files =  format_fraclac_files(storageList$FracLac$Files)
@@ -257,6 +257,75 @@ return(storageList)
 
 }
 
+retain_common_cells = function(with_id) {
+
+	# Get out a list containing all the uniqueIDs for each data type before 
+	# finding the intersection of all the uniqueID vectors
+	uniqueIDList = lapply(with_id, function(x) {
+		x$Files$UniqueID
+	})
+	Intersections = Reduce(intersect, uniqueIDList)
+
+	# Subset out the uniqueIDs that aren't present in all of the data types so
+	# that we only end up with data where we have a complete set of measurements
+	# for each cell - conincidentally this ensures the 'Analysed == 1' and 'Radius Step' == pixelSize conditions
+	# we apply earlier also influence the fracLac data were retain
+	for(currType in names(with_id)) {
+		with_id[[currType]]$Files = with_id[[currType]]$Files[UniqueID %in% Intersections]
+	}
+
+	return(with_id)
+
+}
+
+convert_hc_to_um = function(storageList, pixelSize) {
+  
+  # Vector of measures in the hull and ciricularity data we want to convert from
+  # pixels to um, and a vector of the numbers to multiple by respectively to do
+  # that
+  conv_list_names <- c("Area", "Perimeter", "Diameter of Bounding Circle", "Mean Radius", 
+                       "Maximum Span Across Hull", "Maximum Radius from Hull's Centre of Mass",
+                       "Maximum Radius from Circle's Centre", "Mean Radius from Circle's Centre")
+  
+  multiplyBy = rep(pixelSize, length(conv_list_names))
+  multiplyBy[1] = pixelSize^2
+  
+  conv_list <- vector("list", length(conv_list_names))
+  names(conv_list) <- conv_list_names
+  for(currCol in 1:length(names(conv_list))) {conv_list[[currCol]] = multiplyBy[currCol]}
+  
+  # For each column to convert, convert it
+  for(currCol in names(conv_list)) {
+  	if(sum(currCol %in% names(storageList$`Hull and Circularity`$Files)) >= 1) {
+   		storageList$`Hull and Circularity`$Files[, eval(currCol) := as.numeric(unlist(get(currCol))) * conv_list[[currCol]]]
+  	}
+  }
+  
+  return(storageList)
+  
+}
+
+change_duplicate_metric_names = function(um_data) {
+
+	uniqueIDList = lapply(um_data, function(x) {
+    	names(x$Files)
+	})
+
+	repeat_names = names(which(table(unlist(uniqueIDList)) > 1))
+	name_change = repeat_names[!repeat_names %in% c('Animal', 'CellName', 'Location', 'TCS', 'Treatment', 'UniqueID')]
+
+	for(curr_name in name_change) {
+		for(curr_element in names(um_data)) {
+			if(curr_name %in% names(um_data[[curr_element]]$Files)) {
+				setnames(um_data[[curr_element]]$Files, old = curr_name, new = paste(curr_element, curr_name, sep = ''), skip_absent = T)
+			}
+		}
+	}
+
+	return(um_data)
+
+}
+
 # This function is for preprocessing the microglial morphology data output by 
 # the MicrogliaMorphologyAnalysis.ijm ImageJ script
 morphPreProcessing <- function(pixelSize,
@@ -280,93 +349,57 @@ morphPreProcessing <- function(pixelSize,
 	if(is.null(animalIDs)) {
 		exit = T
 		print("Need to provide a vector of animal IDs")
-		} else {
-			animalIDs = toupper(animalIDs)
-		}
+	} else {
+		animalIDs = toupper(animalIDs)
+	}
 
-		if(is.null(treatmentIDs)) {
-			exit = T
-			print("Need to provide a vector of treatment IDs")
-			} else {
-				treatmentIDs = toupper(treatmentIDs)
-			}
+	if(is.null(treatmentIDs)) {
+		exit = T
+		print("Need to provide a vector of treatment IDs")
+	} else {
+		treatmentIDs = toupper(treatmentIDs)
+	}
 
-			if(exit == T) {
-				return(NULL)
-			}
+	if(exit == T) {
+		return(NULL)
+	}
 
-# Format our locations, seperators, encoding info to pass into our data reading function
-passList = get_file_locations(morphologyWD, useFrac)
-# Read in our raw csv files
-comboList = read_in_raw_data(copy(passList), TCSExclude)
-# Alter storageList with info we need to add on (called mapstuff in the function)
+	# Format our locations, seperators, encoding info to pass into our data reading function
+	passList = get_file_locations(morphologyWD, useFrac)
+	# Read in our raw csv files
+	comboList = read_in_raw_data(passList, TCSExclude)
+	# Alter storageList with info we need to add on (called mapstuff in the function)
 
-# mapStuff is a bunch of stuff we need to add onto each data type that its 
-# missing, this is either cell identifiers, or values for the TCS. These are
-# calculated using the file locations or IDs of the rows
-mapList = add_missing_info(copy(comboList))
+	# mapStuff is a bunch of stuff we need to add onto each data type that its 
+	# missing, this is either cell identifiers, or values for the TCS. These are
+	# calculated using the file locations or IDs of the rows
+	mapList = add_missing_info(comboList)
 
-# Remove columns we no longer need
-cleanList = remove_unused_metrics(copy(mapList), useFrac)
+	# Remove columns we no longer need
+	cleanList = remove_unused_metrics(mapList, useFrac)
 
-# Next we subset out cells we don't want to keep in our cell parameter data
-# by removing cells that weren't analysed in ImageJ because they didn't pass
-# quality control, or were taken on an imaging session where the objective
-# ini file was wrongly calibrated so the pixel size isn't what we have the
-# values for. For sholl parameters, we subset out cells where we know the
-# pixel size isn't 0.58 as we expect.
-cleanList$`Cell Parameters`$Files = 
-cleanList$`Cell Parameters`$Files[Analysed == 1,]
+	# Next we subset out cells we don't want to keep in our cell parameter data
+	# by removing cells that weren't analysed in ImageJ because they didn't pass
+	# quality control, or were taken on an imaging session where the objective
+	# ini file was wrongly calibrated so the pixel size isn't what we have the
+	# values for. For sholl parameters, we subset out cells where we know the
+	# pixel size isn't 0.58 as we expect.
+	cleanList$`Cell Parameters`$Files = cleanList$`Cell Parameters`$Files[Analysed == 1,]
 
-# Add in a unique ID for each cell and mask size to all our elements
-with_id = format_unique_id(copy(cleanList), treatmentIDs, animalIDs)
+	# Add in a unique ID for each cell and mask size to all our elements
+	with_id = format_unique_id(cleanList, treatmentIDs, animalIDs)
 
-# Get out a list containing all the uniqueIDs for each data type before 
-# finding the intersection of all the uniqueID vectors
-uniqueIDList = lapply(with_id, function(x) {
-	x$Files$UniqueID
-	})
-Intersections = Reduce(intersect, uniqueIDList)
+	# Retain only data where we have cells for all data types
+	common_data = retain_common_cells(with_id)
 
-# Subset out the uniqueIDs that aren't present in all of the data types so
-# that we only end up with data where we have a complete set of measurements
-# for each cell - conincidentally this ensures the 'Analysed == 1' and 'Radius Step' == pixelSize conditions
-# we apply earlier also influence the fracLac data were retain
-for(currType in names(with_id)) {
-	with_id[[currType]]$Files = with_id[[currType]]$Files[UniqueID %in% Intersections]
-}
+	if(useFrac == T) {
 
-if(useFrac == T) {
+		um_data = convert_hc_to_um(common_data, pixelSize)
 
-# Vector of measures in the hull and ciricularity data we want to convert from
-# pixels to um, and a vector of the numbers to multiple by respectively to do
-# that
-convToUm = 
-c("Area", "Perimeter", "Diameter of Bounding Circle", "Mean Radius", 
-	"Maximum Span Across Hull", "Maximum Radius from Hull's Centre of Mass",
-	"Maximum Radius from Circle's Centre", "Mean Radius from Circle's Centre")
-multiplyBy = rep(pixelSize, length(convToUm))
-multiplyBy[1] = pixelSize^2
-names(multiplyBy) = convToUm
+	}
 
-# For each column to convert, convert it
-for(currCol in convToUm) {
-	storageList$`Hull and Circularity`$Files[[currCol]] = 
-	as.numeric(unlist(storageList$`Hull and Circularity`$Files[[currCol]])) * multiplyBy[[currCol]]
-}
+	name_changed = change_duplicate_metric_names(um_data)
 
-# We now add "ConvexHull" to precede the following columns in the hull and 
-# circularity data since otherwise we would have duplicate column names with
-# the cell parameter data
-namesToChange = c("Area", "Perimeter", "Circularity")
-setnames(storageList$`Hull and Circularity`$Files, old = namesToChange, new = paste("ConvexHull", namesToChange, sep = ""))
-}
-
-for(currType in names(colsToRemove)) {
-	temp = list()
-	length(temp) = length(colsToRemove[[currType]])
-	storageList[[currType]]$Files[, colsToRemove[[currType]] := temp]
-}
 
 # For all the data, remove spaces from the headers, and from the cellName
 # values to make them consistent between data types
