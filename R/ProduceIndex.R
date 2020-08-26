@@ -302,8 +302,7 @@ return(list('PCAOut' = pca_out$PCA,
 # Run on the output of the morphPreProcessing function, we look through TCS values and
 # find the best TCS and combination of descriptors to distinguish between LPS and nonLPS
 # using "method"
-constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL,
-	noDesc = 1:2) {
+constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL, noDesc = 1:2) {
 # INPUTS
 # inDat = data.table containing the output from morphPreProcessing
 # LPSGroups = vector of strings identifying the treatment values that specify our positive control conditions
