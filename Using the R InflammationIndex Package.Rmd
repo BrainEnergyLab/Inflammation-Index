@@ -1,6 +1,6 @@
 ---
 title: "Inflammation Index R Package"
-output: html_document
+output: rmarkdown::github_document
 ---
 
 # Inflammation Index Package in R
@@ -9,7 +9,7 @@ output: html_document
 
 In RStudio the InflammationIndex package can be installed first by installing and loading devtools, then installing the InflammationIndex package from GitHub
 
-```{r}
+```{r, eval = F}
 require(devtools)
 install_github("DKClarke/Inflammation-Index")
 require(InflammationIndex)
