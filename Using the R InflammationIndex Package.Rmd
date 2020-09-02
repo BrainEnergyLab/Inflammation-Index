@@ -11,7 +11,7 @@ In RStudio the InflammationIndex package can be installed first by installing an
 
 ```{r, eval = F}
 require(devtools)
-install_github("DKClarke/Inflammation-Index")
+install_github("BrainEnergyLab/Inflammation-Index")
 require(InflammationIndex)
 
 ```
@@ -39,7 +39,7 @@ require("data.table")
 
 list.of.packages <- c("InflammationIndex")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install_github("DKClarke/Inflammation-Index")
+if(length(new.packages)) install_github("BrainEnergyLab/Inflammation-Index")
 
 require("InflammationIndex")
 
@@ -94,14 +94,12 @@ morphologyWD = file.path(dropPath, "Devin", "2P Data Analysis", "Microglial Morp
 animalIDs = unique(boundWeights$Animal)[]
 treatmentIDs = as.character(unique(boundWeights$Timepoint))
 treatmentIDs = treatmentIDs[is.na(treatmentIDs)==F]
-LPSGroups = c("D56", "LPS")
+treatmentIDs = c('D56', 'LPS')
 useFrac = T
-otherExclusions = list("Col" = "Diet", "Cond" = "Control")
-method = "p value"
 
 ```
 
-```{r}
+```{r, cache = T}
 
 output = 
   morphPreProcessing(
@@ -111,22 +109,38 @@ output =
 
 ```
 
-## R Markdown
+```{r}
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+head(output)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
+Following this, users should run the constructInfInd() function, where inDat is set to the output of the morphPreProcessing() function, LPSGroups is a string vector (length of 2) of the TreatmentIDs that identify the positive control and control groups for the experiment (same as the treatmentIDs just fed into morphPreProcessing), method is the method used to identify the mask sizes that are best at discrminating inflammation from control groups (can use the smallest p value of comparisons, or the area under the curve of a receiver-operating characteristic (ROC) analysis). This function loops through each mask size value present, and first uses an ROC analysis to rank the morphological measures that are best at discriminating between inflammed/non-inflammed cells. Then, the function builds a composite index composed of the best discriminators at each mask size, and using the method specified to pick which mask size, and number of features included in the composite, provides the best discrimination of inflammed/non inflammed cells. This building of a composite measure is based on work by Heindl et al. (2018): https://doi.org/10.3389/fncel.2018.00106.
 
-You can also embed plots, for example:
+```{r, eval = F}
+inDat = output # The output of the morphPreProcessing() function
+LPSGroups = c('Pre-LPS', 'Post-LPS') # Vector of strings of the positive control conditions
+method = 'p value' # The method to use to refine the inflammation index, can also take the value 'AUC
+noDesc = 1:15 # A vector of integers where we compare inflammation indices made up of the N best descriptors and compare them
+  # E.g. when noDesc = c(1,2,3) we compare the inflammation indices made up of the 1 best discriminators, to one made of the 2 best discriminators, to one made of the 3 best discrminators.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r, include = F}
+
+LPSGroups = c('D56', 'LPS')
+inDat = output
+method = 'p value'
+noDesc = 1:15
+
+```
+
+```{r}
+
+infIndOut = 
+  constructInfInd(inDat = inDat,
+                  LPSGroups = LPSGroups,
+                  method = method,
+                  noDesc = 1:15)
+
+```

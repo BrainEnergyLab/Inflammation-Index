@@ -11,19 +11,41 @@ package from GitHub
 
 ``` r
 require(devtools)
-install_github("DKClarke/Inflammation-Index")
+install_github("BrainEnergyLab/Inflammation-Index")
 require(InflammationIndex)
 ```
 
-Now users should run the morphPreProcessing() function. Here they should
-specify the pixel size in microns (assuming a square pixel), and the
-morphologyWD argument should be a string that is a path to the output
-folder of the working directory of the Fiji script. AnimalIDs should be
-a string vector of the names of the Animal folders in the image storage
-structure, and likewise for the TreatmentIDs argument. This function
-puts together all the output of the Fiji script analysis into a single
-data table where each row is a cell and each column is a morphological
-measure.
+Now users should run the morphPreProcessing() function on the positive
+control data. Here they should specify the pixel size in microns
+(assuming a square pixel), and the morphologyWD argument should be a
+string that is a path to the output folder of the working directory of
+the ImageJ script. AnimalIDs should be a string vector of the names of
+the Animal folders in the image storage structure, and likewise for the
+TreatmentIDs argument. These treatment IDs should be the two positive
+control conditions (e.g. pre- and post-LPS) This function puts together
+all the output of the Fiji script analysis into a single data table
+where each row is a cell and each column is a morphological measure.
+
+``` r
+pixelSize = 0.58 # Pixel size in microns
+morphologyWD = "/Microglial Morphology/Output" # Output directory of the MicroMorph.ijm script as a string
+animalIDs = c('HIPP5', 'HIPP6', 'HIPP7') # Vector of strings identifying the names of the animals images were captured from and matching the names of the Animal level folders
+treatmentIDs = c('Pre-LPS', 'Post-LPS') # Vector of strings identifying different treatments / timepoints and matching the names of the Treatment level folders
+useFrac = T # Boolean indicating whether to use the output of the FracLac plugin
+TCSExclude = NULL # String vector of mask sizes to exclude from the preprocessing function, can also take NULL
+```
+
+``` r
+output = 
+  morphPreProcessing(
+    pixelSize = pixelSize, morphologyWD = morphologyWD, 
+    animalIDs = animalIDs, treatmentIDs = treatmentIDs,
+    useFrac = useFrac)
+```
+
+``` r
+output
+```
 
 ## R Markdown
 
