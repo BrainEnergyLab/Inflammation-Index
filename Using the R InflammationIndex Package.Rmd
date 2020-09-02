@@ -16,11 +16,99 @@ require(InflammationIndex)
 
 ```
 
+Now users should run the morphPreProcessing() function on the positive control data. Here they should specify the pixel size in microns (assuming a square pixel), and the morphologyWD argument should be a string that is a path to the output folder of the working directory of the ImageJ script. AnimalIDs should be a string vector of the names of the Animal folders in the image storage structure, and likewise for the TreatmentIDs argument. These treatment IDs should be the two positive control conditions (e.g. pre- and post-LPS) This function puts together all the output of the Fiji script analysis into a single data table where each row is a cell and each column is a morphological measure.
 
-Now users should run the morphPreProcessing() function. Here they should specify the pixel size in microns (assuming a square pixel), and the morphologyWD argument should be a string that is a path to the output folder of the working directory of the Fiji script. AnimalIDs should be a string vector of the names of the Animal folders in the image storage structure, and likewise for the TreatmentIDs argument. This function puts together all the output of the Fiji script analysis into a single data table where each row is a cell and each column is a morphological measure.
+```{r, eval = F}
+pixelSize = 0.58 # Pixel size in microns
+morphologyWD = "/Microglial Morphology/Output" # Output directory of the MicroMorph.ijm script as a string
+animalIDs = c('HIPP5', 'HIPP6', 'HIPP7') # Vector of strings identifying the names of the animals images were captured from and matching the names of the Animal level folders
+treatmentIDs = c('Pre-LPS', 'Post-LPS') # Vector of strings identifying different treatments / timepoints and matching the names of the Treatment level folders
+useFrac = T # Boolean indicating whether to use the output of the FracLac plugin
+TCSExclude = NULL # String vector of mask sizes to exclude from the preprocessing function, can also take NULL
+```
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, include = F}
+
+# If our packages are not installed, install them
+list.of.packages <- c("devtools", "data.table")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+require("devtools")
+require("data.table")
+
+list.of.packages <- c("InflammationIndex")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install_github("DKClarke/Inflammation-Index")
+
+require("InflammationIndex")
+
+# If we're on mac, set the path to dropbox as in /Users/Devin/ and the github
+# path as in /Users/Devin/Documents else set dropPath in windows to E:/
+if(.Platform$OS.type == "unix") {
+  dropPath = file.path("", "Users", "devin.clarke1")
+  gitPath = file.path("", "Users", "devin.clarke1", "Documents")
+} else if (.Platform$OS.type == "windows") {
+  dropPath = file.path("E:")
+}
+
+# Add on the dropbox file structure to dropPath
+dropPath = file.path(dropPath, "Dropbox (Brain Energy Lab)", "Everything")
+
+# If we're on window set gitPath to being within dropPath in the Devin folder
+if(.Platform$OS.type == "windows") {
+  gitPath = file.path(dropPath, "Devin")
+}
+
+# Add GitHub to the gitPath
+gitPath = file.path(gitPath, "GitHub")
+
+# Here we source our dependent functions, PCACleanCols and get Results
+functionsDir = 
+  file.path(gitPath, "ThesisCode", "Microglia-Analysis", 
+            "MicrogliaMorphologyAnalysis Functions")
+
+# If it's not sourced, source the function for binning a vector and getting 
+# out our info for each animal i.e. diet, sex, age etc.
+find = c("microMorphBoundWeights")
+locations = 
+  c(file.path(functionsDir,"microMorphBoundWeights.R"))
+
+for(index in 1:length(find)) {
+  if(!exists(find[index])) {
+    source(locations[index])
+  }
+}
+
+rm("find", "locations")
+
+inVivoInfoFile = file.path(dropPath, "Devin", "HFD Data", "In Vivo Data", "InVivoMouseInfo.csv")
+inVivoWeightsLog = file.path(dropPath, "Devin", "HFD Data", "In Vivo Data", "InVivoWeightsLog.csv")
+
+boundWeights = microMorphBoundWeights(inVivoInfoFile, inVivoWeightsLog)
+
+# Set the arguments needed for the preprocessing data
+pixelSize = 0.58
+morphologyWD = file.path(dropPath, "Devin", "2P Data Analysis", "Microglial Morphology", "Output")
+
+animalIDs = unique(boundWeights$Animal)[]
+treatmentIDs = as.character(unique(boundWeights$Timepoint))
+treatmentIDs = treatmentIDs[is.na(treatmentIDs)==F]
+LPSGroups = c("D56", "LPS")
+useFrac = T
+otherExclusions = list("Col" = "Diet", "Cond" = "Control")
+method = "p value"
+
+```
+
+```{r}
+
+output = 
+  morphPreProcessing(
+    pixelSize = pixelSize, morphologyWD = morphologyWD, 
+    animalIDs = animalIDs, treatmentIDs = treatmentIDs,
+    useFrac = useFrac)
+
 ```
 
 ## R Markdown
