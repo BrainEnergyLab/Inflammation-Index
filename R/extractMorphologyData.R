@@ -1,22 +1,23 @@
 read_in_file = function(locations, seperators, fileEncoding) {
-# Takes the location of a file, what seperators are in the file, and what encoding
-# If it's a FracLac file, we read it in as lines, else using fread
-# Return the read in data.table
-
-	if(grepl("Scan", locations)) {
-		gotGaps = strsplit(readLines(file(locations, encoding = 'UTF-8')), "\t")
-		closeAllConnections()
-		asMatrix = do.call(rbind, gotGaps)
-		temp = as.data.frame(asMatrix[-1,])
-		names(temp) = asMatrix[1,]
-		temp = as.data.table(temp)
-	} else {
-		temp = fread(locations, sep = seperators, na.string = 'NaN', encoding = fileEncoding, header = T)
-	}
-
-	temp[, Location := locations]
-
-	return(temp)
+  # Takes the location of a file, what seperators are in the file, and what encoding
+  # If it's a FracLac file, we read it in as lines, else using fread
+  # Return the read in data.table
+  
+  if(grepl("Scan", locations)) {
+    con = file(locations, encoding = 'UTF-8')
+    gotGaps = strsplit(readLines(con), "\t")
+    asMatrix = do.call(rbind, gotGaps)
+    temp = as.data.frame(asMatrix[-1,])
+    names(temp) = asMatrix[1,]
+    temp = as.data.table(temp)
+    close(con)
+  } else {
+    temp = fread(locations, sep = seperators, na.string = 'NaN', encoding = fileEncoding, header = T)
+  }
+  
+  temp[, Location := locations]
+  
+  return(temp)
 }
 
 get_file_locations = function(morphologyWD, useFrac) {
