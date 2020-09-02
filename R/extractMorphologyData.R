@@ -74,6 +74,26 @@ return(storageList)
 
 }
 
+filter_nonfrac_locations = function(passList, filterBy) {
+  
+  checkAgainst = paste(toupper(gsub(" ", "", filterBy, fixed = T)), collapse = "|")
+  for(currType in names(passList)) {
+    
+    clean_locs = sapply(passList[[currType]]$Locations, function(x, checkAgainst) {
+      checkLoc = toupper(gsub(" ", "", x, fixed = T))
+      if(regexpr(checkAgainst, checkLoc, perl = T)>-1) {
+        return(x)
+      } else {
+        return(NULL)
+      }
+    }, checkAgainst)
+    
+    clean_locs[sapply(clean_locs, is.null)] <- NULL
+    passList[[currType]]$Locations = unlist(clean_locs)
+    
+  }
+  return(passList)
+}
 
 read_in_raw_data = function(storageList, TCSExclude) {
 # Runs the read_in_file function for every location passed in from storageList and removes any locations
@@ -449,6 +469,10 @@ morphPreProcessing <- function(pixelSize,
 
 	# Format our locations, seperators, encoding info to pass into our data reading function
 	passList = get_file_locations(morphologyWD, useFrac)
+	
+	noanimals = filter_nonfrac_locations(passList[1:2], animalsIDs)
+	onlytreatments = filter_nonfrac_locations(noanimals, treatmentIDs)
+	
 	# Read in our raw csv files
 	comboList = read_in_raw_data(passList, TCSExclude)
 	# Alter storageList with info we need to add on (called mapstuff in the function)
