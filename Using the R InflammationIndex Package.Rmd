@@ -16,7 +16,7 @@ require(InflammationIndex)
 
 ```
 
-Now users should run the morphPreProcessing() function on the positive control data. Here they should specify the pixel size in microns (assuming a square pixel), and the morphologyWD argument should be a string that is a path to the output folder of the working directory of the ImageJ script. AnimalIDs should be a string vector of the names of the Animal folders in the image storage structure, and likewise for the TreatmentIDs argument. These treatment IDs should be the two positive control conditions (e.g. pre- and post-LPS) This function puts together all the output of the Fiji script analysis into a single data table where each row is a cell and each column is a morphological measure.
+After users have run the MicroMorph.ijm script on their positive control data, they should run the morphPreProcessing() function on this data. Here they should specify the pixel size in microns (assuming a square pixel), and the morphologyWD argument should be a string that is a path to the output folder of the working directory of the ImageJ script. AnimalIDs should be a string vector of the names of the Animal folders in the image storage structure, and likewise for the TreatmentIDs argument. These treatment IDs should be the two positive control conditions (e.g. pre- and post-LPS) This function puts together all the output of the Fiji script analysis into a single data table where each row is a cell and each column is a morphological measure.
 
 ```{r, eval = F}
 pixelSize = 0.58 # Pixel size in microns
@@ -109,13 +109,15 @@ output =
 
 ```
 
+The output produced by the morphPreProcessing function has a row for each cell, and each column represents a single morphological metric for that cell.
+
 ```{r}
 
 head(output)
 
 ```
 
-Following this, users should run the constructInfInd() function, where inDat is set to the output of the morphPreProcessing() function, LPSGroups is a string vector (length of 2) of the TreatmentIDs that identify the positive control and control groups for the experiment (same as the treatmentIDs just fed into morphPreProcessing), method is the method used to identify the mask sizes that are best at discrminating inflammation from control groups (can use the smallest p value of comparisons, or the area under the curve of a receiver-operating characteristic (ROC) analysis). This function loops through each mask size value present, and first uses an ROC analysis to rank the morphological measures that are best at discriminating between inflammed/non-inflammed cells. Then, the function builds a composite index composed of the best discriminators at each mask size, and using the method specified to pick which mask size, and number of features included in the composite, provides the best discrimination of inflammed/non inflammed cells. This building of a composite measure is based on work by Heindl et al. (2018): https://doi.org/10.3389/fncel.2018.00106.
+Following this, users should run the constructInfInd() function, where the inDat argument is set to the output of the morphPreProcessing() function, LPSGroups is a string vector (length of 2) of the TreatmentIDs that identify the positive control and control groups for the experiment (same as the treatmentIDs just fed into morphPreProcessing). Method is the method used to identify the mask sizes that are best at discrminating the positive control groups (can use the smallest p value of comparisons, or the area under the curve of a receiver-operating characteristic (ROC) analysis). The function loops through each mask size value present, and first uses an ROC analysis to rank the morphological measures that are best at discriminating between inflammed/non-inflammed cells. Then, the function builds a composite index composed of the best discriminators at each mask size, and using the method specified to pick which mask size, and number of features included in the composite, provides the best discrimination between the positive control conditions. This building of a composite measure is based on work by Heindl et al. (2018): https://doi.org/10.3389/fncel.2018.00106.
 
 ```{r, eval = F}
 inDat = output # The output of the morphPreProcessing() function
@@ -142,5 +144,48 @@ infIndOut =
                   LPSGroups = LPSGroups,
                   method = method,
                   noDesc = 1:15)
+
+```
+
+When run, the constructInfInd function prints to the console the mask size best at discrminating inflammation. This mask size should be noted. The object returns is a PCA object, that can be applied to novel data using the apply_inf_ind() function.
+
+## Step 2: Running MicroMorph.ijm on Experimental Data
+
+Using the mask size printed by the constructInfInd, users should run the MicroMorph.ijm script on the dataset they want to apply the constructed Inflammation Index to. In the 'Generate masks for cells' step users can accomplish this by setting the upper and lower limits of the mask sizes to the optimal mask size.
+
+## Step 3: Running InflammationIndex on Experimental Data
+
+Once the MicroMorph.ijm output has been generated for the experimental data, users must run the morphPreProcessing function on this data
+
+```{r, include= F}
+treatmentIDs = as.character(unique(boundWeights$Timepoint))
+treatmentIDs = treatmentIDs[is.na(treatmentIDs)==F]
+non_positive_treatments = treatmentIDs[!(treatmentIDs %in% c('D56', 'LPS'))]
+
+```
+
+```{r, eval = F}
+
+non_positive_treatments = c('EXP_CONDITION_1', 'EXP_CONDITION_2')
+
+```
+
+```{r}
+
+# Run the morphPreProcessing() function this time on experimental data - as specified in the treatmentIDs argument in this case
+output_exp_data = 
+  morphPreProcessing(
+    pixelSize = pixelSize, morphologyWD = morphologyWD, 
+    animalIDs = animalIDs, treatmentIDs = non_positive_treatments,
+    useFrac = useFrac)
+
+```
+
+Following this, users use the apply_inf_ind() function to apply to inflammation index generated earlier. This outputs a data table that is the same as the output_exp_data data table but with an extra column added that is the inflammation index calculated for each cell. This inflammation index metric can then be used to analyse whether the experimental conditions have an effect on microglial morphology.
+
+```{r}
+
+data_with_inf_index = apply_inf_ind(infIndOut, output_exp_data)
+head(data_with_inf_index)
 
 ```
