@@ -387,11 +387,11 @@ forComp = unique(rbindlist(tableOut)[, list(Vals, TCS, `p-value`, AUC)])
 
 # Print thee TCS, no. discriminators that had the best discrmination between psotive control condtions
 if(method == "p value") {
-	print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
-	print(paste("Best No. Discriminators", forComp[which.min(forComp$`p-value`), Vals]))
-	print(paste("p value", min(forComp$`p-value`)))
-	toUse = PCAOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
-	TCSToUse = forComp[which.min(forComp$`p-value`), TCS]
+  	print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
+  	print(paste("Best No. Discriminators", forComp[which.min(forComp$`p-value`), Vals]))
+  	print(paste("p value", min(forComp$`p-value`)))
+  	toUse = PCAOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
+  	TCSToUse = forComp[which.min(forComp$`p-value`), TCS]
 	} else if (method == "AUC") {
 		print(paste("Best TCS", forComp[which.max(forComp$AUC), TCS]))
 		print(paste("Best No. Discriminators", forComp[which.max(forComp$AUC), Vals]))
@@ -405,11 +405,17 @@ dataToReturn = inDat[TCS == TCSToUse]
 dataToReturn[, InfInd := predict(toUse, newdata = dataToReturn)[,1]]
 
 # Return the input data with the final index applied, as well as the PCA this is based on
-	return(list("PCA Object" = toUse,
-	"Data" = dataToReturn))
+	return(toUse)
 
 }
 
+apply_inf_ind = function(infIndOutput, applyTo) {
+  
+  for_output = copy(applyTo)
+  for_output[, InfInd := predict(infIndOutput, newdata = for_output)[,1]]
+  return(for_output)
+  
+}
 
 # Functino wraps the preprocessing and constructInfInd functions in one
 infInd <- 
