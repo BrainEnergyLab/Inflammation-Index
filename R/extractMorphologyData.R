@@ -470,7 +470,7 @@ morphPreProcessing <- function(pixelSize,
 	passList = get_file_locations(morphologyWD, useFrac)
 	
 	# Remove any animals or treatments from our non-fraclac data that isn't in our animalIDs or treatmentIDs input vectors
-	for(currType in names(passList)[1:2]){
+	for(currType in c('Cell Parameters', 'Sholl Parameters')){
 	  passList[[currType]]$Locations = filter_for_vector(passList[[currType]]$Locations, paste(animalIDs, collapse = '|'))
 	  passList[[currType]]$Locations = filter_for_vector(passList[[currType]]$Locations, paste(treatmentIDs, collapse = '|'))
 	}
