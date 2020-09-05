@@ -73,26 +73,21 @@ get_file_locations = function(morphologyWD, useFrac) {
 return(storageList)
 
 }
-
-filter_nonfrac_locations = function(passList, filterBy) {
   
-  checkAgainst = paste(toupper(gsub(" ", "", filterBy, fixed = T)), collapse = "|")
-  for(currType in names(passList)) {
-    
-    clean_locs = sapply(passList[[currType]]$Locations, function(x, checkAgainst) {
-      checkLoc = toupper(gsub(" ", "", x, fixed = T))
-      if(regexpr(checkAgainst, checkLoc, perl = T)>-1) {
-        return(x)
-      } else {
-        return(NULL)
-      }
-    }, checkAgainst)
-    
-    clean_locs[sapply(clean_locs, is.null)] <- NULL
-    passList[[currType]]$Locations = unlist(clean_locs)
-    
+filter_for_vector = function(filter_it, filter_by) {
+  clean_vec = list()
+  for(currLoc in filter_it) {
+    checkLoc = toupper(gsub(" ", "", currLoc, fixed = T))
+    if(regexpr(filter_by, checkLoc, perl = T)>-1) {
+      clean_vec[[currLoc]] = currLoc
+    } else {
+      clean_vec[[currLoc]] = NULL
+    }
   }
-  return(passList)
+  
+  clean_vec[sapply(clean_vec, is.null)] <- NULL
+  return(unlist(clean_vec))
+  
 }
 
 read_in_raw_data = function(storageList, TCSExclude) {
@@ -273,6 +268,8 @@ format_unique_id = function(storageList, treatmentIDs, animalIDs) {
 			as.vector(unlist(sapply(storageList[[currType]]$Files$Location, function(loc, animalIDs) {
 				names(which.max(sapply(animalIDs[str_detect(toupper(loc), fixed(animalIDs))], nchar)))
 			}, animalIDs)))
+		
+		storageList[[currType]]$Files = storageList[[currType]]$Files[is.na(Animal) == F]
 
 		storageList[[currType]]$Files$CellName = 
 			toupper(gsub(" ", "", storageList[[currType]]$Files$CellName))
@@ -281,6 +278,8 @@ format_unique_id = function(storageList, treatmentIDs, animalIDs) {
 		for(currTreat in 1:length(treatmentIDs)) {
 			storageList[[currType]]$Files[regexpr(checkAgainst[currTreat], Location, perl = T)>-1, Treatment := treatmentIDs[currTreat]] 
 		}
+		
+		storageList[[currType]]$Files = storageList[[currType]]$Files[is.na(Treatment) == F]
 
 		storageList[[currType]]$Files[, UniqueID := toupper(paste(Animal, Treatment, CellName, TCS, sep = ""))]
 	}
@@ -470,8 +469,11 @@ morphPreProcessing <- function(pixelSize,
 	# Format our locations, seperators, encoding info to pass into our data reading function
 	passList = get_file_locations(morphologyWD, useFrac)
 	
-	noanimals = filter_nonfrac_locations(passList[1:2], animalsIDs)
-	onlytreatments = filter_nonfrac_locations(noanimals, treatmentIDs)
+	# Remove any animals or treatments from our non-fraclac data that isn't in our animalIDs or treatmentIDs input vectors
+	for(currType in names(passList)[1:2]){
+	  passList[[currType]]$Locations = filter_for_vector(passList[[currType]]$Locations, paste(animalIDs, collapse = '|'))
+	  passList[[currType]]$Locations = filter_for_vector(passList[[currType]]$Locations, paste(treatmentIDs, collapse = '|'))
+	}
 	
 	# Read in our raw csv files
 	comboList = read_in_raw_data(passList, TCSExclude)
