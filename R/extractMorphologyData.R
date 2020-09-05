@@ -496,7 +496,7 @@ morphPreProcessing <- function(pixelSize,
 	cleanList$`Cell Parameters`$Files = cleanList$`Cell Parameters`$Files[Analysed == 1,]
 
 	# Add in a unique ID for each cell and mask size to all our elements
-	with_id = format_unique_id(cleanList, treatmentIDs, animalIDs)
+	with_id = format_unique_id(copy(cleanList), treatmentIDs, animalIDs)
 
 	# Retain only data where we have cells for all data types
 	common_data = retain_common_cells(with_id)
