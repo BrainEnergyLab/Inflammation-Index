@@ -330,8 +330,7 @@ function fillArray(inputArray, resultsTableRefs, resultsTableColumns,
 				Table.reset(tabName);
 				run("Clear Results");
 			}
-			//Table.reset(File.getName(resultsTableRefs[i]))
-;
+			//Table.reset(File.getName(resultsTableRefs[i]));
 		}
 
 	//If we're not getting multiple columns
