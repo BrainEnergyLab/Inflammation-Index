@@ -1,16 +1,26 @@
 # Inflammation-Index
-This is the repo for the code used to construct the Inflammation Index, developed by Devin Clarke in Catherine Hall's lab.
+In this repo you'll find all the code necessary to process 3D image stacks of microglia, extract morphological features for detected cells, and combine these features into a single metric of morphological train sensitive to the training data you provide. This is detailed in other READMEs in this repo, and also in the associated publication.
 
-## Creating and Using an Inflammation Index
+## Documentation
 
-Markdown document describing the pipeline that should be used in combination with this repo to create and use the inflammation index.
+### Using the Microglia Morphology Analysis ImageJ Plugin.md
 
-## R Folder
+This file describes how to use the ImageJ script for image processing, cell detection, and morphological feature extraction.
+
+### Using-the-R-InflammationIndex-Package.md
+
+This file describes how to use the Inflammation-Index R package to read in data extracted by the Microglia Morphology Analysis plugin, and use to generate and apply an 'Inflammation Index'
+
+## Other Folder Contents
+
+### Microglia Morphology Analysis Plugin - ImageJ
+
+Contains the code for the Microglia Morphology Analysis plugin. Currently (as of 03.12.20) this contains a single script file that users have to read in and run. The next iteration will provide this as a .jar file that users can use to add a plugin to their ImageJ installation, and access functionality through items in the plugin menu.
+
+### Microglia Morphology Analysis Plugin - ImageJ Example Directory and Input Data
+
+This folder contains example data that users can run the Microglia Morphology Analysis plugin on in order to test it.
+
+### R Folder
 
 Contains the functions that are part of the InflammationIndex R package
-
-## man Folder
-
-Contains the help files for the functions in the InflammationIndex R package
-
-**Note: Add example data, as well as the exact inputs used and an example R script, to show how to use the repo practically**
