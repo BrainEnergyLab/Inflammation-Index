@@ -1,10 +1,13 @@
-This repo contains all the code necessary to generate an inflammation index - i.e. a single measure that is sensitive to the morphological effects of inflammation on microglial morphology. This code was written to be applied to in vivo images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D microglia image stacks. The inflammation index is a composite measure based on multiple individual morphological measures, and serves as a way to reduce the dimensionality of a morphological dataset and provide a single measure of morphological change.
+Microglia Morphology Analysis ImageJ Plugin
+================
 
-Running the scripts and package in this repo requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), and the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm), and RStudio with the devtools package.
+This code was written to be applied to in vivo images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D microglia image stacks.
 
-To construct this index, images from a positive control dataset of inflammation must be present. In brief, the morphological measures of microglia that are best at discriminating between this positive control condition, and a control condition, are combined into a composite measure and this is what forms the inflammation index. The weightings of these measures can then be applied to other data to generate a measure of inflammatory morphological changes.
+Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), and the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm).
 
-# Step 1: Raw Image Storage Folder Structure
+Users wishing to try out the plugin on example data can use the data stored in https://github.com/BrainEnergyLab/Inflammation-Index/tree/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ%20Example%20Directory%20and%20Input%20Data
+
+## Step 1: Raw Image Storage Folder Structure
 
 To begin with, single channel 3D image stacks of microglia should be stored in a folder structure as follows:
 
@@ -12,16 +15,14 @@ Parent Directory -> Animal Name -> Treatment Name -> Image File
 
 A text file saved with the .ini extension containing the calibration values for the imaging stacks should be saved in the parent directory. It should contain the strings: "x.pixel.sz = ", "y.pixel.sz = ", "z.spacing = ", "no.of.planes = ", "frames.per.plane = " followed by numeric values. X and Y pixel size refer to the X and Y pixel sizes in microns. Z spacing refers to the size of voxels in Z in microns. No. of.planes refers to the number of unique Z planes in the image stack, and frames.per.plane refers to how many frames were collected at each Z plane. A stack of 606 frames in total, with 101 unique Z planes, would have 6 frames per plan. For 3D stacks acquired in awake animals, movement can disrupt image acquisition. As such, taking multiple frames at a single Z plane allows the motion-contaminated frames to be removed and a clearer final 3D stack to be generated
 
-The following pipeline, **Step 2**, should first be run exclusively on the inflammatory positive control dataset. This can be done by searching for specific strings in image or image folder names in the motion processing section. 
-
-# Step 2: Running MicrogliaMorphologyAnalysis.ijm in Fiji on Positive Control Inflammation Dataset
+## Step 2: Running MicrogliaMorphologyAnalysis.ijm in ImageJ
 
 First, create a directory for the Fiji script to work within. This can be just a single empty folder, and this will be populated by the script.
 
 Open the MicrogliaMorphologyAnalysis.ijm file in Fiji, and click the run button in the script editor. To run all options, tick them all (they are ordered in the order in which they are required) or you can do this option by option. The program will open a dialog box first for you to identify the working directory folder (i.e. the directory you created for Fiji to work within), then the parent directory for image storage. 
 
-## "Preprocess morphology stacks and save them"
-## Motion Processing, Registration, and Z Correction
+### "Preprocess morphology stacks and save them"
+### Motion Processing, Registration, and Z Correction
 
 When selecting this first option, the user will be asked for a number of inputs.
 
@@ -47,18 +48,18 @@ Once registered and motion corrected, the final image stack is reordered in Z ac
 
 Once run, this section of the script saves processed image stacks in the working directory in the Output folder, in folders labelled with the animal name and treatment the image was sourced from.
 
-## "QC Motion Processing"
-## Quality Controlling The Processing Output
+### "QC Motion Processing"
+### Quality Controlling The Processing Output
 
 Once processing has been done, users should select this option to quality control the output images. Here users are asked how many images to show on the screen at once as the script loops through all processed images. The user then closes images they wish to ignore for the next steps in the analysis. If these ignored images were generated automatically (i.e. "Manually select frames" was not ticked) they are flagged for manual selection the next time the processing step is run. If they were manually selected, they are ignored for all future steps.
 
-## "Mark cell positions"
-## Identifying Cell Body Locations
+### "Mark cell positions"
+### Identifying Cell Body Locations
 
 Here the approved processed stacks are split into 10um thick substacks, with at least 20um between substacks and substacks beginning at least 10um from the start of the stack and ending at least 10um from its end. These substacks are averaged into 2D images which are then what all future steps are carried out on. In this section the script automatically detects cell body locations on these 2D projections. The user can then approve or discard the automatic cell location detection. If approved, the user can then add more point selections to identify cells that may have been missed. If discarded, the user indicates if they discarded the locations because of poor image registration, or poor cell body detection. If poor registration, the image is flagged for manual frame selection the next time the processing step is run. If it has already been manually selected, the image is discarded from further sections. If poor detection, the user can manually select the location of cell bodies.
 
-## "Generate masks for cells"
-## Automatically Generate Cell Masks
+### "Generate masks for cells"
+### Automatically Generate Cell Masks
 
 In this section the script automatically generates cell masks for each marked cell body using the methodology outlined in  Kozlowski and Weimar (2012): https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0031814. Briefly, a 120 x 120um square is drawn around each cell, and an initial threshold for the image is calculated using Otsu's method. The area of all pixels that are connected to the cell body that pass this threshold is measured, and if this area falls within a user defined mask size +/- range, these pixels are saved as the mask of the cell. If the area does not fall in the area, the threshold is adjusted iteratively until the area falls in the range. If the area stabilises for 3 consecutive iterations but is outside of the range, the mask is retained. If the area is within the range but also within 5 microns of the edges of the 120 x 120um local region, the mask is discarded.
 
@@ -74,44 +75,18 @@ Here the user indicates the starting (lower limit) and end (upper limit) mask si
 The formula for iteratively changing the threshold is as follows:
 Next Threshold = Current Threshold + Current Threshold * ((Current Area - Mask Size) / (Number of Iterations * Mask Size))
 
-## "Quality control masks"
-## Approve Generated Cell Masks
+### "Quality control masks"
+### Approve Generated Cell Masks
 
 Here users are presented with each automatically generated cell mask, as well as an automatically generated outline of the soma for each cell. Users can reject the cell mask (if it encompasses two cells for example, or is located on a cell that is not in focus) or approve it. If approved, they can do the same for the soma mask, and if the soma mask is rejected, they must draw an appropriate outline of the soma manually. Users can also select the option to "Manually trace processes" where for each mask they can trace around processes that the automatic mask generation missed.
 
 This process starts with the highest mask size trialled. If a mask has been approved at a higher mask size than is currently being checked, it will automatically be approved. In this way the number of masks a user has to approve is reduced. Soma masks only have to be approved / drawn for a single mask size as they stay consistent between mask sizes.
 
-## "Analyse masks"
-## Extract Morphological Descriptors
+### "Analyse masks"
+### Extract Morphological Descriptors
 
 Approved cell and soma masks are then analysed across a number of morphological descriptors, and the results of these analyses are saved in the appropriate output folder for each animal / treatment combination. These results then form the input for the functions in the InflammationIndex R package. The generation of results from the FracLac plugin in Fiji requires that users manually run the plugin on the "fracLac" folder in the output folder of the working directory that is created and populated once this analysis step has been run on all generated masks.
 
-### FracLac Settings and Directions
+#### FracLac Settings and Directions
 
 Users should select the FracLac plugin within the Plugins -> Fractal Analysis menu in Fiji. They should then select the "BC" button, and tick the Save -> Results box. Tick the Hull and Circle -> Metrics box Select ok. Now click on Batch, and select the fracLac folder in the working directory -> output folder as this is where results will be saved. When asked about using the ROI manager, select cancel. Then in the next dialog box, i.e. "select files to analyse", highlight all the files in the fracLac folder. Once more the user must select the fracLac folder in a dialog box. Then tick "disable time checks" and continue. The plugin will now run on the files in the fracLac folder, and save its output in this folder as well. This output will be processed with the R InflammationIndex package.  
-
-# Step 3: InflammationIndex R Package Running on Positive Control Inflammation Data
-
-In RStudio the InflammationIndex package can be installed first by installing and loading devtools -
-install.packages("devtools")
-require(devtools)
-
-Then by installing and loading the InflammationIndex package -
-install_github("DKClarke/Inflammation-Index")
-require(InflammationIndex)
-
-Now users should run the morphPreProcessing() function. Here they should specify the pixel size in microns (assuming a square pixel), and the morphologyWD argument should be a string that is a path to the output folder of the working directory of the Fiji script. AnimalIDs should be a string vector of the names of the Animal folders in the image storage structure, and likewise for the TreatmentIDs argument. This function puts together all the output of the Fiji script analysis into a single data table where each row is a cell and each column is a morphological measure.
-
-Following this, users should run the constructInfInd() function, where inDat is set to the output of the morphPreProcessing() function, LPSGroups is a string vector (length of 2) of the TreatmentIDs that identify the positive control and control groups for the inflammation experiment, method is the method used to identify the mask sizes that are best at discrminating inflammation from control groups (can use the smallest p value of comparisons, or the area under the curve of a receiver-operating characteristic (ROC) analysis). This function loops through each mask size value present, and first uses an ROC analysis to rank the morphological measures that are best at discriminating between inflammed/non-inflammed cells. Then, the function builds a composite index composed of between 1 to 15 of the best discriminators at each mask size, and using the method specified to pick which mask size, and number of features included in the composite, provides the best discrimination of inflammed/non inflammed cells. This building of a composite measure is based on work by Heindl et al. (2018): https://doi.org/10.3389/fncel.2018.00106.
-
-When run, the constructInfInd function prints to the console the mask size best at discrminating inflammation. This mask size should be noted.
-
-# Step 4: Running MicrogliaMorphologyAnalysis.ijm in Fiji on Remaining Data
-
-As in step 2, the script in Fiji should now be run on all imaging data in the image storage folder by using a string that includes all treatments. When specifying the range of mask sizes to use on the rest of the data, set both the upper and lower values to the mask size value printed to the R console at the end of step 3 so that only a single mask size will be used to construct cell masks.
-
-# Step 5: InflammationIndex R Package Running on All Data
-
-Once the entire Fiji script has been run, users can now use the infInd() function (which wraps both morphPreProcessing() and constructInfInd() function into one) on the output folder. This function will compile all data from the Fiji script (the TCSExclude argument can be used to avoid compiling all mask sizes except the ones of interest if desired), before applying the weights derived from the positive control experiment (in step 3) to all other data to generate a final inflammation index. This function will return a list containing the compiled data with the final column as the inflammation index (with any data from non-optimal mask sizes removed) and a PCA object containing the PCA run on the positive control data to generate the weights for the inflammation index.
-
-This final inflammation index can then be analysed as a single metric of inflammation related morphological changes.

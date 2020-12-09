@@ -1,8 +1,6 @@
 Inflammation Index R Package
 ================
 
-# Inflammation Index Package in R
-
 ## Step 1: Creating an Inflammation Index Based on Positive Control Conditions
 
 In RStudio the InflammationIndex package can be installed first by
