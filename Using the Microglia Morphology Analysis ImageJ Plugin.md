@@ -5,7 +5,7 @@ This code was written to be applied to in vivo images of fluorescent microglia o
 
 Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), and the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm).
 
-Users wishing to try out the plugin on example data can use the data stored in https://github.com/BrainEnergyLab/Inflammation-Index/tree/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ%20Example%20Directory%20and%20Input%20Data
+**The script file is being converted into a plugin for ImageJ. In addition, an example image will be available for users to follow through the steps below to see how it works in practice**
 
 ## Step 1: Raw Image Storage Folder Structure
 
