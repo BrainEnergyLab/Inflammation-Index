@@ -1,6 +1,8 @@
 # Inflammation-Index
 In this repo you'll find all the code necessary to process 3D image stacks of microglia, extract morphological features for detected cells, and combine these features into a single metric of morphological train sensitive to the training data you provide. This is detailed in other READMEs in this repo, and also in the associated publication.
 
+**Read the publication here: https://www.biorxiv.org/content/10.1101/2021.01.12.426422v1**
+
 **Current work is focusing on converting the Microglia Morphology Analysis Plugin for ImageJ from a script file into a .jar file that will introduce menu options into ImageJ to improve its useability**
 
 ## Documentation
