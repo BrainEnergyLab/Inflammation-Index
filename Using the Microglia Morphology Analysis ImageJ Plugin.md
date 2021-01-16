@@ -3,7 +3,7 @@ Microglia Morphology Analysis ImageJ Plugin
 
 This code was written to be applied to in vivo images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D microglia image stacks.
 
-Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), and the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm).
+Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm), and the Sholl Analysis plugin (https://github.com/morphonets/SNT).
 
 **The script file is being converted into a plugin for ImageJ. In addition, an example image will be available for users to follow through the steps below to see how it works in practice**
 
