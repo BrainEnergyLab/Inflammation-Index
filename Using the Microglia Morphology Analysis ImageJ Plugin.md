@@ -10,6 +10,8 @@ Running the Microglia Morphology Analysis ImageJ script / plugin requires the in
 Example directory and image here:
 https://drive.google.com/drive/folders/1e3qkTAhBBKOFFnTt9iWhM7Jtzr2GXH6o?usp=sharing
 
+## In its current format the script is outdated given updates to dependent functions, the plugin version of the pipeline will address this, you can follow progress on the plugin at https://github.com/BrainEnergyLab/Inflammation-Index/projects/1 and observe development of the plugin at https://github.com/DAZN-DKClarke/ImageJMicroMorphJarTest
+
 ## Step 1: Raw Image Storage Folder Structure
 
 To begin with, single channel 3D image stacks of microglia should be stored in a folder structure as follows:
