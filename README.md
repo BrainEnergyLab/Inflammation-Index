@@ -11,6 +11,8 @@ In this repo you'll find all the code necessary to process 3D image stacks of mi
 
 This file describes how to use the ImageJ script for image processing, cell detection, and morphological feature extraction.
 
+**Since the addition of the ImageJ plugin this file needs to be updated**
+
 ### Using-the-R-InflammationIndex-Package.md
 
 This file describes how to use and install the Inflammation-Index R package to read in data extracted by the Microglia Morphology Analysis plugin, and use it to generate and apply an 'Inflammation Index' to novel data
@@ -19,9 +21,9 @@ This file describes how to use and install the Inflammation-Index R package to r
 
 ### Microglia Morphology Analysis Plugin - ImageJ
 
-Contains the code for the Microglia Morphology Analysis plugin. Currently (as of 20.01.20) this contains a single script file that users have to read in and run. The next iteration will provide this as a .jar file that users can use to add a plugin to their ImageJ installation, and access functionality through items in the plugin menu.
+Contains the .jar and .py files necessary for running the Microglia Morphology Analysis ImageJ script. Drop the .jar file into your Fiji plugins folder, and the .py file into the plugins/scripts folder.
 
-## In its current format the ImageJ script is outdated given updates to dependent functions, the plugin version of the pipeline will address this, you can follow progress on the plugin at https://github.com/BrainEnergyLab/Inflammation-Index/projects/1 and observe development of the plugin at https://github.com/DAZN-DKClarke/ImageJMicroMorphJarTest
+**You can follow progress on changes and updates to the plugin at https://github.com/BrainEnergyLab/Inflammation-Index/projects/1 and observe development of the plugin at https://github.com/DAZN-DKClarke/ImageJMicroMorphJarTest**
 
 ### R Folder
 
