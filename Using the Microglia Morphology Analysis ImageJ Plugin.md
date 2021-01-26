@@ -3,14 +3,12 @@ Microglia Morphology Analysis ImageJ Plugin
 
 This code was written to be applied to in vivo images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D microglia image stacks.
 
-Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm), and the Sholl Analysis plugin (https://github.com/morphonets/SNT).
+Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), TurboReg (http://bigwww.epfl.ch/thevenaz/turboreg/), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm), the Sholl Analysis plugin (https://github.com/morphonets/SNT), and Jython (https://imagej.nih.gov/ij/plugins/jython/; download the .jar file and place it in a 'jars' folder in your Fiji plugins folder if this doesn't already exist).
 
 **The script file is being converted into a plugin for ImageJ. In addition, an example image will be available for users to follow through the steps below to see how it works in practice**
 
 Example directory and image here:
 https://drive.google.com/drive/folders/1e3qkTAhBBKOFFnTt9iWhM7Jtzr2GXH6o?usp=sharing
-
-## In its current format the script is outdated given updates to dependent functions, the plugin version of the pipeline will address this, you can follow progress on the plugin at https://github.com/BrainEnergyLab/Inflammation-Index/projects/1 and observe development of the plugin at https://github.com/DAZN-DKClarke/ImageJMicroMorphJarTest
 
 ## Step 1: Raw Image Storage Folder Structure
 
