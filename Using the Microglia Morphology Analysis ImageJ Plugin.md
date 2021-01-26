@@ -1,11 +1,22 @@
-Microglia Morphology Analysis ImageJ Plugin
-================
+# Microglia Morphology Analysis ImageJ Plugin
 
-This code was written to be applied to in vivo images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D microglia image stacks.
+## Installation and Dependencies
 
-Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of Fiji with the FeatureJ plugin (installed using the ImageScience update site; https://imagej.net/FeatureJ) MultiStackReg plugin (http://bradbusse.net/sciencedownloads.html), TurboReg (http://bigwww.epfl.ch/thevenaz/turboreg/), the FracLac plugin (https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html), the Stack Contrast Adjustment plugin (https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm), the Sholl Analysis plugin (https://github.com/morphonets/SNT), and Jython (https://imagej.nih.gov/ij/plugins/jython/; download the .jar file and place it in a 'jars' folder in your Fiji plugins folder if this doesn't already exist).
+This plugin was written to be applied to *in vivo* images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D image stacks of cells with clearly labelled soma and processes.
 
-**The script file is being converted into a plugin for ImageJ. In addition, an example image will be available for users to follow through the steps below to see how it works in practice**
+Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of:
+- [Fiji](https://imagej.net/Fiji)
+- [FeatureJ](https://imagej.net/FeatureJ) 
+- [MultiStackReg](http://bradbusse.net/sciencedownloads.html)
+- [TurboReg](http://bigwww.epfl.ch/thevenaz/turboreg/) (drop the .jar file included in the distribution into your Fiji plugins folder)
+- [FracLac](https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html)
+- [Stack Contrast Adjustment](https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm)
+- [SNT](https://github.com/morphonets/SNT) (including extra SciView functionality)
+- [Jython](https://imagej.nih.gov/ij/plugins/jython/) (download the .jar file and place it in a '/jars' folder in your Fiji plugins folder if it isn't already present)
+
+To install the Microglia Morphology Analysis plugin, download the [.jar](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/microglia-morphology-analysis-0.1.0.jar) file from this GitHub repo  and drop it into your Fiji plugins folder. In addition, download the [Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py) script and drop it into the 'Scripts' folder in your Fiji plugins folder.
+
+![plugin screenshot](Markdown Assets/microglia_morphology_plugin_plugins_location.png)
 
 Example directory and image here:
 https://drive.google.com/drive/folders/1e3qkTAhBBKOFFnTt9iWhM7Jtzr2GXH6o?usp=sharing
