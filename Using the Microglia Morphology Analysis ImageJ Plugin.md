@@ -1,9 +1,10 @@
 # This README is currently being updated to reflect changes made to the plugin 
 
-
 # Microglia Morphology Analysis ImageJ Plugin
 
 ## Installation and Dependencies
+
+---
 
 This plugin was written to be applied to *in vivo* images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D image stacks of cells with clearly labelled soma and processes.
 
@@ -27,49 +28,108 @@ To install the Microglia Morphology Analysis plugin, download the [.jar](https:/
 
 ![Plugin .py file location](./MarkdownAssets/microglia_morphology_plugin_py_location.png)
 
-Example directory and image here:
-https://drive.google.com/drive/folders/1e3qkTAhBBKOFFnTt9iWhM7Jtzr2GXH6o?usp=sharing
+### Example Data
 
-## Step 1: Raw Image Storage Folder Structure
+You can find a directory containing the same image and folder structure as outlined below and download it yourself to follow along with the instructions [here](https://drive.google.com/drive/folders/1e3qkTAhBBKOFFnTt9iWhM7Jtzr2GXH6o?usp=sharing)
 
-To begin with, single channel 3D image stacks of microglia should be stored in a folder structure as follows:
+## Step 1: Setting Up Folder Structures
 
-Parent Directory -> Animal Name -> Treatment Name -> Image File
+---
 
-A text file saved with the .ini extension containing the calibration values for the imaging stacks should be saved in the parent directory. It should contain the strings: "x.pixel.sz = ", "y.pixel.sz = ", "z.spacing = ", "no.of.planes = ", "frames.per.plane = " followed by numeric values. X and Y pixel size refer to the X and Y pixel sizes in microns. Z spacing refers to the size of voxels in Z in microns. No. of.planes refers to the number of unique Z planes in the image stack, and frames.per.plane refers to how many frames were collected at each Z plane. A stack of 606 frames in total, with 101 unique Z planes, would have 6 frames per plan. For 3D stacks acquired in awake animals, movement can disrupt image acquisition. As such, taking multiple frames at a single Z plane allows the motion-contaminated frames to be removed and a clearer final 3D stack to be generated
+### Raw Image Storage
 
-## Step 2: Running MicrogliaMorphologyAnalysis.ijm in ImageJ
+To begin with, image stacks should be stored in a folder structure as follows:
 
-First, create a directory for the Fiji script to work within. This can be just a single empty folder, and this will be populated by the script.
+**Parent Directory -> Animal Name -> Treatment Name -> Image File**
 
-Open the MicrogliaMorphologyAnalysis.ijm file in Fiji, and click the run button in the script editor. To run all options, tick them all (they are ordered in the order in which they are required) or you can do this option by option. The program will open a dialog box first for you to identify the working directory folder (i.e. the directory you created for Fiji to work within), then the parent directory for image storage. 
+![Example image storage structure](./MarkdownAssets/example_image_storage_directory.png)
 
-### "Preprocess morphology stacks and save them"
-### Motion Processing, Registration, and Z Correction
+In the above image for example:
+- Parent Directory: 'Image Storage Directory'
+- Animal Name: 'CE1L'
+- Treatment Name: 'HFD21'
+- Image File: '20181023...'
+
+In addition a text file containing the calibration information for the images in this parent directory should be saved in the parent directory with the '.ini' file extension. This file should contain the strings:
+- "x.pixel.sz = "
+- "y.pixel.sz = "
+    - X and Y pixel size refer to the X and Y pixel sizes in microns
+- "z.spacing = "
+    - Z spacing refers to the size of voxels in Z in microns
+- "no.of.planes = "
+    - Number of planes refers to the number of unique Z planes in the image stack
+- "frames.per.plane = " 
+    - Frames per plane refers to how many frames were collected at each Z plane
+
+These strings should be followed by their associated numeric values.
+
+For example, a stack of 606 frames in total, with 101 unique Z planes, would have 6 frames per plane.
+
+![Example ini file](./MarkdownAssets/example_ini_file.png)
+
+### Working Folder Structure
+
+In addition you need to have an empty folder where the plugin can save all its outputs. This can be any empty folder. For example, here we will be using the 'Working Directory' folder.
+
+![Example working directory](./MarkdownAssets/example_working_directory.png)
+
+## Step 2: Running Stack Preprocessing
+
+---
+
+The first step in the image processing pipeline is stack preprocessing. This can be accessed in the 'Microglia Morphology Analysis Plugin' menu option within the Fiji 'Plugins' menu.
+
+![Stack preprocessing command location](./MarkdownAssets/StackPreprocessingModule/stack_preprocessing_command_location.png)
+
+You will then be prompted to select the image storage and working directories that you set up in step 1.
+
+![Working directory selection prompt](./MarkdownAssets/working_directory_selection_prompt.png)
+
+![Working directory folder selection](./MarkdownAssets/working_directory_folder_selection.png)
+
+![Image storage directory selection prompt](./MarkdownAssets/image_storage_selection_prompt.png)
+
+![Image storage folder selection](./MarkdownAssets/image_storage_folder_selection.png)
+
+### User Inputs
 
 When selecting this first option, the user will be asked for a number of inputs.
 
-- How many frames per Z plane to average over for the final Z plane image?
+- How many of the 'best' frames per Z plane do you want to include in the final Z plane image?
 
-This is an integer value with the default set to 1. This value determines how many of the least motion-contaminated/blurry images the script will average over to create a final single image for each Z plane. If 1, rather than averaging frames, the least contamined frame is smoothed using a median filter. This value cannot be 0, and cannot more than the number of frames per Z plane.
+This is an integer value with the default set to 1. This value determines how many of the least motion-contaminated frames the script will average over to create a final single frame for each Z plane. If 1, rather than averaging frames, the least contamined frame is smoothed using a median filter. This value cannot be 0, and cannot more than the number of frames per Z plane.
 
-- How many frames do you want to include in the average projection of least blurry frames?
+- How many frames do you want to include in the average projection of least blurry frames per Z plane?
 
-Part of the process in determining the degree of motion-contamination affecting each image requires the use of a blur detector to select the least blurred images. This involves the use of a laplacian of gaussian filter where the maximum pixel value is then used as an indicator of "blurriness" where higher values indicate images are less blurred (https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/; https://stackoverflow.com/questions/7765810/is-there-a-way-to-detect-if-an-image-is-blurry). Then the number of least blurred frames indicated by the user (the input to this option) are averaged. This average is then compared to the raw frames and by a simple process of pixel subtraction, the difference between the average projection and each frame is calculated. The number of frames that are least different from the avaerage projection indicated by the user (the input to the first option) are then retained.
+In order to identify the least motion-contaminated frames described above, the plugin first uses a blur detector to choose the least blurry frames to average over to create a reference frame. All the frames for that Z plane are then compared to this reference frame and the frames that are least different to this reference frame are identified as the least motion-contaminated.
 
-This input requires an integer value and defaults to 3. Setting this to half the number of frames per Z plane is a good rule of thumb. This value cannot be 0, and cannot more than the number of frames per Z plane.
+This user input chooses the number of least blurry frames to use to create the reference frame. This input requires an integer value and defaults to 3. Setting this to half the number of frames per Z plane is a good rule of thumb. This value cannot be 0, and cannot more than the number of frames per Z plane.
 
-- Manually select frames?
+- If you have already run the 'Stack QA' module, do you want to manually select frames to keep from images that failed automated selection QA in this run?
 
-This is a tickbox where users can indicate if rather than using the automated method of detecting and retaining the least motion-contaminated / blurry frames, they would prefer to select the frames to use themselves. If selected, the script cycles through each image and each Z plane in that image,  before presenting all the frames in that Z plane, and the user must select the frames to retain. They must select the same number of frames as indicated in the first input (How many frames per Z plane to average over for the final Z plane image?) though the input to the second option (How many frames do you want to include in the average projection of least blurry frames?) is ignored if this is ticked.
+For image stacks that have already been processed and QA'd (the subsequent step in the pipeline) and failed QA, if checked the plugin will present these stacks to the user so they can manually select the least motion-contaminated frames to retain for each Z plane. These will then be recompiled into a final Z stack and this will be available for QA in the stack QA step.
 
-- String to search for
+- What string should we search for in the Image Storage directory to find stacks to process?
 
-This is a string value that indicates which string identifier to use to identify images to process. This can be useful if the microglia images are stored with other images, or if the user wants to limit processing to a single animal / treatment. It cannot be empty and defaults to "Morphology". For the first use of this script, enter a string that identifies images from the positive control inflammation dataset.
+This is a string value that indicates which string identifier to use to identify images to process. This can be useful if you only want to process a subset of the images in your Image Storage directory and this subset can be identified by a unique string. It cannot be empty and defaults to "Morphology".
 
-Once registered and motion corrected, the final image stack is reordered in Z according to the similarity between Z planes. This reordering in Z is done according to image similarity using the Z Spacing Correction plugin, and is done because motion during image acquisition can cause the apparent Z positon of an image to be different to its actual Z position.
+![Stack preprocessing user inputs](./MarkdownAssets/StackPreprocessingModule/stack_preprocessing_user_inputs.png)
 
-Once run, this section of the script saves processed image stacks in the working directory in the Output folder, in folders labelled with the animal name and treatment the image was sourced from.
+### Outputs
+
+For each image processed, a new folder with a name created by concatenating the Animal name, Treatment name, and 'string to search for', is created in the 'Output' folder in the working directory. This folder contains the processed stack for that image.
+
+In addition, a copy of the raw image is saved in the 'Done' folder in the working directory.
+
+![Stack preprocessing outputs](./MarkdownAssets/StackPreprocessingModule/stack_preprocessing_outputs.png)
+
+Finally, an 'Images to Use' csv file is saved in the 'Output' folder. This file has a row for each image processed, an indicates if the image has been automatically processed, if this automatically processed version passed QA (in the next step), if the image has been manually processed, and if this manually processed version passed QA (in the next step). In this file values of 1 represent 'Yes', values of 0 represent 'No', and a value of -1 means 'null' i.e. for the QA values, -1 means we haven't run a QA step for the image.
+
+![Stack preprocessing images_to_use.csv auto](./MarkdownAssets/StackPreprocessingModule/stack_preprocessing_images_to_use_1.png)
+
+## Step 3: Running Stack QA
+
+---
 
 ### "QC Motion Processing"
 ### Quality Controlling The Processing Output
