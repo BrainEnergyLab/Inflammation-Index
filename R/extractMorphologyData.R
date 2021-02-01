@@ -96,7 +96,8 @@ get_file_locations = function(morphologyWD, useFrac) {
 return(storageList)
 
 }
-  
+
+
 filter_for_vector = function(filter_it, filter_by) {
   clean_vec = list()
   for(currLoc in filter_it) {
@@ -567,6 +568,9 @@ morphPreProcessing <- function(pixelSize,
 	# missing, this is either cell identifiers, or values for the TCS. These are
 	# calculated using the file locations or IDs of the rows
 	mapList = add_missing_info(comboList, useFrac)
+
+	##### Here we need to filter our FracLac and hull and circularity data for animals or treatments that
+	##### are in our ID input vectors
 
 	# Remove columns we no longer need
 	cleanList = remove_unused_metrics(mapList, useFrac)
