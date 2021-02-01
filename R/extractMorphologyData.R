@@ -59,14 +59,14 @@ get_file_locations = function(morphologyWD, useFrac) {
 		list("Sep" = ",",
 			"fileEncoding" = "unknown",
 			"forInfo" = "Location",
-			"Locations" = dir(path = morphologyWD, pattern = "Cell Parameters.csv", full.names = T,
+			"Locations" = dir(path = morphologyWD, pattern = "Cell Parameters", full.names = T,
 				recursive = T, ignore.case = T)),
 		"Sholl Parameters" = 
 		list("Sep" = ",",
 			"fileEncoding" = "Latin-1",
 			"forInfo" = "Location",
 			"Locations" = dir(path = morphologyWD, 
-				pattern = 'Substack \\(\\d+-\\d+\\) x \\d* y \\d* \\.csv$', 
+				pattern = 'Sholl Candidate mask', 
 				full.names = T, recursive = T, ignore.case = T)))
 
 	if(useFrac == T) {
@@ -145,18 +145,6 @@ read_in_raw_data = function(storageList, TCSExclude) {
 
 }
 
-fill_to_add = function(storageListElement) {
-# Returns a list of things we need to add to the hull and circularity and fraclac files
-
-	return(list("TCS" = 
-		with(storageListElement$Files,
-			substring(unlist(Location),regexpr("^(TCS)[0-9]*", unlist(Location)) +3, 
-				attributes(regexpr("^(TCS)[0-9]*", unlist(Location)))$match.length)),
-		"CellName" = with(storageListElement$Files,
-			substring(as.character(Location), regexpr("CANDIDATE", toupper(as.character(Location))),
-				regexpr("TIF", toupper(as.character(Location)))-1))))
-}
-
 format_fraclac_files = function(fracLacComboList) {
 # Formats the fraclac files appropriately so they can be passed to similar loops as other data types
 
@@ -196,7 +184,7 @@ remove_unused_metrics = function(storageList, useFrac) {
 
 		# A vector of the fracLac columns we want to keep
 		fracToKeep = 
-		c("Animal", "Treatment", "TCS", "CellName", "UniqueID", "FractalDimension", "Lacunarity", "Location")
+		c("Animal", "Treatment", "TCS Value", "FractalDimension", "Lacunarity", "Location")
 
 		# List of columns to remove from the hull and circ and fraclac data
 		fracColsToRemove = list(
@@ -219,17 +207,71 @@ remove_unused_metrics = function(storageList, useFrac) {
 
 }
 
+# This function retrieves the ID from each element of a vector of file paths (locations)
+# by looking for matches in the vector of distinct IDs (idList)
+getIDFromLocations = function(idList, locations) {
+  
+  # Grab the part of the locations file path that contains our ID info (animal or treatment)
+  grabStuff = sapply(locations, function(x) substring(x, gregexpr('Output', x)))
+  
+  # Get the exact part of that substring that contains IDs
+  imageName = as.vector(sapply(grabStuff, function(x) strsplit(x, '/')[[1]][2]))
+  
+  animals = returnVectorOfMatchingValues(idList, imageName)
+  
+  return(animals)
+  
+}
+
+# From a vector of file paths, get the TCS value
+getTCSFromLocations = function(locations) {
+  
+  # Grab the part of the locations file path that contains our ID info
+  grabStuff = sapply(locations, function(x) substring(x, gregexpr('Output', x)))
+  
+  # Get the exact part of that substring that contains TCS values
+  imageName = as.vector(sapply(grabStuff, function(x) strsplit(x, '/')[[1]][3]))
+  
+  # Remove the 'TCS' string
+  tcsVector = as.vector(sapply(imageName, function(x) strsplit(x, 'TCS')[[1]][2]))
+  
+  return(tcsVector)
+  
+}
+
+# This function eturns a vector of TCS values for data output by FracLac based on the file
+# location
+getTCSFromFracLacLocations = function(locations) {
+  
+  TCSValues = as.vector(sapply(locations, 
+                               function(x) substring(x, 
+                                                     gregexpr("(TCS)[0-9]", x)[[1]][1]+3, 
+                                                     gregexpr("Candidate", x)[[1]][1]-1)))
+  
+  return(TCSValues)
+
+}
+
+# This function eturns a vector of TCS values for data output by FracLac based on the file
+# location
+returnVectorOfMatchingValues = function(idList, locations) {
+  
+  # Create a vector of the length of our locations to populate with IDs
+  animals = vector(length = length(locations))
+  
+  # For each element we have in idList, if it matches the string in locations that
+  # we've isolated, store that id in animals
+  for (currentAnimal in idList) {
+    matches = as.vector(sapply(locations, function(x) grepl(currentAnimal, x)))
+    animals[matches] = currentAnimal
+  }
+  
+  return(animals)
+  
+}
+
 add_missing_info = function(storageList, useFrac) {
 # Adds in info that is missing from our data using the mapStuff list and fill_to_add() output
-
-	# Sholl parameter things to add - TCS values
-	mapStuff = 
-	list(
-		"Sholl Parameters" = 
-		list("TCS" = 
-			with(storageList$`Sholl Parameters`, 
-				substring(Locations, regexpr("TCS", Locations)+3, 
-					regexpr("/Results", Locations)-1))))
 
 	if(useFrac == T) {
 
@@ -239,25 +281,44 @@ add_missing_info = function(storageList, useFrac) {
 		for(curr_element in frac_names) {
 			storageList[[curr_element]]$Files[, Location := NULL]
 
-		# Rename the column in the first index as location
-		names(storageList[[curr_element]]$Files)[1] = 'Location' 
+		  # Rename the column in the first index as location
+		  names(storageList[[curr_element]]$Files)[1] = 'Location' 
+		}
+		
 	}
 
 	# Format the fraclac files
 	storageList$FracLac$Files =  format_fraclac_files(storageList$FracLac$Files)
-
-	toAdd = list("Hull and Circularity" = list(),
-		"FracLac" = list())
-
-	# For each frac data type, use fill_to_add to get he data we need to add
-	for(curr_element in names(toAdd)) {
-		toAdd[[curr_element]] = fill_to_add(storageList[[curr_element]])
-	}
-
-	# Add our nonFrac data to add to our frac data to add into a single list
-	mapStuff = c(mapStuff, toAdd)
-
-	}
+	
+	# Sholl parameter things to add - TCS values
+	mapStuff = 
+	  list(
+	    "Cell Parameters" =
+	      list("Animal" =
+	             getIDFromLocations(animalIDs, storageList$`Cell Parameters`$Location),
+	           "Treatment" =
+	             getIDFromLocations(treatmentIDs, storageList$`Cell Parameters`$Location),
+	           "TCS Value" =
+	             getTCSFromLocations(storageList$`Cell Parameters`$Location)),
+	    "Sholl Parameters" = 
+	      list("Animal" = 
+	             getIDFromLocations(animalIDs, storageList$`Sholl Parameters`$Location),
+	           "Treatment" =
+	             getIDFromLocations(treatmentIDs, storageList$`Sholl Parameters`$Location)),
+	    "Hull and Circularity" =
+	      list("TCS Value" =
+	             getTCSFromFracLacLocations(storageList$`Hull and Circularity`$Files$Location),
+	           "Animal" = 
+	             returnVectorOfMatchingValues(animalIDs, storageList$`Hull and Circularity`$Files$Location),
+	           "Treatment" =
+	             returnVectorOfMatchingValues(treatmentIDs, storageList$`Hull and Circularity`$Files$Location)),
+	    "FracLac" =
+	      list("TCS Value" =
+	             getTCSFromFracLacLocations(storageList$FracLac$Files$Location),
+	           "Animal" = 
+	             returnVectorOfMatchingValues(animalIDs, storageList$FracLac$Files$Location),
+	           "Treatment" =
+	             returnVectorOfMatchingValues(treatmentIDs, storageList$FracLac$Files$Location)))
 
 	# Here we add on our data we need to add to each element of our data
 	for(curr_element in names(mapStuff)) {
@@ -509,14 +570,8 @@ morphPreProcessing <- function(pixelSize,
 
 	# Remove columns we no longer need
 	cleanList = remove_unused_metrics(mapList, useFrac)
-
-	# Next we subset out cells we don't want to keep in our cell parameter data
-	# by removing cells that weren't analysed in ImageJ because they didn't pass
-	# quality control, or were taken on an imaging session where the objective
-	# ini file was wrongly calibrated so the pixel size isn't what we have the
-	# values for. For sholl parameters, we subset out cells where we know the
-	# pixel size isn't 0.58 as we expect.
-	cleanList$`Cell Parameters`$Files = cleanList$`Cell Parameters`$Files[Analysed == 1,]
+	
+	## We're up to here in terms of cleaning this up
 
 	# Add in a unique ID for each cell and mask size to all our elements
 	with_id = format_unique_id(copy(cleanList), treatmentIDs, animalIDs)
