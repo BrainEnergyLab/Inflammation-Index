@@ -15,6 +15,11 @@
 4. [Automated Cell Detection](#automated-cell-detection)
     1. [Step 4: Cell Detection](#step-4-cell-detection)
     2. [Step 5: Mask Generation](#step-5-mask-generation)
+    3. [Step 6: Mask QA](#step-6-mask-qa)
+5. [Cell Quantification](#cell-quantification)
+    1. [Step 7: Mask Quantification](#step-7-mask-quantification)
+    2. [Step 8: Fractal Analysis](#step-8-fractal-analysis)
+6. [Next Steps](#next-steps)
 
 ---
 
@@ -344,35 +349,209 @@ This module creates multiple outputs.
 
 ---
 
-### "Generate masks for cells"
-### Automatically Generate Cell Masks
+This module uses iterative thresholding to generate cell masks that are then subjected to analysis.
 
-In this section the script automatically generates cell masks for each marked cell body using the methodology outlined in  Kozlowski and Weimar (2012): https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0031814. Briefly, a 120 x 120um square is drawn around each cell, and an initial threshold for the image is calculated using Otsu's method. The area of all pixels that are connected to the cell body that pass this threshold is measured, and if this area falls within a user defined mask size +/- range, these pixels are saved as the mask of the cell. If the area does not fall in the area, the threshold is adjusted iteratively until the area falls in the range. If the area stabilises for 3 consecutive iterations but is outside of the range, the mask is retained. If the area is within the range but also within 5 microns of the edges of the 120 x 120um local region, the mask is discarded.
+![Mask generation command location](./MarkdownAssets/MaskGenerationModule/mask_generation_command_location.png)
+
+### User Inputs
+
+After selecting the 'working directory' and 'image storage directory' users are prompted for multiple inputs:
 
 In this section the user is asked for a number of inputs:
 
-- What mask size would you like to use as a lower limit?
-- What mask size would you like to use as an upper limit?
-- What range would you like to use for mask size error?
-- What increment would you like to increase mask size by per loop?
+1. What mask size would you like to use as a lower limit?
+2. What mask size would you like to use as an upper limit?
+3. What range would you like to use for mask size error?
+4. What increment would you like to increase mask size by per loop?
+5. What area should the local region around each cell location be? (in um)
 
-Here the user indicates the starting (lower limit) and end (upper limit) mask sizes to loop through and the increment by which to do this, as well as the range around the mask size that cell areas can fall within. For the initial run of this Fiji script, which should be limited to the positive control inflammation dataset, a range from lower to upper values of 200-800 is recommended (though a smaller range can be used to save time), with an error of 100 and an increase of 100 per loop. This is so that further on in the pipeline inflammation indices can be constructed for each mask size trialled, and the mask size associated with the inflammation index with the best ability to detect inflammatory morphological changes can then be set as the exclusive value to run on all other data.
+![Mask generation user inputs](./MarkdownAssets/MaskGenerationModule/mask_generation_user)inputs.png)
 
-The formula for iteratively changing the threshold is as follows:
-Next Threshold = Current Threshold + Current Threshold * ((Current Area - Mask Size) / (Number of Iterations * Mask Size))
+The first two inputs dictate what values the module loops from, and to, whilst the Fourth input indicates the step size each iteration takes. For example, a lower limit of 200, an upper limit of 800, and an increment of 100, would result in us generating segmented cells for mask size values of: 200,300,400,500,600,700,800.
 
-### "Quality control masks"
-### Approve Generated Cell Masks
+The third input dictates what the error for segment mask size is allowed to be. E.g. if we're creating masks for a mask size of 400 with an error of 100, a mask will be accepted if the area it encompasses is within 300-500.
 
-Here users are presented with each automatically generated cell mask, as well as an automatically generated outline of the soma for each cell. Users can reject the cell mask (if it encompasses two cells for example, or is located on a cell that is not in focus) or approve it. If approved, they can do the same for the soma mask, and if the soma mask is rejected, they must draw an appropriate outline of the soma manually. Users can also select the option to "Manually trace processes" where for each mask they can trace around processes that the automatic mask generation missed.
+The fifth input allows users to customise the size of the 'local region' that we draw around each cell location. This defaults to 120 um.
 
-This process starts with the highest mask size trialled. If a mask has been approved at a higher mask size than is currently being checked, it will automatically be approved. In this way the number of masks a user has to approve is reduced. Soma masks only have to be approved / drawn for a single mask size as they stay consistent between mask sizes.
+### Outputs
 
-### "Analyse masks"
-### Extract Morphological Descriptors
+For each mask size value attempted, a corresponding folder is created in the image's folder. In addition, for each substack (e.g. 10-20 um of the input image, 30-40 um of the input image) as 'TCS Status Substack(xx-xx).csv' is created that has a row for each mask size or for that image. Each row has a value for whether masks have been generated for that size (Masks Generated), whether those masks have been subjected to QC (QC Checked) and whether those masks have been analysed (Analysed).
 
-Approved cell and soma masks are then analysed across a number of morphological descriptors, and the results of these analyses are saved in the appropriate output folder for each animal / treatment combination. These results then form the input for the functions in the InflammationIndex R package. The generation of results from the FracLac plugin in Fiji requires that users manually run the plugin on the "fracLac" folder in the output folder of the working directory that is created and populated once this analysis step has been run on all generated masks.
+![Mask generation tcs status](./MarkdownAssets/MaskGenerationModule/mask_generation_tcs_status.png)
+
+Within each mask size folder is a 'Substack(xx-xx) Mask Generation.csv' file for each substack created. This file contains a row for each cell a mask was generated for, and an indicator for if mask generation was attempted (Mask Try), if it was successful (Mask Success), if that mask has passed QA (MAsk QA) and if that mask has been quantified (Mask Quantified).
+
+![Mask generation tcs status](./MarkdownAssets/MaskGenerationModule/mask_generation_substack_mask_generation.png)
+
+In addition, within the 'Cell Masks' folder, the automatically generated cell masks for that mask size are saved. These images are binary masks.
+
+![Mask generation example mask](./MarkdownAssets/MaskGenerationModule/mask_generation_example_mask.png)
+
+![Mask generation output folders](./MarkdownAssets/MaskGenerationModule/mask_generation_outputs.png)
+
+Finally, a 'Local Regions' folder is created in the image's folder where we save the local regions that are centered around our cell coordinates. These are the images that are used to generate the masks saved in the 'Cell Masks' folder.
+
+![Mask generation local region folder](./MarkdownAssets/MaskGenerationModule/mask_generation_local_region_folder.png)
+
+![Mask generation local region](./MarkdownAssets/MaskGenerationModule/mask_generation_example_local_region.png)
+
+---
+
+## Step 6: Mask QA
+
+---
+
+In this module users are presented with each automatically generated cell mask, as well as an automatically generated outline of the soma for each cell, which they either reject (if the cell mask encompasses two cells for example) or approve. 
+
+### User Inputs
+
+After selecting the 'working directory' and 'image storage directory' each automatically generated mask will be presented to the user with a prompt to 'Check image for issues'. Each mask is presented as an overlay of the outline of the mask ontop of the local region image. 
+
+![Mask QA approve mask](./MarkdownAssets/MaskQAModule/mask_qa_approve_mask.png)
+
+**There is a known issue with masks being displayed in this module where the overlay of the cell mask outline appears to show spurious connecting lines between points. This has no effect on the outcome of the plugin so can be safely ignored, but a resolution is being worked on. In cases where it appears truly artefactual, users should reject the mask.**
+
+Once users have done so and clicked 'ok' they are asked if they want to keep the image. If they keep the image, it is flagged as approved for quantification. If they reject the image, it is ignored for quantification.
+
+If approved, and if no soma mask has been generated for these cell coordinates, this will be generated for the user to approve, along with the prompt 'Check image soma mask'. Once users click 'ok' they can indicate if they want to keep the soma mask. If they do, it is saved.
+
+**There is a known issue with soma mask generation where at times the entire FOV will be selected as the soma mask. Users need to be aware of this and ensure they reject these masks and draw their own manually. A resolution is being worked on.**
+
+![Mask QA auto soma](./MarkdownAssets/MaskQAModule/mask_qa_auto_soma.png)
+
+If users reject the automated soma mask, or if one cannot be generated, users will be shown the prompt 'Need to draw manual soma mask'. Once they have clicked 'ok' they must click on the image to draw a ROI around the cell soma. Once done, they must click 'ok' on the prompt 'Draw appropriate soma mask, click 'ok' when done'.
+
+![Mask QA manual soma](./MarkdownAssets/MaskQAModule/mask_qa_manual_soma.png)
+
+Once the soma mask for a particular cell has either been approved (if automatically generated) or drawn manually, that soma mask is approved for use across all mask sizes (as the mask size does not influence the soma mask that is generated or drawn).
+
+Users proceed to do this for all generated cell masks across all mask sizes.
+
+### Outputs
+
+Within each mask size folder, the 'Substack (xx-xx) Mask Generation.csv' file is updated with information on what cells passed or failed QA.
+
+![Mask QA substack file](./MarkdownAssets/MaskQAModule/mask_qa_substack_file.png)
+
+In addition, the 'TCS Status Substack(xx-xx).csv' file for each substack is updated with whether QA has been completed for each of the mask sizes.
+
+![Mask QA tcs status](./MarkdownAssets/MaskQAModule/mask_qa_tcs_status.png)
+
+Finally, soma masks are saved in the 'Somas' folder for each cell coordinate.
+
+![Mask QA soma mask](./MarkdownAssets/MaskQAModule/mask_qa_soma_mask.png)
+
+![Mask QA soma folder](./MarkdownAssets/MaskQAModule/mask_qa_soma_folder.png)
+
+---
+
+## Cell Quantification
+
+This aspect of the pipeline covers one module in the plugin menu:
+- Mask Quantification
+
+This module automatically quantifies the approved cell masks generated by the previous pipeline steps.
+
+In addition, users need to manually run the FracLac plugin to perform the fractal analysis.
+
+---
+
+## Step 7: Mask Quantification
+
+---
+
+This module iterates through all the approved masks and quantifies them.
+
+![Mask quantification command location](./MarkdownAssets/MaskQuantificationModule/mask_quantification_command_location.png)
+
+### User Inputs
+
+The only inputs required for this step are for users to indicate where the 'working directory' and 'image storage directory' are.
+
+### Outputs
+
+Within each mask size folder, the 'Substack(xx-xx) Mask Generation.csv' file is updated to indicate which masks have been quantified. Masks that did not pass QA are not quantified. In addition, the 'TCS Status Substack(xx-xx).csv' file is updated to reflect which mask sizes have finished being quantified.
+
+![Mask quantification mask generation](./MarkdownAssets/MaskQuantificationModule/mask_quantification_mask_generation.png)
+
+In addition, a 'Results' folder is created for each mask size. In this results folder a number of different file types are saved:
+
+- 'Skeleton Candidate mask for xx-xx... .tif'
+    - These files save the skeletonised version of the mask that was quantified so users can inspect whether the skeletonisation worked as intended.
+
+![Mask quantification skeleton](./MarkdownAssets/MaskQuantificationModule/mask_quantification_skeleton.png)
+
+- 'Sholl SL Candidate mask for ... .tif'
+    - This is a Semi-log sholl analysis plot for users to inspect
+
+![Mask quantification sl](./MarkdownAssets/MaskQuantificationModule/mask_quantification_sholl_sl.png)
+
+- 'Sholl LL Candidate mask for ... .tif'
+    - This is a Log-log sholl analysis plot for users to inspect
+
+![Mask quantification ll](./MarkdownAssets/MaskQuantificationModule/mask_quantification_sholl_ll.png)
+
+- 'Sholl Fit Candidate mask for ... .tif'
+    - This is a linear sholl plot for users to inspect, with the best fit polynomial (if applicable) included.
+
+![Mask quantification best fit](./MarkdownAssets/MaskQuantificationModule/mask_quantification_best_fit.png)
+
+- 'Sholl Mask Candidate mask ... .tif'
+    - This is a colour coded overlay of the the cell mask where the colours indicate the number of branches at increasing distances from the cell soma (represented by a black circle)
+
+![Mask quantification sholl overlay](./MarkdownAssets/MaskQuantificationModule/mask_quantification_sholl_overlay.png)
+
+- 'Sholl Candidate mask for ... .csv'
+    - This is a results file containing all the sholl related paramters that were measured for the cell.
+
+![Mask quantification sholl metrics](./MarkdownAssets/MaskQuantificationModule/mask_quantification_sholl_metrics.png)
+
+- 'Cell Spread Candidate mask ... .tif'
+    - This is an image with lines connecting the cell centre of mass to its four extrema. The length of these lines are averaged to calculate the cell spread value. This plot allows users to inspect the cell spread calculations for each cell.
+
+![Mask quantification cell spread](./MarkdownAssets/MaskQuantificationModule/mask_quantification_cell_spread.png)
+
+- 'Cell Parameters Candidate mask ... .csv'
+    - This is the results file containing all the non-sholl metrics calculated for each cell.
+
+![Mask quantification parameters](./MarkdownAssets/MaskQuantificationModule/mask_quantification_parameters.png)
+
+---
+
+## Step 8: Fractal Analysis
+
+---
+
+This final step needs to be run manually. As part of step 7, all the cell masks are copied into a new folder in the 'Output' folder called 'fracLac'. The files are saved with their parent image names and mask size values included. 
+
+![fraclac fraclac folder contents](./MarkdownAssets/FracLac/fraclac_fraclac_folder_contents.png)
 
 #### FracLac Settings and Directions
 
-Users should select the FracLac plugin within the Plugins -> Fractal Analysis menu in Fiji. They should then select the "BC" button, and tick the Save -> Results box. Tick the Hull and Circle -> Metrics box Select ok. Now click on Batch, and select the fracLac folder in the working directory -> output folder as this is where results will be saved. When asked about using the ROI manager, select cancel. Then in the next dialog box, i.e. "select files to analyse", highlight all the files in the fracLac folder. Once more the user must select the fracLac folder in a dialog box. Then tick "disable time checks" and continue. The plugin will now run on the files in the fracLac folder, and save its output in this folder as well. This output will be processed with the R InflammationIndex package.  
+Users should select the FracLac plugin within the Plugins -> Fractal Analysis menu in Fiji.
+
+![fraclac command location](./MarkdownAssets/FracLac/fraclac_command_location.png)
+
+They should then select the "BC" button and indicate they do not wish to use legacy mode if prompted. 
+
+![fraclac bc button](./MarkdownAssets/FracLac/fraclac_bc_button.png)
+
+In the 'FILES' card users should tick the 'results' box. In the 'GRAPHICS OPTIONS' card users should tick the 'metrics' box to the right of the 'HULL AND CIRCLE' textbox. Following this, users should click 'ok'. If prompted, users should select 'Db' as the fractal to colour code.
+
+![fraclac bc settings](./MarkdownAssets/FracLac/fraclac_bc_settings.png)
+
+Users should then click on 'Batch' and select the fracLac folder in the working directory -> output folder as this is where results will be saved. 
+
+![fraclac batch button](./MarkdownAssets/FracLac/fraclac_batch_button.png)
+
+![fraclac fraclac folder](./MarkdownAssets/FracLac/fraclac_fraclac_folder.png)
+
+If asked about using the ROI manager, select cancel. In the next dialog box "select files to analyse", highlight all the files you wish to analyse. These are also located in the 'fracLac' folder.
+
+![fraclac image highlight](./MarkdownAssets/FracLac/fraclac_image_highlight.png)
+
+On the next folder selection window, again select the fracLac folder. The fractal analysis is then run on the images you selected and saved in a new folder within the 'fraclac' folder that is named after the date the timestamp the plugin was run. When complete a dialog box will alert users to completion.
+
+## Next Steps
+
+Following on from completing the use of this Fiji plugin, users can use the R package 'Inflammation-Index', also located in this repo, to analyse the outputs. See directions [here](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Using%20the%20R%20Inflammation-Index%20Package.md)
