@@ -1,5 +1,3 @@
-# This README is currently being updated to reflect changes made to the plugin 
-
 # Microglia Morphology Analysis ImageJ Plugin
 
 ---
