@@ -3,7 +3,8 @@ install_github("BrainEnergyLab/Inflammation-Index")
 require(InflammationIndex)
 
 pixelSize = 0.58 # Pixel size in microns
-morphologyWD = "/Microglial Morphology/Output" # Output directory of the MicroMorph.ijm script as a string
+morphologyWD = '/Users/devin.clarke/Google Drive/Microglia Morphology Analysis Plugin - ImageJ Example Directory and Input Data/Working Directory/Output'
+  #"/Microglial Morphology/Output" # Output directory of the MicroMorph.ijm script as a string
 imageStorageDirectory = '/Users/devin.clarke/Google Drive/Microglia Morphology Analysis Plugin - ImageJ Example Directory and Input Data/Image Storage Directory'
 useFrac = T # Boolean indicating whether to use the output of the FracLac plugin
 TCSExclude = NULL # String vector of mask sizes to exclude from the preprocessing function, can also take NULL
