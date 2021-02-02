@@ -97,7 +97,6 @@ return(storageList)
 
 }
 
-
 filter_for_vector = function(filter_it, filter_by) {
   clean_vec = list()
   for(currLoc in filter_it) {
@@ -167,37 +166,20 @@ format_fraclac_files = function(fracLacComboList) {
 
 }
 
-remove_unused_metrics = function(storageList, useFrac) {
+remove_unused_metrics = function(storageList) {
 # Removes certain metrics from our data and return it
 
-	# A list of all the columns we want to remove from the associated data types,
-	# these are columns that we won't be using in the analysis
-	colsToRemove = 
-	list("Sholl Parameters" = 
-		c("Polyn. R^2", "Regression R^2 (Semi-log)",
-			"Regression R^2 (Semi-log) [P10-P90]", "Regression R^2 (Log-log)", 
-			"Regression R^2 (Log-log) [P10-P90]", "Unit", "Lower threshold", 
-			"Upper threshold", "X center (px)", "Y center (px)",
-			"Z center (slice)", "Starting radius", "Ending radius", "Radius step",
-			"Samples/radius", "Enclosing radius cutoff", "I branches (user)"))
+	# A vector of the fracLac columns we want to keep
+	fracToKeep = 
+	c("Animal", "Treatment", "TCS Value", "FractalDimension", "Lacunarity", "Location")
 
-	if(useFrac == T) {
-
-		# A vector of the fracLac columns we want to keep
-		fracToKeep = 
-		c("Animal", "Treatment", "TCS Value", "FractalDimension", "Lacunarity", "Location")
-
-		# List of columns to remove from the hull and circ and fraclac data
-		fracColsToRemove = list(
-			"Hull and Circularity" = 
-			c("MEAN FOREGROUND PIXELS", "TOTAL PIXELS", "Hull's Centre of Mass",
-				"Width of Bounding Rectangle", "Height of Bounding Rectangle",
-				"Circle's Centre", "Method Used to Calculate Circle"),
-			"FracLac" =  unique(names(storageList$FracLac$Files)[!(names(storageList$FracLac$Files) %in% fracToKeep)]))
-
-		colsToRemove = c(colsToRemove, fracColsToRemove)
-
-	}
+	# List of columns to remove from the hull and circ and fraclac data
+	colsToRemove = list(
+		"Hull and Circularity" = 
+		c("MEAN FOREGROUND PIXELS", "TOTAL PIXELS", "Hull's Centre of Mass",
+			"Width of Bounding Rectangle", "Height of Bounding Rectangle",
+			"Circle's Centre", "Method Used to Calculate Circle"),
+		"FracLac" =  unique(names(storageList$FracLac$Files)[!(names(storageList$FracLac$Files) %in% fracToKeep)]))
 
 	# Remove the columns we want to get rid of
 	for(curr_element in names(colsToRemove)) {
@@ -330,45 +312,46 @@ add_missing_info = function(storageList, useFrac) {
 
 }
 
-format_unique_id = function(storageList, treatmentIDs, animalIDs) {
-# Adds in a unique ID for each cell, animal, timepoint, and TCS value, for each data type
-
-	# Change the name of the image column to CellName in the sholl parameter
-	# data since this makes it consistent with the other data forms, also the
-	# Cell Name column in cell parameters
-	setnames(storageList$`Sholl Parameters`$Files, old = "Image", new = "CellName")
-	setnames(storageList$`Cell Parameters`$Files, old = "Cell Name", new = "CellName")
-
-	# Format the cell name, depending on whether there's a.tif extension in the cellname or not
-	wheresTif = grepl(".tif", storageList$`Cell Parameters`$Files$CellName)
-	storageList$`Cell Parameters`$Files[wheresTif, CellName := sapply(strsplit(CellName, ".tif"), function(x) x[1])]
-	storageList$`Cell Parameters`$Files[wheresTif==FALSE, CellName := gsub(" ", "", paste("Candidate mask for ", `Stack Position`, CellName), fixed = T)]
-
-	# Add a uniqueID value to every data type, where we paste the animal, 
-	# timepoint, cellname, and TCS together with no spaces so we have an 
-	# identifier of every unique measurement that we can check across data types -
-	# also note we make it all uppercase
+format_unique_id = function(storageList) {
+  
+  # If we've got FracLac data, first get out a Mask Name in a similar format 
+  # to how it is built for the non FracLac data
+  if(sum(grepl('FracLac', names(storageList))) >= 1) {
+    for(currData in c('Hull and Circularity', 'FracLac')) {
+      
+      mask_name = sapply(storageList[[currData]]$Files$Location, function(x) {
+        
+        cutString = substring(x, gregexpr('candidate', tolower(x)))
+        xCoord = substring(cutString, gregexpr('x', cutString)[[1]][1]+1, gregexpr('y', cutString)[[1]][1]-1)
+        yCoord = substring(cutString, gregexpr('y', cutString)[[1]][1]+1, gregexpr('tif', cutString)[[1]][1]-1)
+        substack = substring(cutString, gregexpr('for', cutString)[[1]][1]+3, gregexpr('x', cutString)[[1]][1]-1)
+        
+        paste('Candidate mask for', substack, 'x', xCoord, 'y', yCoord, 'tif', sep = ' ')
+        
+      })
+      storageList[[currData]]$Files[, 'Mask Name':= mask_name]
+    }
+  }
+  
+  # Now adjust the Mask Name for our other data to be identical to the FracLac data
+  for(currData in c('Cell Parameters', 'Sholl Parameters')) {
+    
+    mask_name = sapply(storageList[[currData]]$Files$`Mask Name`, function(x) {
+      
+      gsub('\\.', '', x)
+      
+    })
+    storageList[[currData]]$Files[, 'Mask Name':= mask_name]
+  }
+  
+  # Now paste together all our ID info into a unique ID for each cell
 	for(currType in names(storageList)) {
-		storageList[[currType]]$Files$Animal = 
-			as.vector(unlist(sapply(storageList[[currType]]$Files$Location, function(loc, animalIDs) {
-				names(which.max(sapply(animalIDs[str_detect(toupper(loc), fixed(animalIDs))], nchar)))
-			}, animalIDs)))
-		
-		storageList[[currType]]$Files = storageList[[currType]]$Files[is.na(Animal) == F]
-
-		storageList[[currType]]$Files$CellName = 
-			toupper(gsub(" ", "", storageList[[currType]]$Files$CellName))
-		checkAgainst = paste(treatmentIDs, "(?![0-9])", sep = "")
-		storageList[[currType]]$Files[, Location := toupper(gsub(" ", "", Location, fixed = T))]
-		for(currTreat in 1:length(treatmentIDs)) {
-			storageList[[currType]]$Files[regexpr(checkAgainst[currTreat], Location, perl = T)>-1, Treatment := treatmentIDs[currTreat]] 
-		}
-		
-		storageList[[currType]]$Files = storageList[[currType]]$Files[is.na(Treatment) == F]
-
-		storageList[[currType]]$Files[, UniqueID := toupper(paste(Animal, Treatment, CellName, TCS, sep = ""))]
+	  
+	  storageList[[currType]]$Files[, UniqueID := tolower(paste(Animal, Treatment, `TCS Value`, `Mask Name`, sep = ""))]
+	  
 	}
 
+  # Return our storageList
 	return(storageList)
 
 }
@@ -568,21 +551,29 @@ morphPreProcessing <- function(pixelSize,
 	# missing, this is either cell identifiers, or values for the TCS. These are
 	# calculated using the file locations or IDs of the rows
 	mapList = add_missing_info(comboList, useFrac)
-
-	##### Here we need to filter our FracLac and hull and circularity data for animals or treatments that
-	##### are in our ID input vectors
-
-	# Remove columns we no longer need
-	cleanList = remove_unused_metrics(mapList, useFrac)
 	
-	## We're up to here in terms of cleaning this up
+	# Filter our fractal data by animal and treatment IDs
+	if(useFrac == T) {
+  	for(currType in c('Hull and Circularity', 'FracLac')){
+  	  mapList[[currType]]$Files = mapList[[currType]]$Files[Animal %in% animalIDs]
+  	  mapList[[currType]]$Files = mapList[[currType]]$Files[Treatment %in% treatmentIDs]
+  	}
+	  
+	  # Remove columns we no longer need
+	  cleanList = remove_unused_metrics(mapList)
+	  
+	} else {
+	  cleanList = copy(mapList)
+	}
 
 	# Add in a unique ID for each cell and mask size to all our elements
-	with_id = format_unique_id(copy(cleanList), treatmentIDs, animalIDs)
+	with_id = format_unique_id(copy(cleanList))
 
 	# Retain only data where we have cells for all data types
 	common_data = retain_common_cells(with_id)
-
+	
+	### We're up to here in terms of updating the functions
+	
 	if(useFrac == T) {
 
 		# Convert our HC data to um
