@@ -7,7 +7,7 @@ In RStudio the InflammationIndex package can be installed first by
 installing and loading devtools, then installing the InflammationIndex
 package from GitHub
 
-``` r
+``` {r}
 require(devtools)
 install_github("BrainEnergyLab/Inflammation-Index")
 require(InflammationIndex)
