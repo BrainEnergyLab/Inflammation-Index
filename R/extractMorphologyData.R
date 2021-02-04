@@ -443,7 +443,7 @@ format_names = function(inputData) {
 
 }
 
-merge_data_Together = function(inputData) {
+merge_data_together = function(inputData) {
 # Merge all our data types into a single data.table
   
   storageList = copy(inputData)
@@ -587,7 +587,7 @@ morphPreProcessing <- function(pixelSize,
 	name_changed = format_names(common_data)
 
 	# Merge our data types into a single data.table
-	merged = merge_data_Together(name_changed, useFrac)
+	merged = merge_data_together(name_changed)
 
 	return(merged)
 
