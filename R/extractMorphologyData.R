@@ -379,9 +379,10 @@ retain_common_cells = function(with_id) {
 
 convert_hc_to_um = function(storageList, pixelSize) {
   
-  # Vector of measures in the hull and ciricularity data we want to convert from
+  # Vector of measures in the hull and circularity data we want to convert from
   # pixels to um
-  conv_list_names <- c("Area", "Perimeter", "Diameter of Bounding Circle", "Mean Radius", 
+  conv_list_names <- c("Area", "Density = Foreground Pixels/Hull Area", 
+                       "Perimeter", "Diameter of Bounding Circle", "Mean Radius", 
                        "Maximum Span Across Hull", "Maximum Radius from Hull's Centre of Mass",
                        "Maximum Radius from Circle's Centre", "Mean Radius from Circle's Centre")
   
@@ -389,26 +390,27 @@ convert_hc_to_um = function(storageList, pixelSize) {
   # that
   multiplyBy = rep(pixelSize, length(conv_list_names))
   multiplyBy[1] = pixelSize^2
+  multiplyBy[2] = pixelSize^2
+  names(multiplyBy) = conv_list_names
   
-  # Create a list where each element is a metric, and the value is what to multiple that metric by to turn it into um
-  conv_list <- vector("list", length(conv_list_names))
-  names(conv_list) <- conv_list_names
-  for(currCol in 1:length(names(conv_list))) {conv_list[[currCol]] = multiplyBy[currCol]}
+  # Copy our storageList so we can edit it w/o inintended consequences..
+  edit = copy(storageList)
   
-  # For each column to convert, convert it to numeric
-  for(currCol in names(conv_list)) {
-  	if(sum(currCol %in% names(storageList$`Hull and Circularity`$Files)) >= 1) {
-   		storageList$`Hull and Circularity`$Files[, eval(currCol) := as.numeric(unlist(get(currCol))) * conv_list[[currCol]]]
-  	}
+  # For each metric in our converison list, convert it according to the multiplyBy value
+  for(curr_metric in names(multiplyBy)) {
+    edit$`Hull and Circularity`$Files[, eval(curr_metric) := as.numeric(unlist(get(curr_metric))) * multiplyBy[curr_metric]]
   }
   
-  return(storageList)
+  # Return our list
+  return(edit)
   
 }
 
-format_names = function(um_data) {
+format_names = function(inputData) {
 # Format the column names in our data
 	
+  um_data = copy(inputData)
+  
 	# Get the column names of every data type
 	uniqueIDList = lapply(um_data, function(x) {
     	names(x$Files)
@@ -416,7 +418,7 @@ format_names = function(um_data) {
 
 	# Get the names that are common to more than one data type, and identify those that aren't labels
 	repeat_names = names(which(table(unlist(uniqueIDList)) > 1))
-	name_change = repeat_names[!repeat_names %in% c('Animal', 'CellName', 'Location', 'TCS', 'Treatment', 'UniqueID')]
+	name_change = repeat_names[!repeat_names %in% c('Animal', 'Mask Name', 'Location', 'TCS Value', 'Treatment', 'UniqueID')]
 
 	# For column names that aren't labels and are present in more than one data type, make them unique by pasting the data
 	# type to their name
@@ -428,27 +430,29 @@ format_names = function(um_data) {
 		}
 	}
 
-	# For all the data, remove spaces from the headers, and from the cellName
+	# For all the data, remove spaces from the headers, and from the Mask Name
 	# values to make them consistent between data types
-	storageList = 
+	returnList = 
 	lapply(um_data, function(x) { 
 		names(x$Files) = gsub(" ", "", names(x$Files))
-		x$Files$CellName = gsub(" ", "", x$Files$CellName)
+		x$Files$MaskName = gsub(" ", "", x$Files$MaskName)
 		return(x) 
 	})
 
-	return(storageList)
+	return(returnList)
 
 }
 
-merge_data_togeher = function(storageList, useFrac) {
+merge_data_Together = function(inputData) {
 # Merge all our data types into a single data.table
+  
+  storageList = copy(inputData)
 
 	# Get out the data.table for the elements of storageList to merge together into a single list
 	forMerge = lapply(storageList, function(x) {
-		x$Files[, c("Animal", "Treatment", "CellName", "TCS", "UniqueID") :=
+		x$Files[, c("Animal", "Treatment", "MaskName", "TCSValue", "UniqueID") :=
 		list(as.character(unlist(Animal)), as.character(unlist(Treatment)),
-			as.character(unlist(CellName)), as.numeric(unlist(TCS)),
+			as.character(unlist(MaskName)), as.numeric(unlist(TCSValue)),
 			as.character(unlist(UniqueID)))]
 		if("Location" %in% names(x$Files)) {
 			x$Files[, Location := NULL]
@@ -460,21 +464,21 @@ merge_data_togeher = function(storageList, useFrac) {
 	merged = Reduce(merge, forMerge)
 
 	# Create a unique name that could be repeated across TCS values, and assign each unique numeric value
-	merged[, TCSName := paste(Treatment, Animal, CellName)]
+	merged[, TCSName := paste(Treatment, Animal, MaskName)]
 	merged[, CellNo := seq_along(TCSName)]
 
 	# If we're using frac, calculate branching density
-	if(useFrac == T) {
+	if('FracLac' %in% names(storageList)) {
 		merged$BranchingDensity = merged$SkelArea / merged$Area
 	}
 
 	# Create a list of columns to remove from the final merged DF and then remove them
-	mergeToRemove = c("TCSName", "CellName",  "Analysed", "StackPosition", "ExperimentName", "WrongObjective")
+	mergeToRemove = c("TCSName", "MaskName")
 	mergeToRemoveChecked = names(merged)[grepl(paste(mergeToRemove, collapse = "|"), names(merged))]
 	merged[, eval(mergeToRemoveChecked) := NULL]
 
 	# Make all non-label columns numeric
-	labelCols =     c('TCS', 'Animal', 'Treatment', 'UniqueID', 'CellNo')
+	labelCols =     c('TCSValue', 'Animal', 'Treatment', 'UniqueID', 'CellNo')
 	make_numeric = names(merged)[!names(merged) %in% labelCols]
 
 	for(currCol in make_numeric) {
@@ -572,8 +576,6 @@ morphPreProcessing <- function(pixelSize,
 	# Retain only data where we have cells for all data types
 	common_data = retain_common_cells(with_id)
 	
-	### We're up to here in terms of updating the functions
-	
 	if(useFrac == T) {
 
 		# Convert our HC data to um
@@ -585,7 +587,7 @@ morphPreProcessing <- function(pixelSize,
 	name_changed = format_names(common_data)
 
 	# Merge our data types into a single data.table
-	merged = merge_data_togeher(name_changed, useFrac)
+	merged = merge_data_Together(name_changed, useFrac)
 
 	return(merged)
 
