@@ -11,7 +11,16 @@ getAnimalAndTreatmentIDs <- function(imageStorageDirectory) {
   
   # Get the subdirectories of the animal directories and store these as treatment IDs
   treatmentFolders = subFoldersClean[grepl('/', subFoldersClean)]
-  treatmentIDs = sapply(treatmentFolders, function(x) substring(x, gregexpr(pattern = '/', treatmentFolders[1])[[1]][1] + 1))
+  treatmentIDs = unique(sapply(treatmentFolders, function(x) {
+    temp = substring(x, gregexpr(pattern = '/', x)[[1]][1] + 1)
+    if(gregexpr(pattern = '/', temp)[[1]][1] != -1) {
+      output = substring(temp, 1, gregexpr(pattern = '/', temp)[[1]][1]-1)
+    } else {
+      output = temp
+    }
+    return(output)
+  }
+  ))
   
   # Get the first level subdirectories as these are the animal directories and store these as animal IDs
   animalIDs = subFoldersClean[!grepl('/', subFoldersClean)]
