@@ -49,7 +49,9 @@ To install the Microglia Morphology Analysis plugin, download the [.jar](https:/
 
 ### Example Data
 
-You can find a directory containing the same image and folder structure as outlined below and download it yourself to follow along with the instructions [here](https://drive.google.com/drive/folders/1e3qkTAhBBKOFFnTt9iWhM7Jtzr2GXH6o?usp=sharing)
+You can find a directory containing the same image and folder structure as outlined below and download it yourself to follow along with the instructions [here](https://drive.google.com/drive/folders/1VMOFgOPVprHUprkT3vY1xapOxIaUK-8w?usp=sharing).
+
+A version of this folder that contains all the files generated once the plugin has been run to completion can be found [here](https://drive.google.com/drive/folders/1e3qkTAhBBKOFFnTt9iWhM7Jtzr2GXH6o?usp=sharing).
 
 ## Step 1: Setting Up Folder Structures
 
