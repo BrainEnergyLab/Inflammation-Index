@@ -1,0 +1,21 @@
+Package: InflammationIndex
+Type: Package
+Title: R Package for Creating an Inflammation Index to Analyse
+        Microglia Morphology
+Version: 0.1.0
+Author: person("Devin", "Clarke", email = "devinclarke440@gmail.com", role = c("aut", "cre"))
+Maintainer: Devin Clarke <devinclarke440@gmail.com>
+Description: Reads in data produced by the Fiji 'Microglia Morphology Analysis' 
+  plugin before using it to construct a single metric sensitive to the change present in changing data. 
+  This can then be applied to novel data. More information is in the associated publication and README files.
+URL: https://github.com/BrainEnergyLab/Inflammation-Index
+BugReports: https://github.com/BrainEnergyLab/Inflammation-Index/issues
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports: data.table, ROCR
+RoxygenNote: 7.1.1
+Suggests: testthat
+NeedsCompilation: no
+Packaged: 2021-02-06 15:52:04 UTC; devin.clarke
+Built: R 4.0.3; ; 2021-02-06 15:52:08 UTC; unix

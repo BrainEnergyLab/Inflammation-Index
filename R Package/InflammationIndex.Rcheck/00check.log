@@ -1,0 +1,269 @@
+* using log directory ‘/Users/devin.clarke/Documents/GitHub/InflammationIndex.Rcheck’
+* using R version 4.0.3 (2020-10-10)
+* using platform: x86_64-apple-darwin17.0 (64-bit)
+* using session charset: UTF-8
+* using options ‘--no-manual --as-cran’
+* checking for file ‘InflammationIndex/DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘InflammationIndex’ version ‘0.1.0’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... WARNING
+Found the following files with non-portable file names:
+  Using the Microglia Morphology Analysis ImageJ Plugin.md
+  Using the R Inflammation-Index Package.Rmd
+  Using the R Inflammation-Index Package.md
+  Microglia Morphology Analysis Plugin - ImageJ
+These are not fully portable file names.
+See section ‘Package structure’ in the ‘Writing R Extensions’ manual.
+Found the following non-portable file paths:
+  InflammationIndex/MarkdownAssets/StackPreprocessingModule/stack_preprocessing_manual_user_inputs1.png
+  InflammationIndex/Microglia Morphology Analysis Plugin - ImageJ/Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py
+  InflammationIndex/Microglia Morphology Analysis Plugin - ImageJ/microglia-morphology-analysis-0.1.0.jar
+
+Tarballs are only required to store paths of up to 100 bytes and cannot
+store those of more than 256 bytes, with restrictions including to 100
+bytes for the final component.
+See section ‘Package structure’ in the ‘Writing R Extensions’ manual.
+* checking for sufficient/correct file permissions ... OK
+* checking serialization versions ... OK
+* checking whether package ‘InflammationIndex’ can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking DESCRIPTION meta-information ... NOTE
+Non-standard license specification:
+  GPL 3
+Standardizable: TRUE
+Standardized license specification:
+  GPL-3
+* checking top-level files ... NOTE
+Non-standard files/directories found at top level:
+  ‘MarkdownAssets’ ‘Microglia Morphology Analysis Plugin - ImageJ’
+  ‘Using the Microglia Morphology Analysis ImageJ Plugin.md’ ‘Using the
+  R Inflammation-Index Package.Rmd’ ‘Using the R Inflammation-Index
+  Package.md’
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking R files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking dependencies in R code ... WARNING
+'::' or ':::' import not declared from: ‘ROCR’
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... NOTE
+readInFile: warning in fread(locations, sep = seperators, na.string =
+  "NaN", encoding = fileEncoding, header = T, data.table = T): partial
+  argument match of 'na.string' to 'na.strings'
+read_in_fileLegacy: warning in fread(locations, sep = seperators,
+  na.string = "NaN", encoding = fileEncoding, header = T): partial
+  argument match of 'na.string' to 'na.strings'
+addMissingInfo: no visible binding for global variable ‘animalIDs’
+addMissingInfo: no visible binding for global variable ‘treatmentIDs’
+addMissingInfo: no visible binding for global variable ‘Location’
+add_missing_infoLegacy: no visible binding for global variable
+  ‘Location’
+apply_inf_ind: no visible binding for global variable ‘InfInd’
+apply_inf_ind: no visible global function definition for ‘predict’
+constructInfInd: no visible binding for global variable ‘TCS’
+constructInfInd: no visible binding for global variable ‘Vals’
+constructInfInd: no visible binding for global variable ‘p-value’
+constructInfInd: no visible binding for global variable ‘AUC’
+constructInfInd: no visible binding for global variable ‘InfInd’
+constructInfInd: no visible global function definition for ‘predict’
+filter_by_training_data: no visible binding for global variable
+  ‘Treatment’
+formatFracLacFiles: no visible binding for global variable ‘Location’
+formatUniqueID: no visible binding for global variable ‘UniqueID’
+formatUniqueID: no visible binding for global variable ‘Animal’
+formatUniqueID: no visible binding for global variable ‘Treatment’
+formatUniqueID: no visible binding for global variable ‘TCS Value’
+formatUniqueID: no visible binding for global variable ‘Mask Name’
+format_fraclac_files: no visible binding for global variable ‘Location’
+format_rocr_input: no visible global function definition for ‘gather’
+format_rocr_input: no visible binding for global variable ‘Parameter’
+format_rocr_input: no visible binding for global variable ‘Value’
+format_rocr_input: no visible binding for global variable ‘Treatment’
+format_rocr_input: no visible global function definition for ‘spread’
+format_top_metric_data: no visible global function definition for
+  ‘complete.cases’
+format_top_metric_data : <anonymous>: no visible global function
+  definition for ‘var’
+format_unique_idLegacy: no visible binding for global variable
+  ‘CellName’
+format_unique_idLegacy: no visible binding for global variable ‘Stack
+  Position’
+format_unique_idLegacy : <anonymous>: no visible global function
+  definition for ‘str_detect’
+format_unique_idLegacy : <anonymous>: no visible global function
+  definition for ‘fixed’
+format_unique_idLegacy: no visible binding for global variable ‘Animal’
+format_unique_idLegacy: no visible binding for global variable
+  ‘Location’
+format_unique_idLegacy: no visible binding for global variable
+  ‘Treatment’
+format_unique_idLegacy: no visible binding for global variable
+  ‘UniqueID’
+format_unique_idLegacy: no visible binding for global variable ‘TCS’
+get_ROC_values: no visible binding for global variable ‘Parameter’
+get_ROC_values: no visible binding for global variable ‘Value’
+get_ROC_values: no visible binding for global variable ‘Treatment’
+get_ROC_values: no visible binding for global variable ‘ROCList’
+get_inf_ind_metrics: no visible global function definition for ‘tail’
+get_inf_ind_metrics: no visible binding for global variable ‘Parameter’
+get_training_auc: no visible binding for global variable ‘PC1’
+get_training_auc: no visible binding for global variable ‘Treatment’
+get_training_pca: no visible global function definition for ‘prcomp’
+get_training_pval: no visible global function definition for ‘lme’
+get_training_pval: no visible global function definition for
+  ‘lmeControl’
+get_training_pval: no visible global function definition for ‘anova’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘Animal’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘Treatment’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘MaskName’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘TCSValue’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘UniqueID’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘Location’
+mergeDataTogether: no visible binding for global variable ‘TCSName’
+mergeDataTogether: no visible binding for global variable ‘Treatment’
+mergeDataTogether: no visible binding for global variable ‘Animal’
+mergeDataTogether: no visible binding for global variable ‘MaskName’
+mergeDataTogether: no visible binding for global variable ‘CellNo’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘Animal’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘Treatment’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘CellName’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘TCS’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘UniqueID’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘Location’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘TCSName’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘Treatment’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘Animal’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘CellName’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘CellNo’
+morphPreProcessing: no visible binding for global variable ‘Animal’
+morphPreProcessing: no visible binding for global variable ‘Treatment’
+morphPreProcessingLegacy: no visible binding for global variable
+  ‘Analysed’
+readInRawData : <anonymous>: no visible global function definition for
+  ‘str_detect’
+read_in_fileLegacy: no visible binding for global variable ‘Location’
+read_in_raw_dataLegacy : <anonymous>: no visible global function
+  definition for ‘str_detect’
+read_in_raw_dataLegacy : <anonymous> : <anonymous>: no visible global
+  function definition for ‘read_in_file’
+remove_worst_duplicate_metric: no visible binding for global variable
+  ‘Parameter’
+remove_worst_duplicate_metric: no visible binding for global variable
+  ‘AUC’
+retainCommonCells: no visible binding for global variable ‘UniqueID’
+retain_common_cellsLegacy: no visible binding for global variable
+  ‘UniqueID’
+Undefined global functions or variables:
+  AUC Analysed Animal CellName CellNo InfInd Location Mask Name
+  MaskName PC1 Parameter ROCList Stack Position TCS TCS Value TCSName
+  TCSValue Treatment UniqueID Vals Value animalIDs anova complete.cases
+  fixed gather lme lmeControl p-value prcomp predict read_in_file
+  spread str_detect tail treatmentIDs var
+Consider adding
+  importFrom("base", "Position")
+  importFrom("stats", "anova", "complete.cases", "prcomp", "predict",
+             "var")
+  importFrom("utils", "tail")
+to your NAMESPACE file.
+* checking Rd files ... WARNING
+checkRd: (5) InflammationIndex.Rd:0-7: Must have a \description
+prepare_Rd: constructInfInd.Rd:26-28: Dropping empty section \details
+prepare_Rd: constructInfInd.Rd:38-40: Dropping empty section \references
+prepare_Rd: constructInfInd.Rd:51-53: Dropping empty section \seealso
+prepare_Rd: constructInfInd.Rd:54-60: Dropping empty section \examples
+prepare_Rd: infIndPipe.Rd:40-42: Dropping empty section \references
+prepare_Rd: infIndPipe.Rd:53-55: Dropping empty section \seealso
+prepare_Rd: infIndPipe.Rd:56-63: Dropping empty section \examples
+prepare_Rd: preprocessing.Rd:24-26: Dropping empty section \details
+prepare_Rd: preprocessing.Rd:35-37: Dropping empty section \references
+prepare_Rd: preprocessing.Rd:48-50: Dropping empty section \seealso
+prepare_Rd: preprocessing.Rd:51-57: Dropping empty section \examples
+* checking Rd metadata ... WARNING
+Rd files with duplicated alias 'morphPreProcessing':
+  ‘morphPreProcessing.Rd’ ‘preprocessing.Rd’
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... WARNING
+Bad \usage lines found in documentation object 'constructInfInd Function':
+  Constructing the Inflammation Index
+Bad \usage lines found in documentation object 'infInd Function':
+  Inflammation Index Pipeline
+Bad \usage lines found in documentation object 'morphPreProcessing Function':
+  Pre-Processing Morphology Data
+
+Functions with \usage entries need to have the appropriate \alias
+entries, and all their arguments documented.
+The \usage entries must correspond to syntactically valid R code.
+See chapter ‘Writing R documentation files’ in the ‘Writing R
+Extensions’ manual.
+* checking Rd contents ... WARNING
+Auto-generated content requiring editing in Rd object 'constructInfInd Function':
+  \keyword{~kwd1}
+  \keyword{~kwd2}
+
+Auto-generated content requiring editing in Rd object 'infInd Function':
+  \keyword{~kwd1}
+  \keyword{~kwd2}
+
+Auto-generated content requiring editing in Rd object 'morphPreProcessing Function':
+  \keyword{~kwd1}
+  \keyword{~kwd2}
+
+* checking for unstated dependencies in examples ... OK
+* checking examples ... NONE
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ... ERROR
+  Running ‘testthat.R’
+Running the tests in ‘tests/testthat.R’ failed.
+Complete output:
+  > library(testthat)
+  > library(InflammationIndex)
+  > 
+  > test_check("InflammationIndex")
+  Error: No test files found
+  Backtrace:
+  [90m    [39m█
+  [90m 1. [39m└─testthat::test_check("InflammationIndex")
+  [90m 2. [39m  └─testthat::test_dir(...)
+  Execution halted
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+Status: 1 ERROR, 6 WARNINGs, 3 NOTEs
