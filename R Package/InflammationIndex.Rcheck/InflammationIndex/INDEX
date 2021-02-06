@@ -1,0 +1,56 @@
+InflammationIndex       InflammationIndex: A package for analysing
+                        microglial morphology
+addMissingInfo          Adds in values missing from each data type
+constructInfInd         Function to Build the Inflammation Index from
+                        Output of morphPreProcessing
+convertHCtouM           Converts FracLac metrics from pixels into the
+                        correct units to align with Parameter data
+filterForVector         Remove vector elements that don't match a
+                        filter, but retain original vector indices
+formatFracLacFiles      Applies formatting to the FracLac data to align
+                        it with non FracLac data types
+formatNames             Formats labelling column names to be identical
+                        across different data types
+formatUniqueID          Add a unique ID for each animal, treatment,
+                        TCS, and cell, to our files
+getAnimalAndTreatmentIDs
+                        Return a list of animal and treatment IDs from
+                        the image storage directory used with the
+                        Microglia Morphology Analysis Fiji package
+getFileLocations        Return a list containing all the information
+                        needed to read in data from the Microglia
+                        Morphology Analysis Fiji plugin
+getFracLacMaskNames     Extract a 'Mask Name' from the FracLac / Hull
+                        and Circularity file locations that matches the
+                        format of the Parameters data types
+getIDFromLocations      Retrieve ID info from a file path
+getTCSFromFracLacLocations
+                        Retrieve the TCS value (mask size) from a
+                        vector of file locations. Unlike
+                        getTCSFromLocations(), this is suitable for use
+                        with FracLac and Hull and Circularity data
+getTCSFromLocations     Retrieve the TCS value (mask size) from a
+                        vector of file locations
+infInd                  Function to run for full inflammation index
+                        construction and data preprocessing
+mergeDataTogether       Merge all our different data types together
+                        into a single data.table object
+morphPreProcessing      Wrapper function for all morphology data
+                        preprocessing for data output by the Microglia
+                        Morphology Analysis Fiji Plugin
+morphPreProcessing      Function to Format and Read In Microglia
+                        Morphology Data
+readInFile              Formatted function for reading in morphology
+                        data output by the Microglia Morphology
+                        Analysis Fiji plugin
+readInRawData           Takes the output of getFileLocations and uses
+                        its contents with the readInFile function to
+                        read in Microglia Morphology Analysis Fiji
+                        plugin data
+removeUnusedMetrics     Removes metrics from our data that we aren't
+                        considering in Inflammation Index construction
+retainCommonCells       Remove all cells that aren't common across
+                        different data types
+returnVectorOfMatchingValues
+                        Return the strings that match a vector of
+                        strings
