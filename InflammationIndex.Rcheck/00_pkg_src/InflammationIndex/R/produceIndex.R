@@ -302,9 +302,7 @@ return(list('PCAOut' = pca_out$PCA,
 # Run on the output of the morphPreProcessing function, we look through TCS values and
 # find the best TCS and combination of descriptors to distinguish between LPS and nonLPS
 # using "method"
-
-
-constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL, noDesc = 5:15) {
+constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL, noDesc = 1:2) {
 # INPUTS
 # inDat = data.table containing the output from morphPreProcessing
 # LPSGroups = vector of strings identifying the treatment values that specify our positive control conditions
@@ -312,101 +310,101 @@ constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL, no
 # otherExclusions is a list with element 'column' that gives the column name to look in and 'cond' that gives the condition in
 #   that column to limit our data to for training purposes (besides just LPSGroups)
 
-  exit = F
-  
-  if(is.null(inDat)) {
-  	exit = T
-  	print("Data not provided")
-  }
-  
-  if(is.null(LPSGroups)) {
-  	exit = T
-  	print("Need to provide a vector of which treatment IDs identify pre and post inflammatory activation")
-  }
-  
-  if(is.null(method)) {
-  	exit = T
-  	print("Need to provide a string of which method to use to optimise the inflammation index selection")
-  }
-  
-  if(!(method %in% c("p value", "AUC"))) {
-  	exit = T
-  	print("Format of provided method doesn't match 'p value' or 'AUC'")
-  }
-  
-  if(exit == T) {
-  	return(NULL)
-  }
-  
-  if(is.null(otherExclusions)) {
-  	labCols = 
-  	c("Animal", "CellNo", "TCS", "Treatment", "UniqueID")
-  	} else {
-  		labCols = c(c("Animal", "CellNo", "TCS", "Treatment", "UniqueID"), otherExclusions$Col)
-  }
+exit = F
+
+if(is.null(inDat)) {
+	exit = T
+	print("Data not provided")
+}
+
+if(is.null(LPSGroups)) {
+	exit = T
+	print("Need to provide a vector of which treatment IDs identify pre and post inflammatory activation")
+}
+
+if(is.null(method)) {
+	exit = T
+	print("Need to provide a string of which method to use to optimise the inflammation index selection")
+}
+
+if(!(method %in% c("p value", "AUC"))) {
+	exit = T
+	print("Format of provided method doesn't match 'p value' or 'AUC'")
+}
+
+if(exit == T) {
+	return(NULL)
+}
+
+if(is.null(otherExclusions)) {
+	labCols = 
+	c("Animal", "CellNo", "TCS", "Treatment", "UniqueID")
+	} else {
+		labCols = c(c("Animal", "CellNo", "TCS", "Treatment", "UniqueID"), otherExclusions$Col)
+	}
 
 	tableOut = list()
 	PCAOut = list()
 	addIndex = 1
 
-  # Get out our training data
-  procDat = filter_by_training_data(inDat, LPSGroups, otherExclusions)
-  
-  # For each TCS value we have in our training data
-  for(currTCS in unique(procDat$TCS)) {
-  
-  	PCAOut[[currTCS]] = list()
-  
-    # Get out gathered data for this TCS value
-    format_list = format_rocr_input(procDat[TCS == currTCS], labCols)
-    
-    # Get out AUC values for every metric in our gathered data
-    ROC_list = lapply(unique(format_list$aggData$Parameter), function(x, aggData) {
-    	get_ROC_values(aggData, currParam = x)
-    	}, format_list$aggData)
-    
-    paramByAuc = rbindlist(ROC_list)
-    
-    # Loop through whether we're using the 1st, 1st+2nd, 1st+2nd+3rd etc. best discriminators
-    for(howMany in noDesc) {
-    
-      # Get the PCA of our inflammation index, and a table of evaluation metrics
-      inf_ind_metrics = get_inf_ind_metrics(paramByAuc, howMany, format_list, method)
-      
-      # Return our inflammation index PCA and pval and AUC values
-      PCAOut[[currTCS]][[howMany]] = inf_ind_metrics$PCAOut
-      
-      tableOut[[addIndex]] = inf_ind_metrics$tableOut
-      tableOut[[addIndex]][, TCS := currTCS]
-      
-      addIndex = addIndex+1
-  
-    }
+# Get out our training data
+procDat = filter_by_training_data(inDat, LPSGroups, otherExclusions)
 
-  }
+# For each TCS value we have in our training data
+for(currTCS in unique(procDat$TCS)) {
 
-  forComp = unique(rbindlist(tableOut)[, list(Vals, TCS, `p-value`, AUC)])
-  
-  # Print thee TCS, no. discriminators that had the best discrmination between psotive control condtions
-  if(method == "p value") {
-    	print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
-    	print(paste("Best No. Discriminators", forComp[which.min(forComp$`p-value`), Vals]))
-    	print(paste("p value", min(forComp$`p-value`)))
-    	toUse = PCAOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
-    	TCSToUse = forComp[which.min(forComp$`p-value`), TCS]
-  	} else if (method == "AUC") {
-  		print(paste("Best TCS", forComp[which.max(forComp$AUC), TCS]))
-  		print(paste("Best No. Discriminators", forComp[which.max(forComp$AUC), Vals]))
-  		print(paste("AUC", max(forComp$AUC)))
-  		toUse = PCAOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
-  		TCSToUse = forComp[which.max(forComp$AUC), TCS]
-		}
+	PCAOut[[currTCS]] = list()
 
-  # Apply our final inflammation index to our input data
-  dataToReturn = inDat[TCS == TCSToUse]
-  dataToReturn[, InfInd := predict(toUse, newdata = dataToReturn)[,1]]
-  
-  # Return the input data with the final index applied, as well as the PCA this is based on
+# Get out gathered data for this TCS value
+format_list = format_rocr_input(procDat[TCS == currTCS], labCols)
+
+# Get out AUC values for every metric in our gathered data
+ROC_list = lapply(unique(format_list$aggData$Parameter), function(x, aggData) {
+	get_ROC_values(aggData, currParam = x)
+	}, format_list$aggData)
+
+paramByAuc = rbindlist(ROC_list)
+
+# Loop through whether we're using the 1st, 1st+2nd, 1st+2nd+3rd etc. best discriminators
+for(howMany in noDesc) {
+
+# Get the PCA of our inflammation index, and a table of evaluation metrics
+inf_ind_metrics = get_inf_ind_metrics(paramByAuc, howMany, format_list, method)
+
+# Return our inflammation index PCA and pval and AUC values
+PCAOut[[currTCS]][[howMany]] = inf_ind_metrics$PCAOut
+
+tableOut[[addIndex]] = inf_ind_metrics$tableOut
+tableOut[[addIndex]][, TCS := currTCS]
+
+addIndex = addIndex+1
+
+}
+
+}
+
+forComp = unique(rbindlist(tableOut)[, list(Vals, TCS, `p-value`, AUC)])
+
+# Print thee TCS, no. discriminators that had the best discrmination between psotive control condtions
+if(method == "p value") {
+  	print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
+  	print(paste("Best No. Discriminators", forComp[which.min(forComp$`p-value`), Vals]))
+  	print(paste("p value", min(forComp$`p-value`)))
+  	toUse = PCAOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
+  	TCSToUse = forComp[which.min(forComp$`p-value`), TCS]
+	} else if (method == "AUC") {
+		print(paste("Best TCS", forComp[which.max(forComp$AUC), TCS]))
+		print(paste("Best No. Discriminators", forComp[which.max(forComp$AUC), Vals]))
+		print(paste("AUC", max(forComp$AUC)))
+		toUse = PCAOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
+		TCSToUse = forComp[which.max(forComp$AUC), TCS]
+	}
+
+# Apply our final inflammation index to our input data
+dataToReturn = inDat[TCS == TCSToUse]
+dataToReturn[, InfInd := predict(toUse, newdata = dataToReturn)[,1]]
+
+# Return the input data with the final index applied, as well as the PCA this is based on
 	return(toUse)
 
 }
