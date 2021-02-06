@@ -13,7 +13,7 @@ then installing the InflammationIndex package from GitHub
 
 ```{r, eval = False}
 require(devtools)
-install_github("BrainEnergyLab/Inflammation-Index")
+install_github("BrainEnergyLab/Inflammation-Index/R Package")
 ```
 
 Then load in the package.
