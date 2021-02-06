@@ -340,9 +340,9 @@ constructInfInd <- function(inDat, LPSGroups, method, otherExclusions = NULL, no
   
   if(is.null(otherExclusions)) {
   	labCols = 
-  	c("Animal", "CellNo", "TCS", "Treatment", "UniqueID")
+  	c("Animal", "Treatment", "TCSValue", "UniqueID", "CellNo")
   	} else {
-  		labCols = c(c("Animal", "CellNo", "TCS", "Treatment", "UniqueID"), otherExclusions$Col)
+  		labCols = c(c("Animal", "Treatment", "TCSValue", "UniqueID", "CellNo"), otherExclusions$Col)
   }
 
 	tableOut = list()
