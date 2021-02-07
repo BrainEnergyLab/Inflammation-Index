@@ -121,25 +121,26 @@ head(output)
 Once users have an output from the morphPreProcessing() function, they can use this
 to generate an inflammation index based on training conditions using the constructInfInd() function.
 This function takes three required arguments:
-- inDat: this is the data.table output by the morphPreProcessing() function
-- LPSGroups: this is a string vector of the treatmentIDs use to identify the training conditions
-  - The length of this vector should be 2
+- inDat: this is the filtered data.table output by the morphPreProcessing() function that is limited to your positive control / training conditions in the 'Treatment' column
+  - This table should have two unique values in the 'Treatment' column
+  - This table should have multiple 'TCSValue' values as the function compares TCS value against one another
+  to pick the value that provides the best morphological discrimination between training conditions
 - method: this is a string identifying which method users want to use to optimise the Inflammation Index
   -'p value' uses the smallest p value
   -'AUC' uses a ROC-AUC analysis
   
 In addition there is one optional argument:
 - noDesc: this is an integer vector of the number of 'best' descriptors to compare to one another
-  - Defaults to 1:15
+  - Defaults to 5:15
+- labCols: this is a string vector containing the names of non-metric columns that defaults to the identifier columns provided by morphPreProcessing():
+  - Animal, Treatment, TCSValue, UniqueID, CellNo
   
 The function returns a single PCA object.
 
 ```{r}
-inDat = output # The output of the morphPreProcessing() function
-LPSGroups = c('Pre-LPS', 'Post-LPS') # Vector of strings of the positive control conditions
+LPSGroups = c('D56', 'LPS')
+inDat = output[, Treatment %in% LPSGroups] # The output of the morphPreProcessing() function
 method = 'p value' # The method to use to refine the inflammation index, can also take the value 'AUC
-noDesc = 1:15 # A vector of integers where we compare inflammation indices made up of the N best descriptors and compare them
-  # E.g. when noDesc = c(1,2,3) we compare the inflammation indices made up of the 1 best discriminators, to one made of the 2 best discriminators, to one made of the 3 best discrminators.
 ```
 
 Here we're going to run this function on the example morphPreProccessing output table
@@ -150,12 +151,13 @@ and so has slightly different column names and ID column values.
 ```{r include = False}
 
 inDat = fread(exampleData)
+setnames(inDat, old = c('TCS'), new = 'TCSValue')
 
 ```
 
 ```{r}
 
-head(inDat)
+head(inDat[Treatment %in% c('D56', 'LPS'), ])
 
 ```
 The constructInfInd() function will print out the mask size, and number of descriptors,
@@ -165,10 +167,8 @@ print the value from the method argument.
 
 ```{r}
 infIndOut = 
-  constructInfInd(inDat = inDat,
-                  LPSGroups = c('D56', 'LPS'),
-                  method = 'p value',
-                  noDesc = 5:15)
+  constructInfInd(inDat = inDat[Treatment %in% c('D56', 'LPS')],
+                  method = 'p value')
 ```
 
 ### Step 4: Apply the Inflammation Index to test data (apply_inf_ind())
