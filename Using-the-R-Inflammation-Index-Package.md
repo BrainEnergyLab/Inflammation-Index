@@ -1,29 +1,26 @@
-Inflammation Index R Package
-============================
+# Inflammation Index R Package
 
-------------------------------------------------------------------------
+-----
 
-Table of Contents
------------------
+## Table of Contents
 
 1.  [Installation and Dependencies](#installation-and-dependencies)
 2.  [Use with the Microglia Morphology Analysis Fiji
     Plugin](#use-with-the-microglia-morphology-analysis-fiji-plugin)
     1.  [Step 1: Loading in Data (morphPreProcessing()
         function)](#step-1-loading-in-data-morphpreprocessing-function)
-        -   [Retrieving IDs from the Fiji Plugin Folder
+          - [Retrieving IDs from the Fiji Plugin Folder
             Structure](#retrieving-ids-from-the-fiji-plugin-folder-structure)
     2.  [Step 2: Constructing the Inflammation Index (constructInfInd()
         function)](#step-2-constructing-the-inflammation-index-constructinfind-function)
     3.  [Step 3: Apply the Inflammation Index to test data
         (applyInfInd())](#step-3-apply-the-inflammation-index-to-test-data-applyinfind)
 
-------------------------------------------------------------------------
+-----
 
-Installation and Dependencies
------------------------------
+## Installation and Dependencies
 
-------------------------------------------------------------------------
+-----
 
 In R the InflammationIndex package can be installed first by installing
 and loading devtools to enable installing packages directly from GitHub,
@@ -41,8 +38,7 @@ require(devtools)
 install_github("BrainEnergyLab/Inflammation-Index/R Package")
 ```
 
-    ## Skipping install of 'InflammationIndex' from a github remote, the SHA1 (fb5eb376) has not changed since last install.
-    ##   Use `force = TRUE` to force installation
+    ## Downloading GitHub repo BrainEnergyLab/Inflammation-Index@HEAD
 
 Then load in the package.
 
@@ -52,12 +48,11 @@ require(InflammationIndex)
 
     ## Loading required package: InflammationIndex
 
-------------------------------------------------------------------------
+-----
 
-Use with the Microglia Morphology Analysis Fiji Plugin
-------------------------------------------------------
+## Use with the Microglia Morphology Analysis Fiji Plugin
 
-------------------------------------------------------------------------
+-----
 
 ### Step 1: Loading in Data (morphPreProcessing() function)
 
@@ -67,22 +62,22 @@ the ***morphPreProcessing()*** function can be used to read in and
 collate all the morphological metrics extracted.This function requires
 users to specify:
 
--   **pixelSize**: The pixel size in microns (assuming a square pixel)
--   **morphologyWD**: The file path to the ‘Output’ folder of the
+  - **pixelSize**: The pixel size in microns (assuming a square pixel)
+  - **morphologyWD**: The file path to the ‘Output’ folder of the
     ‘working directory’ of the Fiji plugin passed as a string
--   **animalIDs**: A string vector where each element is the ID of an
+  - **animalIDs**: A string vector where each element is the ID of an
     animal that users want to extract data for
--   **treatmentIDs**: A string vector where each element is the ID of
+  - **treatmentIDs**: A string vector where each element is the ID of
     the treatment applied that users want to extract data for
 
 Optional inputs:
 
--   **TCSExclude**: a numeric vector of mask size values that users want
+  - **TCSExclude**: a numeric vector of mask size values that users want
     to exclude from the data collation
-    -   Defaults to NULL (no values are excluded)
--   **useFrac**: a boolean that indicates whether the user wants to
+      - Defaults to NULL (no values are excluded)
+  - **useFrac**: a boolean that indicates whether the user wants to
     include data from FracLac in their collation
-    -   Defaults to False
+      - Defaults to False
 
 The output of the function is a data.table where each row is a cell and
 the columns indicate morphological metrics.
@@ -119,13 +114,13 @@ To avoid having to manually input the animal and treatment IDs, users
 can use the ***getAnimalAndTreatmentIDs()*** function to return a list,
 the only input is:
 
--   **imageStorageDirectory**: the file path to the ‘image storage
+  - **imageStorageDirectory**: the file path to the ‘image storage
     directory’ that users used with the Fiji plugin, passed as a string
 
 The function returns a list with two elements:
 
--   **treatmentIDs**: a string vector of treatment IDs
--   **animalIDs**: a string vector of animal IDs
+  - **treatmentIDs**: a string vector of treatment IDs
+  - **animalIDs**: a string vector of animal IDs
 
 These can be passed directly to the treatmentIDs and animalIDs arguments
 in morphPreProcessing().
@@ -162,14 +157,14 @@ output =
 
 The columns in the output table:
 
--   **Animal**: animal ID
-    -   These values match the values in the animalIDs input
--   **Treatment**: treatment ID
-    -   These values match the values in the treatmentIDs input
--   **TCSValue**: The mask size value this row’s metrics relate to
--   **UniqueID**: is a unique identifier for each row (a combination of
+  - **Animal**: animal ID
+      - These values match the values in the animalIDs input
+  - **Treatment**: treatment ID
+      - These values match the values in the treatmentIDs input
+  - **TCSValue**: The mask size value this row’s metrics relate to
+  - **UniqueID**: is a unique identifier for each row (a combination of
     animal, treatment, mask size, and name of the mask file)
--   **CellNo**: (second to last column) is an identifier for each cell
+  - **CellNo**: (second to last column) is an identifier for each cell
     that is duplicated if a cell has measurements taken at multiple
     TCSValue levels.
 
@@ -341,40 +336,40 @@ head(output)
     ## 5:       0.07283246
     ## 6:       0.07283246
 
-------------------------------------------------------------------------
+-----
 
 ### Step 2: Constructing the Inflammation Index (constructInfInd() function)
 
-------------------------------------------------------------------------
+-----
 
 Once users have an output from the morphPreProcessing() function, they
 can use this to generate an Inflammation Index based on training
 conditions using the constructInfInd() function. This function takes
 three required arguments:
 
--   **procDat**: this is the filtered data.table output by the
+  - **procDat**: this is the filtered data.table output by the
     morphPreProcessing() function that is limited to your positive
     control / training conditions in the ‘Treatment’ column
-    -   This table should have two unique values in the ‘Treatment’
+      - This table should have two unique values in the ‘Treatment’
         column
-    -   This table should have multiple ‘TCSValue’ values as the
+      - This table should have multiple ‘TCSValue’ values as the
         function compares TCS value against one another to pick the
         value that provides the best morphological discrimination
         between training conditions
--   **method**: this is a string identifying which method users want to
+  - **method**: this is a string identifying which method users want to
     use to optimise the Inflammation Index
-    -   ‘p value’ uses the smallest p value
-    -   ‘AUC’ uses a ROC-AUC analysis
+      - ‘p value’ uses the smallest p value
+      - ‘AUC’ uses a ROC-AUC analysis
 
 In addition there are two optional arguments:
 
--   **noDesc**: this is an integer vector of the number of ‘best’
+  - **noDesc**: this is an integer vector of the number of ‘best’
     descriptors to compare to one another
-    -   Defaults to 5:15
--   **labCols**: this is a string vector containing the names of
+      - Defaults to 5:15
+  - **labCols**: this is a string vector containing the names of
     non-metric columns that defaults to the identifier columns provided
     by morphPreProcessing():
-    -   Defaults to c(Animal, Treatment, TCSValue, UniqueID, CellNo)
+      - Defaults to c(Animal, Treatment, TCSValue, UniqueID, CellNo)
 
 The function returns a single PCA object.
 
@@ -517,11 +512,11 @@ infIndOut =
     ## [1] "Best No. Discriminators 5"
     ## [1] "p value 1.43679512731865e-10"
 
-------------------------------------------------------------------------
+-----
 
 ### Step 3: Apply the Inflammation Index to test data (applyInfInd())
 
-------------------------------------------------------------------------
+-----
 
 Users can use the applyInfInd() function to generate an Inflammation
 Index for novel data using the PCA object output by constructInfInd().
