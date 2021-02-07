@@ -20,6 +20,23 @@ This file describes how to use and install the Inflammation-Index R package to r
 
 ---
 
+## Discussions
+
+--
+
+Please post any questions, suggestions, etc. [here](https://github.com/BrainEnergyLab/Inflammation-Index/discussions)
+
+---
+
+## Roadmap
+
+---
+
+Outstanding issues, feature changes, updates etc. will be posted and tracked [here](https://github.com/BrainEnergyLab/Inflammation-Index/projects)
+
+---
+
+
 ## Other Folder Contents
 
 ---
