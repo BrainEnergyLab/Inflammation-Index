@@ -14,7 +14,8 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     data.table,
-    ROCR
+    ROCR,
+    tidyr
 RoxygenNote: 7.1.1
 Suggests: 
     testthat

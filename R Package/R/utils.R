@@ -6,10 +6,12 @@
 #' @name InflammationIndex
 #' @import data.table
 #' @import ROCR
+#' @import tidyr
 #' @importFrom stats anova complete.cases prcomp predict var
 #' @importFrom utils tail
 NULL
 
 usethis::use_package('data.table')
 usethis::use_package('ROCR')
+usethis::use_package('tidyr')
 #usethis::use_testthat()
