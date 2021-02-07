@@ -266,7 +266,6 @@ getPC1AUC = function(allDat){
 #' @return A list with two elements: PCAOut is the PCA object we used to create our index;
 #' tableOut is a data.table reporting the parameters we use, the number of top performing parameters we selected,
 #' and the AUC or p-value of our index performance
-#' @export
 createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols) {
 
   # Get the top parameters by AUC
@@ -324,6 +323,7 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols)
 #' @param noDesc An integer vector that indicates what different combinations of the best descriptors we want to try building our Index using
 #' @param labCols A string vector of the ID columns in procDat
 #' @return A PCA object
+#' @export
 constructInfInd <- function(procDat, method, noDesc = 5:15, 
                             labCols = c('Animal', 'Treatment', 'TCSValue', 'CellNo', 'UniqueID')) {
 
