@@ -374,6 +374,8 @@ constructInfInd <- function(procDat, method, noDesc = 5:15,
       # Get the PCA of our inflammation index, and a table of evaluation metrics
       inf_ind_metrics = createEvaluateInfIndex(paramByAuc, howMany, method, aggData, labCols)
       
+      ### We're up to here in terms of making changes
+      
       # Return our inflammation index PCA and pval and AUC values
       PCAOut[[currTCS]][[howMany]] = inf_ind_metrics$PCAOut
       
@@ -418,42 +420,4 @@ apply_inf_ind = function(infIndOutput, applyTo) {
   for_output[, InfInd := predict(infIndOutput, newdata = for_output)[,1]]
   return(for_output)
   
-}
-
-# Functino wraps the preprocessing and constructInfInd functions in one
-infInd <- 
-function(pixelSize = 0.58, morphologyWD, TCSExclude = NULL, 
-	animalIDs, treatmentIDs, LPSGroups, method = 'p value',
-	useFrac = T, otherExclusions = NULL, noDesc = 1:15) {
-
-# If there is a fraclac directory specify useFrac as T
-if(is.null(useFrac)) {
-	if(length(dir(path = morphologyWD, pattern = "fracLac", full.names = T, recursive = F, ignore.case = T)>0)) {
-		useFrac = T
-	}
-}
-
-################################################################################
-########################### Get Morphology Data ################################
-################################################################################
-
-# Get our formatted data
-output = 
-morphPreProcessing(
-	pixelSize = pixelSize, morphologyWD = morphologyWD, 
-	TCSExclude = TCSExclude, animalIDs = animalIDs, treatmentIDs = treatmentIDs,
-	useFrac = useFrac)
-
-# Construct our inflammation index and apply it
-PCOut = 
-constructInfInd(output, LPSGroups = LPSGroups, method = method, 
-	otherExclusions = otherExclusions, noDesc = noDesc)
-
-# Return our data
-returnList = list("PreProcData" = output,
-	"PCA Object" = PCOut$`PCA Object`,
-	"ProcData" = PCOut$Data)
-
-return(returnList)
-
 }
