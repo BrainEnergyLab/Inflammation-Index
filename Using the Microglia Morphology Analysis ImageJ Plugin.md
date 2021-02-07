@@ -534,6 +534,8 @@ In addition, a 'Results' folder is created for each mask size. In this results f
 
 ---
 
+[***Video demonstration***](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Example%20Videos/fraclac_movie_480p.mov)
+
 This final step needs to be run manually. As part of step 7, all the cell masks are copied into a new folder in the 'Output' folder called 'fracLac'. The files are saved with their parent image names and mask size values included. 
 
 ![fraclac fraclac folder contents](./MarkdownAssets/FracLac/fraclac_fraclac_folder_contents.png)
