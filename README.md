@@ -22,7 +22,7 @@ This file describes how to use and install the Inflammation-Index R package to r
 
 ## Discussions
 
---
+---
 
 Please post any questions, suggestions, etc. [here](https://github.com/BrainEnergyLab/Inflammation-Index/discussions)
 
