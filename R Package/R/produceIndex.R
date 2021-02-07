@@ -266,6 +266,7 @@ getPC1AUC = function(allDat){
 #' @return A list with two elements: PCAOut is the PCA object we used to create our index;
 #' tableOut is a data.table reporting the parameters we use, the number of top performing parameters we selected,
 #' and the AUC or p-value of our index performance
+#' @export
 createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols) {
 
   # Get the top parameters by AUC
@@ -414,6 +415,7 @@ constructInfInd <- function(procDat, method, noDesc = 5:15,
 #' @param infIndOutput A PCA object output by constructInfInd
 #' @param applyTo A data.table that we want to create an Inflammation Index for
 #' @return A data.table that is identical to applyTo but with the Inflammation Index added as a final column
+#' @export
 applyInfInd = function(infIndOutput, applyTo) {
   
   # Apply the PCA object and extract PC1 and store this as InfInd

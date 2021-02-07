@@ -3,6 +3,7 @@
 #' 
 #' @param imageStorageDirectory A file path as a string
 #' @return A list with two elements, each a string vector, containing the animal and treatment IDs found in the imageStorageDirectory
+#' @export
 getAnimalAndTreatmentIDs <- function(imageStorageDirectory) {
   
   # Get all the directories in the imageStorageDirectory
@@ -588,6 +589,7 @@ mergeDataTogether = function(inputData) {
 #' @param TCSExclude OPTIONAL A vector of the TCS values (mask sizes) we don't want to read data in for. Defaults to NULL.
 #' @param useFrac OPTIONAL A boolean indicating whether we want to read in FracLac related data. Defaults to False.
 #' @return A data.table object of our morphology data merged and cleaned.
+#' @export
 morphPreProcessing <- function(pixelSize,
 	morphologyWD,
 	TCSExclude = NULL,

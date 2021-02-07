@@ -442,6 +442,9 @@ merge_data_togeherLegacy = function(storageList, useFrac) {
 
 # This function is for preprocessing the microglial morphology data output by 
 # the MicrogliaMorphologyAnalysis.ijm ImageJ script
+#' Legacy version of morphPreProcessing
+#' 
+#' @export
 morphPreProcessingLegacy <- function(pixelSize,
                                morphologyWD,
                                TCSExclude = NULL,
