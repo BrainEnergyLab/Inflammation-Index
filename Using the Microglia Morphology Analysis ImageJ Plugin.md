@@ -110,6 +110,8 @@ These modules are used to process and clean 3D image stacks so that they are sui
 
 ---
 
+[***Video demonstration***](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Example%20Videos/stack_preprocessing_movie_480p.mov)
+
 The first step in the image processing pipeline is stack preprocessing. This can be accessed in the 'Microglia Morphology Analysis Plugin' menu option within the Fiji 'Plugins' menu.
 
 ![Stack preprocessing command location](./MarkdownAssets/StackPreprocessingModule/stack_preprocessing_command_location.png)
@@ -165,6 +167,8 @@ After running this step on a stack for the first time, 'Auto Processing' will ha
 ## Step 3: Running Stack QA
 
 ---
+
+[***Video demonstration***](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Example%20Videos/stack_qa_movie_480p.mov)
 
 The next step in the pipeline is to QA the processed substacks.
 
@@ -273,6 +277,8 @@ These modules are used to semi-automatically detect and segment cells in the ima
 
 ---
 
+[***Video demonstration***](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Example%20Videos/cell_detection_movie_480p.mov)
+
 This module automatically detects cells in the image stacks, but allows for users to either select cells manually, or manually edit the automatic cell selections
 
 ![Cell detection command location](./MarkdownAssets/CellDetectionModule/cell_detection_command_location.png)
@@ -349,6 +355,8 @@ This module creates multiple outputs.
 
 ---
 
+[***Video demonstration***](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Example%20Videos/mask_generation_movie_480p.mov)
+
 This module uses iterative thresholding to generate cell masks that are then subjected to analysis.
 
 ![Mask generation command location](./MarkdownAssets/MaskGenerationModule/mask_generation_command_location.png)
@@ -400,6 +408,8 @@ Finally, a 'Local Regions' folder is created in the image's folder where we save
 ## Step 6: Mask QA
 
 ---
+
+[***Video demonstration***](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Example%20Videos/mask_qa_movie_480p.mov)
 
 In this module users are presented with each automatically generated cell mask, as well as an automatically generated outline of the soma for each cell, which they either reject (if the cell mask encompasses two cells for example) or approve. 
 
@@ -459,6 +469,8 @@ In addition, users need to manually run the FracLac plugin to perform the fracta
 ## Step 7: Mask Quantification
 
 ---
+
+[***Video demonstration***](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Example%20Videos/mask_quantification_movie_480p.mov)
 
 This module iterates through all the approved masks and quantifies them.
 

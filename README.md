@@ -35,3 +35,7 @@ Contains the R package code that can be installed using devtools.
 ### [MarkdownAssets](https://github.com/BrainEnergyLab/Inflammation-Index/tree/master/MarkdownAssets)
 
 Contains images used to enrich the markdown README files.
+
+### [Microglia Morphology Analysis Example Videos](https://github.com/BrainEnergyLab/Inflammation-Index/tree/master/Microglia%20Morphology%20Analysis%20Example%20Videos)
+
+Contains video files demonstrating how to use the Fiji plugin functions.
