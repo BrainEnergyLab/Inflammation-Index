@@ -120,7 +120,7 @@ hcCentreVariants = function(allMetrics) {
 
 #' Takes a vector of metrics and returns a vector where each element contains the name of that metrics variant
 #' 
-#' @param topParams A string vector of metrics
+#' @param allMetrics A string vector of metrics
 #' @return A string vector where the name of each element is a metric, and the value of each element is the name of the 
 #' variant form of that metric
 identifyMetricVariants = function(allMetrics) {
@@ -306,8 +306,7 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols)
   # Create a data.table to return our top parameters, the number of descriptors
   # included, and our p value and AUC value
   tableOut = 
-  data.table("Parameters" = topParams, "Vals" = howMany, 
-  	'p-value' = lmMod$pval,"AUC" = AUC)
+  data.table('p-value' = lmMod$pval,"AUC" = AUC)
   
   # Return our PCA object and this tableOut report
   return(list('PCAOut' = pca_out$PCA,
@@ -315,21 +314,21 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols)
   
 }
 
-# Run on the output of the morphPreProcessing function, we look through TCS values and
-# find the best TCS and combination of descriptors to distinguish between LPS and nonLPS
-# using "method"
-
-
+#' Wrapper function. Takes the output of morphPreProcessing filtered for training conditions,
+#' and returns a PCA object that can be used to build an Inflammation Index optimised for the TCS value and number of metrics
+#' that lead to the greatest sensitivity to the training conditions
+#' 
+#' @param procDat A data.table object output by morphPreProcessing that is filtered to only contains 2 Treatment values (training data)
+#' @param method A string that indicates what method to use to select the optimal Inflammation Index. Can either be 'p value' or 'AUC'
+#' @param noDesc An integer vector that indicates what different combinations of the best descriptors we want to try building our Index using
+#' @param labCols A string vector of the ID columns in procDat
+#' @return A PCA object
 constructInfInd <- function(procDat, method, noDesc = 5:15, 
                             labCols = c('Animal', 'Treatment', 'TCSValue', 'CellNo', 'UniqueID')) {
-# INPUTS
-# inDat = data.table containing the output from morphPreProcessing
-# Method is a string of 'p value' or 'AUC' specifying how to choose our best discriminators
-# labCols is a string vector of the column names that identify our data - non-metric columns
 
   exit = F
   
-  if(is.null(inDat)) {
+  if(is.null(procDat)) {
   	exit = T
   	print("Data not provided")
   }
@@ -358,7 +357,7 @@ constructInfInd <- function(procDat, method, noDesc = 5:15,
   	PCAOut[[currTCS]] = list()
   
     # Get out gathered data for this TCS value
-    aggData = formatROCRInput(procDat[TCSValue == currTCS], labCols)
+    aggData = formatROCRInput(copy(procDat[TCSValue == currTCS]), labCols)
     
     # Get out AUC values for every metric in our gathered data
     ROCList = list()
@@ -372,23 +371,23 @@ constructInfInd <- function(procDat, method, noDesc = 5:15,
     for(howMany in noDesc) {
       
       # Get the PCA of our inflammation index, and a table of evaluation metrics
-      inf_ind_metrics = createEvaluateInfIndex(paramByAuc, howMany, method, aggData, labCols)
-      
-      ### We're up to here in terms of making changes
+      infIndices = createEvaluateInfIndex(paramByAuc, howMany, method, aggData, labCols)
       
       # Return our inflammation index PCA and pval and AUC values
-      PCAOut[[currTCS]][[howMany]] = inf_ind_metrics$PCAOut
+      PCAOut[[currTCS]][[howMany]] = infIndices$PCAOut
       
-      tableOut[[addIndex]] = inf_ind_metrics$tableOut
+      tableOut[[addIndex]] = infIndices$tableOut
       tableOut[[addIndex]][, TCS := currTCS]
+      tableOut[[addIndex]][, Vals := howMany]
       
       addIndex = addIndex+1
   
     }
 
   }
-
-  forComp = unique(rbindlist(tableOut)[, list(Vals, TCS, `p-value`, AUC)])
+  
+	# Combine our tableOut tables into a single data.table
+  forComp = unique(rbindlist(tableOut))
   
   # Print thee TCS, no. discriminators that had the best discrmination between psotive control condtions
   if(method == "p value") {
@@ -404,18 +403,20 @@ constructInfInd <- function(procDat, method, noDesc = 5:15,
   		toUse = PCAOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
   		TCSToUse = forComp[which.max(forComp$AUC), TCS]
 		}
-
-  # Apply our final inflammation index to our input data
-  dataToReturn = inDat[TCS == TCSToUse]
-  dataToReturn[, InfInd := predict(toUse, newdata = dataToReturn)[,1]]
   
-  # Return the input data with the final index applied, as well as the PCA this is based on
+  # Return the PCA object
 	return(toUse)
 
 }
 
-apply_inf_ind = function(infIndOutput, applyTo) {
+#' Function to apply the outputs of constructInfInd to novel data
+#' 
+#' @param infIndOutput A PCA object output by constructInfInd
+#' @param applyTo A data.table that we want to create an Inflammation Index for
+#' @return A data.table that is identical to applyTo but with the Inflammation Index added as a final column
+applyInfInd = function(infIndOutput, applyTo) {
   
+  # Apply the PCA object and extract PC1 and store this as InfInd
   for_output = copy(applyTo)
   for_output[, InfInd := predict(infIndOutput, newdata = for_output)[,1]]
   return(for_output)

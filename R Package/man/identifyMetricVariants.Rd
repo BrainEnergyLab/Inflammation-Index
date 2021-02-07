@@ -7,7 +7,7 @@
 identifyMetricVariants(allMetrics)
 }
 \arguments{
-\item{topParams}{A string vector of metrics}
+\item{allMetrics}{A string vector of metrics}
 }
 \value{
 A string vector where the name of each element is a metric, and the value of each element is the name of the 

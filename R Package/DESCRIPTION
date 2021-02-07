@@ -15,7 +15,8 @@ LazyData: true
 Imports:
     data.table,
     ROCR,
-    tidyr
+    tidyr,
+    nlme
 RoxygenNote: 7.1.1
 Suggests: 
     testthat
