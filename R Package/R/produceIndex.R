@@ -3,6 +3,7 @@
 #' @param inputData A data.table output by morphPreProcessing
 #' @param labCols A string vector of the ID columns (i.e. non-metric columns) in inputData
 #' @return A data.table that is a version of inputData where each metric has its own row
+#' @export
 formatROCRInput = function(inputData, labCols) {
   
   procDat = copy(inputData)
@@ -27,6 +28,7 @@ formatROCRInput = function(inputData, labCols) {
 #' @param aggData A data.table object output by formatROCRInput
 #' @param currParam A string identifying the metric to perform the ROC analysis on (a unique value in aggData$Parameter)
 #' @return A data.table containing the AUC from the ROC analysis
+#' @export
 getROCValues = function(aggData, currParam) {
 
   # Get data corresponding to the metric of interest
@@ -201,6 +203,7 @@ filterTopMetrics = function(aggData, topParams, labCols) {
 #' @param forInfIndex A data.table output by filterTopMetrics
 #' @return A list with two elements: PCA is the PCA object output by running a PCA on our data;
 #' allDat is the wide format of our input data with PC1 appended as a column
+#' @export
 runPCA = function(forInfIndex) { 
   
   # Restructure our data to wide format and remove ID columns
@@ -223,6 +226,7 @@ runPCA = function(forInfIndex) {
 #' @param allDat A data.table object output by runPCA$allDat
 #' @return A list with two elements: model being the linear mixed model object we ran; pval being the p value of the effect of Treatment
 #' in the model
+#' @export
 getPC1PValue = function(allDat){
   
   # Build a linear mixed model for the effect of Treatment on our PC1 value using Animal as a group identifier
@@ -243,6 +247,7 @@ getPC1PValue = function(allDat){
 #' 
 #' @param allDat A data.table object output by runPCA$allDat
 #' @return The AUC value of the ROC-AUC analysis
+#' @export
 getPC1AUC = function(allDat){
 
   # Get our AUC value for PC1 over Treatment
@@ -266,6 +271,7 @@ getPC1AUC = function(allDat){
 #' @return A list with two elements: PCAOut is the PCA object we used to create our index;
 #' tableOut is a data.table reporting the parameters we use, the number of top performing parameters we selected,
 #' and the AUC or p-value of our index performance
+#' @export
 createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols) {
 
   # Get the top parameters by AUC
