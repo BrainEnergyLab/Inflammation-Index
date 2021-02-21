@@ -16,7 +16,8 @@ Imports:
     data.table,
     ROCR,
     tidyr,
-    nlme
+    nlme,
+    stringr
 RoxygenNote: 7.1.1
 Suggests: 
     testthat

@@ -8,6 +8,7 @@
 #' @import ROCR
 #' @import tidyr
 #' @import nlme
+#' @import stringr
 #' @importFrom stats anova complete.cases prcomp predict var
 #' @importFrom utils tail
 NULL
@@ -16,4 +17,5 @@ usethis::use_package('data.table')
 usethis::use_package('ROCR')
 usethis::use_package('tidyr')
 usethis::use_package('nlme')
+usethis::use_package('stringr')
 #usethis::use_testthat()
