@@ -1,0 +1,176 @@
+* using log directory ‘/Users/devin.clarke/Documents/GitHub/Inflammation-Index/InflammationIndex.Rcheck’
+* using R version 4.0.3 (2020-10-10)
+* using platform: x86_64-apple-darwin17.0 (64-bit)
+* using session charset: UTF-8
+* using options ‘--no-manual --as-cran’
+* checking for file ‘InflammationIndex/DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘InflammationIndex’ version ‘0.1.0’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking serialization versions ... OK
+* checking whether package ‘InflammationIndex’ can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking R files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... NOTE
+readInFile: warning in fread(locations, sep = seperators, na.string =
+  "NaN", encoding = fileEncoding, header = T, data.table = T): partial
+  argument match of 'na.string' to 'na.strings'
+read_in_fileLegacy: warning in fread(locations, sep = seperators,
+  na.string = "NaN", encoding = fileEncoding, header = T): partial
+  argument match of 'na.string' to 'na.strings'
+addMissingInfo: no visible binding for global variable ‘animalIDs’
+addMissingInfo: no visible binding for global variable ‘treatmentIDs’
+addMissingInfo: no visible binding for global variable ‘Location’
+add_missing_infoLegacy: no visible binding for global variable
+  ‘Location’
+applyInfInd: no visible binding for global variable ‘InfInd’
+constructInfInd: no visible binding for global variable ‘TCSValue’
+constructInfInd: no visible binding for global variable ‘TCS’
+constructInfInd: no visible binding for global variable ‘Vals’
+createEvaluateInfIndex: no visible binding for global variable
+  ‘Parameter’
+filterTopMetrics: no visible binding for global variable ‘Parameter’
+filterTopMetrics: no visible binding for global variable ‘Value’
+filterTopMetrics: no visible binding for global variable ‘V1’
+formatFracLacFiles: no visible binding for global variable ‘Location’
+formatROCRInput: no visible binding for global variable ‘Parameter’
+formatROCRInput: no visible binding for global variable ‘Value’
+formatROCRInput: no visible binding for global variable ‘Treatment’
+formatUniqueID: no visible binding for global variable ‘UniqueID’
+formatUniqueID: no visible binding for global variable ‘Animal’
+formatUniqueID: no visible binding for global variable ‘Treatment’
+formatUniqueID: no visible binding for global variable ‘TCS Value’
+formatUniqueID: no visible binding for global variable ‘Mask Name’
+format_fraclac_filesLegacy: no visible binding for global variable
+  ‘Location’
+format_unique_idLegacy: no visible binding for global variable
+  ‘CellName’
+format_unique_idLegacy: no visible binding for global variable ‘Stack
+  Position’
+format_unique_idLegacy : <anonymous>: no visible global function
+  definition for ‘str_detect’
+format_unique_idLegacy : <anonymous>: no visible global function
+  definition for ‘fixed’
+format_unique_idLegacy: no visible binding for global variable ‘Animal’
+format_unique_idLegacy: no visible binding for global variable
+  ‘Location’
+format_unique_idLegacy: no visible binding for global variable
+  ‘Treatment’
+format_unique_idLegacy: no visible binding for global variable
+  ‘UniqueID’
+format_unique_idLegacy: no visible binding for global variable ‘TCS’
+getPC1AUC: no visible binding for global variable ‘PC1’
+getPC1AUC: no visible binding for global variable ‘Treatment’
+getROCValues: no visible binding for global variable ‘Parameter’
+getROCValues: no visible binding for global variable ‘Value’
+getROCValues: no visible binding for global variable ‘Treatment’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘Animal’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘Treatment’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘MaskName’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘TCSValue’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘UniqueID’
+mergeDataTogether : <anonymous>: no visible binding for global variable
+  ‘Location’
+mergeDataTogether: no visible binding for global variable ‘TCSName’
+mergeDataTogether: no visible binding for global variable ‘Treatment’
+mergeDataTogether: no visible binding for global variable ‘Animal’
+mergeDataTogether: no visible binding for global variable ‘MaskName’
+mergeDataTogether: no visible binding for global variable ‘CellNo’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘Animal’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘Treatment’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘CellName’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘TCS’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘UniqueID’
+merge_data_togeherLegacy : <anonymous>: no visible binding for global
+  variable ‘Location’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘TCSName’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘Treatment’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘Animal’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘CellName’
+merge_data_togeherLegacy: no visible binding for global variable
+  ‘CellNo’
+morphPreProcessing: no visible binding for global variable ‘Animal’
+morphPreProcessing: no visible binding for global variable ‘Treatment’
+morphPreProcessingLegacy: no visible binding for global variable
+  ‘Analysed’
+readInRawData : <anonymous>: no visible global function definition for
+  ‘str_detect’
+read_in_fileLegacy: no visible binding for global variable ‘Location’
+read_in_raw_dataLegacy : <anonymous>: no visible global function
+  definition for ‘str_detect’
+removeWorstPerformingVariants: no visible binding for global variable
+  ‘Parameter’
+retainCommonCells: no visible binding for global variable ‘UniqueID’
+retain_common_cellsLegacy: no visible binding for global variable
+  ‘UniqueID’
+runPCA: no visible binding for global variable ‘Parameter’
+runPCA: no visible binding for global variable ‘Value’
+Undefined global functions or variables:
+  Analysed Animal CellName CellNo InfInd Location Mask Name MaskName
+  PC1 Parameter Stack Position TCS TCS Value TCSName TCSValue Treatment
+  UniqueID V1 Vals Value animalIDs fixed str_detect treatmentIDs
+Consider adding
+  importFrom("base", "Position")
+to your NAMESPACE file.
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... WARNING
+Undocumented arguments in documentation object 'morphPreProcessingLegacy'
+  ‘pixelSize’ ‘morphologyWD’ ‘TCSExclude’ ‘animalIDs’ ‘treatmentIDs’
+  ‘useFrac’
+
+Functions with \usage entries need to have the appropriate \alias
+entries, and all their arguments documented.
+The \usage entries must correspond to syntactically valid R code.
+See chapter ‘Writing R documentation files’ in the ‘Writing R
+Extensions’ manual.
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking examples ... NONE
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+Status: 1 WARNING, 1 NOTE
