@@ -4,13 +4,14 @@
 #' 
 #' @docType package
 #' @name InflammationIndex
-#' @import data.table
 #' @import ROCR
 #' @import tidyr
 #' @import nlme
 #' @import stringr
 #' @importFrom stats anova complete.cases prcomp predict var
 #' @importFrom utils tail
+#' @importFrom data.table data.table
+
 NULL
 
 usethis::use_package('data.table')
