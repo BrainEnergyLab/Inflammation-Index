@@ -3,6 +3,8 @@
 #' 
 #' @param imageStorageDirectory A file path as a string
 #' @return A list with two elements, each a string vector, containing the animal and treatment IDs found in the imageStorageDirectory
+#' $animalIDs contains the animal IDs
+#' $treatmentIDs contains the treatment IDs
 #' @export
 getAnimalAndTreatmentIDs <- function(imageStorageDirectory) {
   
@@ -137,8 +139,12 @@ filterForVector = function(filter_it, filter_by) {
   }
   
   # Remove nulls and return (but keep indices of non null elements as they were originally)
-  clean_vec[sapply(clean_vec, is.null)] <- NULL
-  return(unlist(clean_vec))
+  if(length(clean_vec) != 0) {
+    clean_vec[sapply(clean_vec, is.null)] <- NULL
+    return(unlist(clean_vec))
+  } else {
+    stop("Could not match any .csv files to animal and treatment combinations specified")
+  }
   
 }
 
@@ -597,38 +603,28 @@ morphPreProcessing <- function(pixelSize,
 	treatmentIDs,
 	useFrac = F) {
 
-	exit = F
 	if(is.null(pixelSize)) {
-		exit = T
-		print("Need to provide a pixelSize in um")
+		stop("Need to provide a pixelSize in um")
 	}
 
 	if(is.null(morphologyWD)) {
-		exit = T
-		print("Need to provide a directory (morphologyWD) for input files")
+		stop("Need to provide a directory (morphologyWD) for input files")
 	}
 
 	if(is.null(animalIDs)) {
-		exit = T
-		print("Need to provide a vector of animal IDs")
+		stop("Need to provide a vector of animal IDs")
 	} else {
 		animalIDs = toupper(animalIDs)
 	}
 
 	if(is.null(treatmentIDs)) {
-		exit = T
-		print("Need to provide a vector of treatment IDs")
+		stop("Need to provide a vector of treatment IDs")
 	} else {
 		treatmentIDs = toupper(treatmentIDs)
 	}
 
 	if(is.null(useFrac)) {
-		exit = T
-		print("Need to provide a boolean for useFrac")
-	}
-
-	if(exit == T) {
-		return(NULL)
+		stop("Need to provide a boolean for useFrac")
 	}
 
 	# Format our locations, seperators, encoding info to pass into our data reading function
@@ -636,8 +632,10 @@ morphPreProcessing <- function(pixelSize,
 	
 	# Remove any animals or treatments from our non-fraclac data that isn't in our animalIDs or treatmentIDs input vectors
 	for(currType in c('Cell Parameters', 'Sholl Parameters')){
-	  passList[[currType]]$Locations = filterForVector(passList[[currType]]$Locations, paste(animalIDs, collapse = '|'))
-	  passList[[currType]]$Locations = filterForVector(passList[[currType]]$Locations, paste(treatmentIDs, collapse = '|'))
+	  
+	  # Filter for our animals and treatments - collapse these vectors using the 'OR' symbol and remove whitespace
+	  passList[[currType]]$Locations = filterForVector(passList[[currType]]$Locations, gsub(paste(animalIDs, collapse = '|'), ' ', ''))
+	  passList[[currType]]$Locations = filterForVector(passList[[currType]]$Locations, gsub(paste(treatmentIDs, collapse = '|'), ' ', ''))
 	}
 	
 	# Read in our raw csv files
