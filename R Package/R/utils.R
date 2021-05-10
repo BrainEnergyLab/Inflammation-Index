@@ -10,7 +10,7 @@
 #' @import stringr
 #' @importFrom stats anova complete.cases prcomp predict var
 #' @importFrom utils tail
-#' @importFrom data.table data.table
+#' @importFrom data.table := rbindlist fread as.data.table copy
 
 NULL
 
