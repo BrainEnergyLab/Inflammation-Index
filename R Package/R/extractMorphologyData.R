@@ -359,12 +359,13 @@ addMissingInfo = function(storageList) {
              "Treatment" =
                getIDFromLocations(treatmentIDs, storageList$`Sholl Parameters`$Location)))
   
-  if(sum(grepl('FracLac', names(storageList))) > -1) {
+  if(sum(grepl('FracLac', names(storageList))) > 0) {
 
 		frac_names = c('FracLac', 'Hull and Circularity')
 
 		# Remove the location column
 		for(curr_element in frac_names) {
+		  
 			storageList[[curr_element]]$Files[, Location := NULL]
 
 		  # Rename the column in the first index as location
