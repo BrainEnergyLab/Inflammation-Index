@@ -12,6 +12,8 @@ getAnimalAndTreatmentIDs(imageStorageDirectory)
 }
 \value{
 A list with two elements, each a string vector, containing the animal and treatment IDs found in the imageStorageDirectory
+$animalIDs contains the animal IDs
+$treatmentIDs contains the treatment IDs
 }
 \description{
 Return a list of animal and treatment IDs from the image storage directory 
