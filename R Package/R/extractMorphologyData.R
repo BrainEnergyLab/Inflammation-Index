@@ -70,6 +70,13 @@ readInFile = function(locations, seperators, fileEncoding) {
 #' @return A list where each element corresponds to a data type extracted from the plugin, and within each element
 #' we have strings identifying what seperating character and fileEncoding are used, as well as a vector of all file locations
 getFileLocations = function(morphologyWD, useFrac) {
+  
+  # If the last character in our path is a forward slash, remove it as this messes with our
+  # path construction
+  lastPathCharacter = substr(morphologyWD, nchar(morphologyWD), nchar(morphologyWD))
+  if(lastPathCharacter == '/') {
+    morphologyWD = substr(morphologyWD, 0, nchar(morphologyWD)-1)
+  }
 
 	# List to store the pattern we'll search in our directory for each data type,
 	# as well as the character that separates fields in the data, and the 
