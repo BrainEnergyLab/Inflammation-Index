@@ -570,7 +570,8 @@ mergeDataTogether = function(inputData) {
 
 	# Create a unique name that could be repeated across TCS values, and assign each unique numeric value
 	merged[, TCSName := paste(Treatment, Animal, MaskName)]
-	merged[, CellNo := seq_along(TCSName)]
+	merged = merged %>% group_by(TCSName) %>% mutate(CellNo = cur_group_id())
+	merged = as.data.table(merged)
 
 	# If we're using frac, calculate branching density
 	if('FracLac' %in% names(storageList)) {

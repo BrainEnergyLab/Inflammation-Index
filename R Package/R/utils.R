@@ -8,6 +8,7 @@
 #' @import tidyr
 #' @import nlme
 #' @import stringr
+#' @import dplyr
 #' @importFrom stats anova complete.cases prcomp predict var
 #' @importFrom utils tail
 #' @importFrom data.table := rbindlist fread as.data.table copy
@@ -19,4 +20,5 @@ usethis::use_package('ROCR')
 usethis::use_package('tidyr')
 usethis::use_package('nlme')
 usethis::use_package('stringr')
+usethis::use_package('dplyr')
 #usethis::use_testthat()
