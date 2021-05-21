@@ -260,6 +260,45 @@ getPC1AUC = function(allDat){
 
 }
 
+#' For a input data table in long format containing 'Parameter' and 'Value' columns, return a data.table
+#' that contains the number of other Parameters each Parameter correlates with above a given threshold value
+#' 
+#' @param inputDt A data.table object containing Parameter and Value columns
+#' @param correlationCutoff A numeric value that indicates the correlation level above which we want to identify metrics
+#' @return A data.table containing one row per unique Parameter in the input table and the number of other Parameters it correlates with
+#' above our threshold value
+identifyMetricCorrelation = function(inputDt, correlationCutoff) {
+  
+  # Construct a correlation matrix of our chosen metrics
+  corMatrix = cor(as.data.table(spread(inputDt, Parameter, Value))[, unique(inputDt$Parameter), with = F])
+  
+  # Set the diagonal to NA
+  diag(corMatrix) <- NA
+  
+  # Turn it into a data frame
+  correlationRaw = as.data.frame(corMatrix)
+  
+  # Convert it from wide to long format, and to a data.table
+  correlationTable = as.data.table(
+    gather(
+      correlationRaw, 
+      Parameter, 
+      Correlation, 
+      1:ncol(corMatrix)
+    )
+  )
+  
+  # Find the metrics that have correlations >= our threshold
+  correlationTable[, Flag := ifelse(Correlation >= correlationCutoff, 1, 0)]
+  
+  # Find out how many metrics each metric correlates with above threshold
+  newDtCounts = correlationTable[, list('Count' = sum(Flag, na.rm = T)), by = Parameter]
+  
+  # Return this data table
+  return(newDtCounts)
+  
+}
+
 #' Find our top performing metrics, remove the lowest performing variants, create an 'Inflammation Index' for the data,
 #' calculate its effectiveness using the chosen method
 #' 
@@ -286,31 +325,48 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols,
   # Format a data.table of the best performing metrics
   forInfIndex = filterTopMetrics(aggData, topParams, labCols)
   
-  ########### Working here on finding which metrics are correlated above our threshold, we then want to only the select
-  # the one of these with the better discriminating ability
-  corMatrix = cor(as.data.table(spread(forInfIndex, Parameter, Value))[, unique(forInfIndex$Parameter), with = F])
-  correlationRaw = as.data.frame(corMatrix)
-  correlationRawTable = as.data.table(corMatrix)
-  row.names(correlationRawTable) = rownames(correlationRaw)
+  # Identify how many other metrics each metric correlates above threshold with
+  newDtCounts = identifyMetricCorrelation(forInfIndex, correlationCutoff)
   
-  correlationTable = as.data.table(
-    gather(
-      correlationRaw, 
-      Parameter, 
-      Correlation, 
-      1:ncol(corMatrix)
-      )
-    )
+  # Find the max number of metrics any given metric correlates with
+  newDtMax = max(newDtCounts$Count)
   
-  removeMetrics = correlationTable[Correlation >= correlationCutoff & Correlation != 1]
-  
-  for(row in nrow(removeMetrics)) {
-    pairOne = removeMetrics[row]$Parameter
-    pairTwo = rownames(correlationRaw[correlationRaw[which(names(correlationRaw) == removeMetrics[row]$Parameter)] == removeMetrics[row]$Correlation, ])  
-    print(paste('The two metrics ', pairOne, ' and ', pairTwo, ' are correlated above our threshold at ', removeMetrics[row]$Correlation))
+  # If we have any metric that correlates with any other above threshold
+  if(newDtMax > 0) {
+    
+    # Set enterLoop to true and create a copy of topParams we can alter
+    enterLoop = TRUE
+    adjTopParams = topParams
+  } else {
+    enterLoop = FALSE
   }
   
-  ##########Work ongoing here
+  # While the enterLoop condition is true
+  while(enterLoop) {
+    
+    # Find the metrics that appear the most times, then select the worst performing one of those to drop
+    worstPerforming = tail(paramByAuc[Parameter %in% newDtCounts[Count == newDtMax, Parameter]][order(-AUC)], 1)$Parameter
+    
+    # Drop this from our adjTopParams vector
+    adjTopParams = adjTopParams[!adjTopParams %in% worstPerforming]
+    
+    # Format a data.table of the best performing metrics
+    forInfIndex = filterTopMetrics(aggData, adjTopParams, labCols)
+    
+    # Identify how many other metrics each metric correlates above threshold with
+    newDtCounts = identifyMetricCorrelation(forInfIndex, correlationCutoff)
+    
+    # Find the max number of metrics any given metric correlates with
+    newDtMax = max(newDtCounts$Count)
+    
+    # If none of our metrics correlate with any other above threshold
+    if(newDtMax == 0) {
+      
+      # Set enterLoop to FALSE and exit the condition
+      enterLoop = FALSE
+    }
+    
+  }
   
   # If we return actual formmated data
   if(is.null(forInfIndex) == F) {
@@ -452,11 +508,11 @@ constructInfInd <- function(procDat, method, noDesc = 5:15,
 	# Combine our tableOut tables into a single data.table
   forComp = unique(rbindlist(tableOut))
   
-  # Print thee TCS, no. discriminators that had the best discrmination between psotive control condtions
+  # Print the TCS, no. discriminators that had the best discrimination between positive control conditions
   if(method == "p value") {
     	print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
-    	print(paste("Best No. Discriminators", forComp[which.min(forComp$`p-value`), Vals]))
-    	print(paste("Discriminators chosen:",forComp[which.min(forComp$`p-value`), Metrics]))
+    	print(paste("Best No. Discriminators (Pre Cleaning):", forComp[which.min(forComp$`p-value`), Vals]))
+    	print(paste("Discriminators chosen (Post Cleaning):",forComp[which.min(forComp$`p-value`), Metrics]))
     	print(paste("p value", min(forComp$`p-value`)))
     	toUse = PCAOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
     	TCSToUse = forComp[which.min(forComp$`p-value`), TCS]
@@ -466,14 +522,14 @@ constructInfInd <- function(procDat, method, noDesc = 5:15,
     	
   	} else if (method == "AUC") {
   		print(paste("Best TCS", forComp[which.max(forComp$AUC), TCS]))
-  		print(paste("Best No. Discriminators:", forComp[which.max(forComp$AUC), Vals]))
-  		print(paste("Discriminators chosen",forComp[which.min(forComp$AUC), Metrics]))
+  		print(paste("Best No. Discriminators (Pre Cleaning):", forComp[which.max(forComp$AUC), Vals]))
+  		print(paste("Discriminators chosen (Post Cleaning):",forComp[which.max(forComp$AUC), Metrics]))
   		print(paste("AUC", max(forComp$AUC)))
   		toUse = PCAOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
   		TCSToUse = forComp[which.max(forComp$AUC), TCS]
   		
   		# Retrieve the correlation matrix for the best performing combination of metrics
-  		correlationMatrix = corOut[[forComp[which.min(forComp$AUC), TCS]]][[forComp[which.min(forComp$AUC), Vals]]]
+  		correlationMatrix = corOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
   		
 		}
   
