@@ -10,7 +10,8 @@ constructInfInd(
   procDat,
   method,
   noDesc = 5:15,
-  labCols = c("Animal", "Treatment", "TCSValue", "CellNo", "UniqueID")
+  labCols = c("Animal", "Treatment", "TCSValue", "CellNo", "UniqueID"),
+  correlationCutoff = 0.9
 )
 }
 \arguments{
@@ -21,9 +22,13 @@ constructInfInd(
 \item{noDesc}{An integer vector that indicates what different combinations of the best descriptors we want to try building our Index using}
 
 \item{labCols}{A string vector of the ID columns in procDat}
+
+\item{correlationCutoff}{A numeric value that indicates the correlation level at which we will remove metrics from our
+inflammation index (to avoid building an index using overly correlated metrics)}
 }
 \value{
-A PCA object
+A list, where $PCA is a PCA object and $Metrics Correlation is a correlation matrix of the metrics the PCA
+was run on
 }
 \description{
 Wrapper function. Takes the output of morphPreProcessing filtered for training conditions,

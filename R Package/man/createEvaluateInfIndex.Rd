@@ -5,7 +5,14 @@
 \title{Find our top performing metrics, remove the lowest performing variants, create an 'Inflammation Index' for the data,
 calculate its effectiveness using the chosen method}
 \usage{
-createEvaluateInfIndex(paramByAuc, howMany, method, aggData, labCols)
+createEvaluateInfIndex(
+  paramByAuc,
+  howMany,
+  method,
+  aggData,
+  labCols,
+  correlationCutoff
+)
 }
 \arguments{
 \item{paramByAuc}{A data.table object where each row is a metric and its ROC-AUC value}
@@ -17,11 +24,15 @@ createEvaluateInfIndex(paramByAuc, howMany, method, aggData, labCols)
 \item{aggData}{A data.table object output by formatROCRInput}
 
 \item{labCols}{A string vector of the ID columns in aggData}
+
+\item{correlationCutoff}{A numeric value that indicates the correlation level at which we will remove metrics from our
+inflammation index (to avoid building an index using overly correlated metrics)}
 }
 \value{
 A list with two elements: PCAOut is the PCA object we used to create our index;
 tableOut is a data.table reporting the parameters we use, the number of top performing parameters we selected,
 and the AUC or p-value of our index performance
+chosenMetrics is a vector of the metrics we included
 }
 \description{
 Find our top performing metrics, remove the lowest performing variants, create an 'Inflammation Index' for the data,
