@@ -147,6 +147,7 @@ identifyMetricVariants = function(allMetrics) {
 #' 
 #' @param topParams A string vector of metrics in paramByAuc
 #' @param paramByAuc A data.table of the ROC-AUC value for all metrics
+#' @export
 #' @return A string vector that is a cleaned version of topParams
 removeWorstPerformingVariants = function(topParams, paramByAuc) {
 
