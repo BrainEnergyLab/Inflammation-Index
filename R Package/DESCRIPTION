@@ -18,8 +18,7 @@ Imports:
     tidyr,
     nlme,
     stringr,
-    dplyr,
-    rlang
+    dplyr
 RoxygenNote: 7.1.1
 Suggests: 
     testthat
