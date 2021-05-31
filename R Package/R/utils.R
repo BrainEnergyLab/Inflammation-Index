@@ -11,7 +11,7 @@
 #' @import dplyr
 #' @importFrom stats anova complete.cases prcomp predict var
 #' @importFrom utils tail
-#' @importFrom data.table := rbindlist fread as.data.table copy
+#' @importFrom data.table := rbindlist fread as.data.table copy data.table setnames
 
 NULL
 
