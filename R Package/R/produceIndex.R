@@ -7,7 +7,7 @@
 formatROCRInput = function(inputData, labCols) {
   
   procDat = copy(inputData)
-
+  
   # Gather the data across all measurements and label columns we're using
   aggData = 
     as.data.table(gather(procDat, Parameter, Value, (which(!(names(procDat) %in% labCols)))))
@@ -20,7 +20,7 @@ formatROCRInput = function(inputData, labCols) {
     aggData[order(Parameter), c(labCols, 'Parameter', 'Value'), with = F]  
   
   return(aggData)
-
+  
 }
 
 #' Run an ROC Analysis on a metric using Treatment conditions
@@ -30,7 +30,7 @@ formatROCRInput = function(inputData, labCols) {
 #' @return A data.table containing the AUC from the ROC analysis
 #' @export
 getROCValues = function(aggData, currParam) {
-
+  
   # Get data corresponding to the metric of interest
   forPref = 
     copy(aggData[Parameter == currParam, ])
@@ -44,8 +44,8 @@ getROCValues = function(aggData, currParam) {
   
   # Return a data.table object containing values from our ROC analysis
   return(outData)
-    #"FPR" = unlist(forPlot@x.values), "TPR" = unlist(forPlot@y.values),
-
+  #"FPR" = unlist(forPlot@x.values), "TPR" = unlist(forPlot@y.values),
+  
 }
 
 #' Takes a string vector of all the metrics we're analysing and returns a string vector of the
@@ -77,7 +77,7 @@ shollSampledVariants = function(allMetrics) {
   
   # Get the variants for our metrics based on sampled sholl data
   rawShollMetrics = allMetrics[grepl('fit', tolower(allMetrics))]
-
+  
   variantShollMetrics = as.vector(sapply(rawShollMetrics, function(x) {
     paste(substring(x, 0, gregexpr('\\(fit', x)[[1]][1]-1), '(sampled)', sep = '')
   }))
@@ -126,21 +126,21 @@ hcCentreVariants = function(allMetrics) {
 #' @return A string vector where the name of each element is a metric, and the value of each element is the name of the 
 #' variant form of that metric
 identifyMetricVariants = function(allMetrics) {
-
+  
   # Get the variants for our metrics based on sholl data percentiles
   percVariants = shollPercentileVariants(allMetrics)
   
-	# Get the variants for our metrics based on sampled sholl data
+  # Get the variants for our metrics based on sampled sholl data
   sampleVariants = shollSampledVariants(allMetrics)
-	
-	# Get the variants for our metrics based on the centre of the hull and circularity circle
+  
+  # Get the variants for our metrics based on the centre of the hull and circularity circle
   centreVariants = hcCentreVariants(allMetrics)
   
-	# Return all these vectors as a single vector
-	allMetricVariants = unlist(c(percVariants, sampleVariants, centreVariants))
-
-	return(allMetricVariants)
-
+  # Return all these vectors as a single vector
+  allMetricVariants = unlist(c(percVariants, sampleVariants, centreVariants))
+  
+  return(allMetricVariants)
+  
 }
 
 #' Remove the worst performing variants from a string vector of metrics
@@ -150,7 +150,7 @@ identifyMetricVariants = function(allMetrics) {
 #' @export
 #' @return A string vector that is a cleaned version of topParams
 removeWorstPerformingVariants = function(topParams, paramByAuc) {
-
+  
   # Identify all the variant metrics in topParams
   allMetricVariants = identifyMetricVariants(as.vector(unique(paramByAuc$Parameter)))
   
@@ -170,7 +170,7 @@ removeWorstPerformingVariants = function(topParams, paramByAuc) {
   
   # Return a vector of topPArams with worst performing variants removed
   return(cleanParams)
-
+  
 } 
 
 #' Filter our data to limit to the top performing parameters that have non-zero variance
@@ -180,7 +180,7 @@ removeWorstPerformingVariants = function(topParams, paramByAuc) {
 #' @param labCols A string vector of ID columns
 #' @return A data.table that is a filtered version of aggData
 filterTopMetrics = function(aggData, topParams, labCols) {
-
+  
   # Get out our top metrics and label columns
   forInfIndex = copy(aggData[Parameter %in% topParams, c(labCols, 'Parameter', 'Value'), with = F])
   forInfIndex[, Value := as.numeric(Value)]
@@ -188,15 +188,15 @@ filterTopMetrics = function(aggData, topParams, labCols) {
   # Identify parameters with zero variants and remove these from our data
   zeroVarianceParameters = forInfIndex[, var(scale(Value), na.rm = T), by = Parameter][V1 == 0]$Parameter
   forInfIndex[!Parameter %in% zeroVarianceParameters]
-
+  
   # If we now have no columns, warn the user
   if(nrow(forInfIndex)==0) {
     print("None of the best performing metrics were retained")
     return(NULL)
-	} else {
-	  return(forInfIndex)
-	}
-
+  } else {
+    return(forInfIndex)
+  }
+  
 }
 
 #' Run a PCA and append PC1 as a Column
@@ -211,15 +211,15 @@ runPCA = function(forInfIndex) {
   forPCARaw = as.data.table(spread(forInfIndex, Parameter, Value))
   metricCols = as.vector(unique(forInfIndex$Parameter))
   forPCA = forPCARaw[, (metricCols), with = F]
-
+  
   # Run a PCA on the data and then add our PC1 value to our input table
   PCA = prcomp(forPCA, center = T, scale = T)
   allDat = cbind(forPCARaw, PCA$x[,"PC1"])
   setnames(allDat, old = "V2", new = "PC1")
-
+  
   return(list('PCA' = PCA,
-  	'allDat' = allDat))
-
+              'allDat' = allDat))
+  
 }
 
 #' Calculate the p value of our Treatment effect on PC1
@@ -231,17 +231,17 @@ runPCA = function(forInfIndex) {
 getPC1PValue = function(allDat){
   
   # Build a linear mixed model for the effect of Treatment on our PC1 value using Animal as a group identifier
-	lmMod = 
-	lme(PC1 ~ Treatment, random = ~1|Animal,
-		data = allDat, control = lmeControl(msMaxIter = 100, opt = 'optim'))
+  lmMod = 
+    lme(PC1 ~ Treatment, random = ~1|Animal,
+        data = allDat, control = lmeControl(msMaxIter = 100, opt = 'optim'))
   
-	# Get our p value
-	pval = as.data.table(anova(lmMod))[2, "p-value"]
-
-	# Return our model and p value
-	return(list('model' = lmMod,
-		'pval' = pval$'p-value'))
-
+  # Get our p value
+  pval = as.data.table(anova(lmMod))[2, "p-value"]
+  
+  # Return our model and p value
+  return(list('model' = lmMod,
+              'pval' = pval$'p-value'))
+  
 }
 
 #' Calculate the ROC-AUC value of our PC1 over Treatment values
@@ -250,15 +250,15 @@ getPC1PValue = function(allDat){
 #' @return The AUC value of the ROC-AUC analysis
 #' @export
 getPC1AUC = function(allDat){
-
+  
   # Get our AUC value for PC1 over Treatment
-	pred = ROCR::prediction(allDat[, PC1], allDat[, Treatment])
-	perf = ROCR::performance(pred, "auc")
-	forPlot =  ROCR::performance(pred,"tpr","fpr")
-	AUC = perf@y.values[[1]]
-
-	return(AUC)
-
+  pred = ROCR::prediction(allDat[, PC1], allDat[, Treatment])
+  perf = ROCR::performance(pred, "auc")
+  forPlot =  ROCR::performance(pred,"tpr","fpr")
+  AUC = perf@y.values[[1]]
+  
+  return(AUC)
+  
 }
 
 #' For a input data table in long format containing 'Parameter' and 'Value' columns, return a data.table
@@ -308,12 +308,15 @@ identifyMetricCorrelation = function(inputDt, correlationCutoff) {
 #' @param method A string indicating whether we want to evaluate the effectiveness of our index using 'p value' or AUC
 #' @param aggData A data.table object output by formatROCRInput
 #' @param labCols A string vector of the ID columns in aggData
+#' @param correlationCutoff A numeric value that indicates the correlation level at which we will remove metrics from our
+#' inflammation index (to avoid building an index using overly correlated metrics)
 #' @return A list with two elements: PCAOut is the PCA object we used to create our index;
 #' tableOut is a data.table reporting the parameters we use, the number of top performing parameters we selected,
 #' and the AUC or p-value of our index performance
+#' chosenMetrics is a vector of the metrics we included
 #' @export
-createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols) {
-
+createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols, correlationCutoff) {
+  
   # Get the top parameters by AUC
   topParams = paramByAuc[AUC %in% tail(sort(AUC),howMany), Parameter]    
   
@@ -365,7 +368,7 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols)
     }
     
   }
-
+  
   # If we return actual formmated data
   if(is.null(forInfIndex) == F) {
     
@@ -374,32 +377,33 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols)
     
     # Get the p value of the effect of treatment on PC1
     if(method == 'p value') {
-  	  lmMod = getPC1PValue(pca_out$allDat)
-  	  AUC = NA
-  	
-  	# Get the ROC-AUC value for our PC1 on Treatment values
-  	} else {
-  		lmMod = list('pval' = NA)
-  		AUC = getPC1AUC(pca_out$allDat)
-  	}
-  
-  # Else set our pval, AUC, and PCA values to NULL as the formatted data was empty
+      lmMod = getPC1PValue(pca_out$allDat)
+      AUC = NA
+      
+      # Get the ROC-AUC value for our PC1 on Treatment values
+    } else {
+      lmMod = list('pval' = NA)
+      AUC = getPC1AUC(pca_out$allDat)
+    }
+    
+    # Else set our pval, AUC, and PCA values to NULL as the formatted data was empty
   } else {
-  
-  	AUC = NA
-  	lmMod = list('pval' = NA)
-  	pca_out = list('PCA' = NA)
-  
+    
+    AUC = NA
+    lmMod = list('pval' = NA)
+    pca_out = list('PCA' = NA)
+    
   }  
   
   # Create a data.table to return our top parameters, the number of descriptors
   # included, and our p value and AUC value
   tableOut = 
-  data.table('p-value' = lmMod$pval,"AUC" = AUC)
+    data.table('p-value' = lmMod$pval,"AUC" = AUC)
   
   # Return our PCA object and this tableOut report
   return(list('PCAOut' = pca_out$PCA,
-  	'tableOut' = tableOut))
+              'tableOut' = tableOut,
+              'chosenMetrics' = unique(forInfIndex$Parameter)))
   
 }
 
@@ -411,97 +415,128 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols)
 #' @param method A string that indicates what method to use to select the optimal Inflammation Index. Can either be 'p value' or 'AUC'
 #' @param noDesc An integer vector that indicates what different combinations of the best descriptors we want to try building our Index using
 #' @param labCols A string vector of the ID columns in procDat
-#' @return A PCA object
+#' @param correlationCutoff A numeric value that indicates the correlation level at which we will remove metrics from our
+#' inflammation index (to avoid building an index using overly correlated metrics)
+#' @return A list, where $PCA is a PCA object and $Metrics Correlation is a correlation matrix of the metrics the PCA
+#' was run on
 #' @export
 constructInfInd <- function(procDat, method, noDesc = 5:15, 
-                            labCols = c('Animal', 'Treatment', 'TCSValue', 'CellNo', 'UniqueID')) {
-
+                            labCols = c('Animal', 'Treatment', 'TCSValue', 'CellNo', 'UniqueID'),
+                            correlationCutoff = 0.9) {
+  
   exit = F
   
   if(is.null(procDat)) {
-  	exit = T
-  	print("Data not provided")
+    exit = T
+    print("Data not provided")
   }
   
   if(is.null(method)) {
-  	exit = T
-  	print("Need to provide a string of which method to use to optimise the inflammation index selection")
+    exit = T
+    print("Need to provide a string of which method to use to optimise the inflammation index selection")
   }
   
   if(!(method %in% c("p value", "AUC"))) {
-  	exit = T
-  	print("Format of provided method doesn't match 'p value' or 'AUC'")
+    exit = T
+    print("Format of provided method doesn't match 'p value' or 'AUC'")
   }
   
   if(exit == T) {
-  	return(NULL)
+    return(NULL)
   }
-
-	tableOut = list()
-	PCAOut = list()
-	addIndex = 1
+  
+  tableOut = list()
+  PCAOut = list()
+  corOut = list()
+  addIndex = 1
   
   # For each TCS value we have in our training data
   for(currTCS in unique(procDat$TCSValue)) {
-  
-  	PCAOut[[currTCS]] = list()
-  
+    
+    # Remove any rows where we have NA's for metrics
+    tcsDat = procDat[TCSValue == currTCS]
+    cleanDat = tcsDat[complete.cases(tcsDat)]
+    
     # Get out gathered data for this TCS value
-    aggData = formatROCRInput(copy(procDat[TCSValue == currTCS]), labCols)
+    aggData = formatROCRInput(copy(cleanDat), labCols)
     
-    # Get out AUC values for every metric in our gathered data
-    ROCList = list()
-    for(currMetric in unique(aggData$Parameter)) {
-      ROCList[[currMetric]] = getROCValues(aggData, currMetric)
-      ROCList[[currMetric]]$Parameter = currMetric
+    # If we have at least 3 cells in each treatment condition, proceed
+    if((min(cleanDat[, .N, by = Treatment]$N)) >= 3) {
+      
+      PCAOut[[currTCS]] = list()
+      corOut[[currTCS]] = list()
+      
+      # Get out AUC values for every metric in our gathered data
+      ROCList = list()
+      for(currMetric in unique(aggData$Parameter)) {
+        ROCList[[currMetric]] = getROCValues(aggData, currMetric)
+        ROCList[[currMetric]]$Parameter = currMetric
+      }
+      paramByAuc = rbindlist(ROCList)
+      
+      # Loop through whether we're using the 1st, 1st+2nd, 1st+2nd+3rd etc. best discriminators
+      for(howMany in noDesc) {
+        
+        # Get the PCA of our inflammation index, and a table of evaluation metrics
+        infIndices = createEvaluateInfIndex(paramByAuc, howMany, method, aggData, labCols, correlationCutoff)
+        
+        # Correlation matrix of our chosen metrics
+        metricsCor = cor(cleanDat[, infIndices$chosenMetrics, with = F])
+        
+        corOut[[currTCS]][[howMany]] = metricsCor
+        
+        # Return our inflammation index PCA and pval and AUC values
+        PCAOut[[currTCS]][[howMany]] = infIndices$PCAOut
+        
+        tableOut[[addIndex]] = infIndices$tableOut
+        tableOut[[addIndex]][, TCS := currTCS]
+        tableOut[[addIndex]][, Vals := howMany]
+        tableOut[[addIndex]][, Metrics := paste(infIndices$chosenMetrics, collapse = ', ')]
+        
+        addIndex = addIndex+1
+        
+      }
+      
+      # If we have less than 3 cells in at least one treatment condition, print a message
+    } else {
+      
+      print(paste('Not enough cells to evaluate the use of a mask size of ', currTCS, sep = ''))
+      
     }
-    paramByAuc = rbindlist(ROCList)
     
-    # Loop through whether we're using the 1st, 1st+2nd, 1st+2nd+3rd etc. best discriminators
-    for(howMany in noDesc) {
-      
-      # Get the PCA of our inflammation index, and a table of evaluation metrics
-      infIndices = createEvaluateInfIndex(paramByAuc, howMany, method, aggData, labCols)
-      
-      # Return our inflammation index PCA and pval and AUC values
-      PCAOut[[currTCS]][[howMany]] = infIndices$PCAOut
-      
-      tableOut[[addIndex]] = infIndices$tableOut
-      tableOut[[addIndex]][, TCS := currTCS]
-      tableOut[[addIndex]][, Vals := howMany]
-      
-      addIndex = addIndex+1
-  
-    }
-
   }
   
-	# Combine our tableOut tables into a single data.table
+  # Combine our tableOut tables into a single data.table
   forComp = unique(rbindlist(tableOut))
   
   # Print the TCS, no. discriminators that had the best discrimination between positive control conditions
   if(method == "p value") {
-    	print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
-    	print(paste("Best No. Discriminators (Pre Cleaning):", forComp[which.min(forComp$`p-value`), Vals]))
-    	print(paste("Discriminators chosen (Post Cleaning):",forComp[which.min(forComp$`p-value`), Metrics]))
-    	print(paste("p value", min(forComp$`p-value`)))
-    	toUse = PCAOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
-    	TCSToUse = forComp[which.min(forComp$`p-value`), TCS]
-  	} else if (method == "AUC") {
-  		print(paste("Best TCS", forComp[which.max(forComp$AUC), TCS]))
-  		print(paste("Best No. Discriminators (Pre Cleaning):", forComp[which.max(forComp$AUC), Vals]))
-  		print(paste("Discriminators chosen (Post Cleaning):",forComp[which.max(forComp$AUC), Metrics]))
-  		print(paste("AUC", max(forComp$AUC)))
-  		toUse = PCAOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
-  		TCSToUse = forComp[which.max(forComp$AUC), TCS]
-  		
-  		# Retrieve the correlation matrix for the best performing combination of metrics
-  		correlationMatrix = corOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
-		}
+    print(paste("Best TCS", forComp[which.min(forComp$`p-value`), TCS]))
+    print(paste("Best No. Discriminators (Pre Cleaning):", forComp[which.min(forComp$`p-value`), Vals]))
+    print(paste("Discriminators chosen (Post Cleaning):",forComp[which.min(forComp$`p-value`), Metrics]))
+    print(paste("p value", min(forComp$`p-value`)))
+    toUse = PCAOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
+    TCSToUse = forComp[which.min(forComp$`p-value`), TCS]
+    
+    # Retrieve the correlation matrix for the best performing combination of metrics
+    correlationMatrix = corOut[[forComp[which.min(forComp$`p-value`), TCS]]][[forComp[which.min(forComp$`p-value`), Vals]]]
+    
+  } else if (method == "AUC") {
+    print(paste("Best TCS", forComp[which.max(forComp$AUC), TCS]))
+    print(paste("Best No. Discriminators (Pre Cleaning):", forComp[which.max(forComp$AUC), Vals]))
+    print(paste("Discriminators chosen (Post Cleaning):",forComp[which.max(forComp$AUC), Metrics]))
+    print(paste("AUC", max(forComp$AUC)))
+    toUse = PCAOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
+    TCSToUse = forComp[which.max(forComp$AUC), TCS]
+    
+    # Retrieve the correlation matrix for the best performing combination of metrics
+    correlationMatrix = corOut[[forComp[which.max(forComp$AUC), TCS]]][[forComp[which.max(forComp$AUC), Vals]]]
+    
+  }
   
   # Return the PCA object
-	return(toUse)
-
+  return(list('PCA' = toUse, 'Metric Correlations' = correlationMatrix))
+  
 }
 
 #' Function to apply the outputs of constructInfInd to novel data
