@@ -1,0 +1,92 @@
+"0","output = "
+"0","  morphPreProcessing("
+"0","    pixelSize = pixelSize, morphologyWD = morphologyWD, "
+"0","    animalIDs = animalIDs, treatmentIDs = treatmentIDs,"
+"0","    useFrac = useFrac)"
+"1","Called from: "
+"1","eval(expr, p)
+"
+"0","n"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#51: "
+"1","print(locations)
+"
+"0","n"
+"1","[1]"
+"1"," ""/Users/devin.clarke/Google Drive/Microglia Morphology Analysis Plugin - ImageJ Example Directory and Input Data; Plugin Run Complete/Working Directory/Output/CE1L HFD21 Morphology/TCS200/Results/Cell Parameters Candidate mask for 10-20 x 178.28 y 433.108 .csv"""
+"1","
+"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#52: "
+"1","print(seperators)
+"
+"0","n"
+"1","[1]"
+"1"," "","""
+"1","
+"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#53: "
+"1","print(fileEncoding)
+"
+"0","n"
+"1","[1]"
+"1"," ""unknown"""
+"1","
+"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#54: "
+"1","print(grepl(""Scan"", locations))
+"
+"0","n"
+"1","[1]"
+"1"," FALSE"
+"1","
+"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#55: "
+"1","if (grepl(""Scan"", locations)) {
+"
+"1","    con = file(locations, encoding = ""UTF-8"")
+"
+"1","    gotGaps = strsplit(readLines(con), ""\t"")
+"
+"1","    asMatrix = do.call(rbind, gotGaps)
+"
+"1","    temp = as.data.frame(asMatrix[-1, ])
+"
+"1","    names(temp) = asMatrix[1, ]
+"
+"1","    temp = as.data.table(temp)
+"
+"1","    close(con)
+"
+"1","} else {
+"
+"1","    temp = fread(locations, sep = seperators, na.string = ""NaN"", 
+"
+"1","        encoding = fileEncoding, header = T, data.table = T)
+"
+"1","}
+"
+"0","n"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#64: "
+"1","temp = fread(locations, sep = seperators, na.string = ""NaN"", 
+"
+"1","    encoding = fileEncoding, header = T, data.table = T)
+"
+"0","n"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#66: "
+"1","print(is.data.table(temp))
+"
+"0","n"
+"1","[1]"
+"1"," TRUE"
+"1","
+"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#67: "
+"1","head(temp)
+"
+"0","n"
+"1","debug at /Users/devin.clarke/Documents/GitHub/Inflammation-Index/R/extractMorphologyData.R#69: "
+"1","temp[, `:=`(Location, locations)]
+"
+"0","n"
+"2","Error in `:=`(Location, locations) : 
+  Check that is.data.table(DT) == TRUE. Otherwise, := and `:=`(...) are defined for use in j, once only and in particular ways. See help("":="").
+"

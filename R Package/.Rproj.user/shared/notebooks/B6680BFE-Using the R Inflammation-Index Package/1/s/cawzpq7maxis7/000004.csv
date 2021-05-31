@@ -1,0 +1,5 @@
+"0","require(devtools)"
+"0","install_github(""BrainEnergyLab/Inflammation-Index/R Package"")"
+"2","Skipping install of 'InflammationIndex' from a github remote, the SHA1 (66602d7d) has not changed since last install.
+  Use `force = TRUE` to force installation
+"
