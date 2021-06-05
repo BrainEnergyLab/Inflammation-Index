@@ -312,7 +312,7 @@ returnVectorOfMatchingValues = function(idList, locations) {
   # For each element we have in idList, if it matches the string in locations that
   # we've isolated, store that id in animals
   for (currentAnimal in idList) {
-    matches = as.vector(sapply(locations, function(x) grepl(currentAnimal, x)))
+    matches = as.vector(sapply(toupper(gsub(' ', '', locations, fixed = T)), function(x) grepl(gsub(' ', '',currentAnimal, fixed = T), x)))
     animals[matches] = currentAnimal
   }
   
@@ -346,8 +346,10 @@ getFracLacMaskNames = function(locations) {
 #' Adds in values missing from each data type
 #' 
 #' @param storageList A list output by readInRawData
+#' @param animalIDs A string vector of the animal IDs we want to read in data for
+#' @param treatmentIDs A string vector of the treatment IDs we want to read in data for
 #' @return A list similar to storageList but with missing data added to the $Files elements
-addMissingInfo = function(storageList) {
+addMissingInfo = function(storageList, animalIDs, treatmentIDs) {
 # Adds in info that is missing from our data using the mapStuff list and fill_to_add() output
   
   # Sholl parameter things to add - TCS values
@@ -654,7 +656,7 @@ morphPreProcessing <- function(pixelSize,
 	# mapStuff is a bunch of stuff we need to add onto each data type that its 
 	# missing, this is either cell identifiers, or values for the TCS. These are
 	# calculated using the file locations or IDs of the rows
-	mapList = addMissingInfo(comboList)
+	mapList = addMissingInfo(storageList = comboList, animalIDs = toupper(animalIDs), treatmentIDs = toupper(treatmentIDs))
 	
 	# Filter our fractal data by animal and treatment IDs
 	if(useFrac == T) {
