@@ -4,10 +4,14 @@
 \alias{addMissingInfo}
 \title{Adds in values missing from each data type}
 \usage{
-addMissingInfo(storageList)
+addMissingInfo(storageList, animalIDs, treatmentIDs)
 }
 \arguments{
 \item{storageList}{A list output by readInRawData}
+
+\item{animalIDs}{A string vector of the animal IDs we want to read in data for}
+
+\item{treatmentIDs}{A string vector of the treatment IDs we want to read in data for}
 }
 \value{
 A list similar to storageList but with missing data added to the $Files elements
