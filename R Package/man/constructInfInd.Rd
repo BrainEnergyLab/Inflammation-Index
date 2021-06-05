@@ -8,7 +8,7 @@ that lead to the greatest sensitivity to the training conditions}
 \usage{
 constructInfInd(
   procDat,
-  method,
+  method = "AUC",
   noDesc = 5:15,
   labCols = c("Animal", "Treatment", "TCSValue", "CellNo", "UniqueID"),
   correlationCutoff = 0.9

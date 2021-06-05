@@ -420,7 +420,7 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols,
 #' @return A list, where $PCA is a PCA object and $Metrics Correlation is a correlation matrix of the metrics the PCA
 #' was run on
 #' @export
-constructInfInd <- function(procDat, method, noDesc = 5:15, 
+constructInfInd <- function(procDat, method = 'AUC', noDesc = 5:15, 
                             labCols = c('Animal', 'Treatment', 'TCSValue', 'CellNo', 'UniqueID'),
                             correlationCutoff = 0.9) {
   
