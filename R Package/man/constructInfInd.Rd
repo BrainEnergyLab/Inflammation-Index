@@ -28,7 +28,7 @@ inflammation index (to avoid building an index using overly correlated metrics)}
 }
 \value{
 A list, where $PCA is a PCA object and $Metrics Correlation is a correlation matrix of the metrics the PCA
-was run on
+was run on, and $Optimal TCS is the optimal TCS value detected
 }
 \description{
 Wrapper function. Takes the output of morphPreProcessing filtered for training conditions,

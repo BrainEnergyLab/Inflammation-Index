@@ -1,21 +1,5 @@
 {
     "debugBreakpointsState": {
-        "breakpoints": [
-            {
-                "id": 0,
-                "path": "~/Documents/GitHub/Inflammation-Index/R Package/R/extractMorphologyData.R",
-                "line_number": 642,
-                "function_steps": "7",
-                "function_name": "morphPreProcessing",
-                "state": 2,
-                "editor_state": 2,
-                "editor_line_number": 642,
-                "is_pending_debug_completion": false,
-                "needs_updated_steps": false,
-                "type": 0,
-                "is_package_breakpoint": true,
-                "package_name": "InflammationIndex"
-            }
-        ]
+        "breakpoints": []
     }
 }

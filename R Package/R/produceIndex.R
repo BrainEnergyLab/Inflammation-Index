@@ -418,7 +418,7 @@ createEvaluateInfIndex = function(paramByAuc, howMany, method, aggData, labCols,
 #' @param correlationCutoff A numeric value that indicates the correlation level at which we will remove metrics from our
 #' inflammation index (to avoid building an index using overly correlated metrics)
 #' @return A list, where $PCA is a PCA object and $Metrics Correlation is a correlation matrix of the metrics the PCA
-#' was run on
+#' was run on, and $Optimal TCS is the optimal TCS value detected
 #' @export
 constructInfInd <- function(procDat, method = 'AUC', noDesc = 5:15, 
                             labCols = c('Animal', 'Treatment', 'TCSValue', 'CellNo', 'UniqueID'),
@@ -428,17 +428,22 @@ constructInfInd <- function(procDat, method = 'AUC', noDesc = 5:15,
   
   if(is.null(procDat)) {
     exit = T
-    print("Data not provided")
+    warning("Data not provided")
   }
   
   if(is.null(method)) {
     exit = T
-    print("Need to provide a string of which method to use to optimise the inflammation index selection")
+    warning("Need to provide a string of which method to use to optimise the inflammation index selection")
   }
   
   if(!(method %in% c("p value", "AUC"))) {
     exit = T
-    print("Format of provided method doesn't match 'p value' or 'AUC'")
+    warning("Format of provided method doesn't match 'p value' or 'AUC'")
+  }
+  
+  if(length(grep('TCSValue', names(procDat))) == 0) {
+    exit = T
+    warning('There is no column named "TCSValue" in the input data.table')
   }
   
   if(exit == T) {
@@ -535,7 +540,7 @@ constructInfInd <- function(procDat, method = 'AUC', noDesc = 5:15,
   }
   
   # Return the PCA object
-  return(list('PCA' = toUse, 'Metric Correlations' = correlationMatrix))
+  return(list('PCA' = toUse, 'Metric Correlations' = correlationMatrix, 'Optimal TCS' = TCSToUse))
   
 }
 
