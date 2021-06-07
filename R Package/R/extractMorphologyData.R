@@ -200,7 +200,7 @@ formatFracLacFiles = function(fracLacComboList) {
 # Formats the fraclac files appropriately so they can be passed to similar loops as other data types
 
 	# For the ID value, get the characters to the left of the underscore
-	fracLacComboList[, Location := sapply(strsplit(as.character(Location), "_"),function(x) x[1])]
+	fracLacComboList[, Location := sapply(strsplit(as.character(Location), "Ş"),function(x) x[1])]
 
 	# Retain every 2nd row of the FracLac data (the data is in triplicate, where
 	# the first and 3rd row are readings with formula for fractal dimensions
