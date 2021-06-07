@@ -25,7 +25,9 @@
 
 ---
 
-This plugin was written to be applied to *in vivo* images of fluorescent microglia obtained in awake mice on a two photon microscope, but in theory can be run on any single channel 3D image stacks of cells with clearly labelled soma and processes.
+This plugin was written to be applied to *in vivo* images of fluorescent microglia obtained in awake mice on a two photon microscope, but can be run on any single channel 3D image stacks, or single image, of cells with clearly labelled soma and processes.
+
+> For single images of cells, the settings required are specified in the relevant sections.
 
 Running the Microglia Morphology Analysis ImageJ script / plugin requires the installation of:
 - [Fiji](https://imagej.net/Fiji)
@@ -85,6 +87,8 @@ In addition a text file containing the calibration information for the images in
 These strings should be followed by their associated numeric values.
 
 For example, a stack of 606 frames in total, with 101 unique Z planes, would have 6 frames per plane.
+
+> For single frame images, set z.spacing, no.of.planes, and frames.per.plane to 1
 
 ![Example ini file](./MarkdownAssets/example_ini_file.png)
 
@@ -150,6 +154,8 @@ This is a string value that indicates which string identifier to use to identify
 
 ![Stack preprocessing user inputs](./MarkdownAssets/StackPreprocessingModule/stack_preprocessing_user_inputs.png)
 
+> For single frame images, the first two inputs do not matter, as the plugin will detect if it is being run on single frame images and simply save them in the correct location with the correct output files.
+
 ### Outputs
 
 For each image processed, a new folder with a name created by concatenating the Animal name, Treatment name, and 'string to search for', is created in the 'Output' folder in the working directory. This folder contains the processed stack for that image.
@@ -191,6 +197,8 @@ After providing these inputs, the plugin displays the number of processed stacks
 ![Stack QA user inputs1](./MarkdownAssets/StackQAModule/stack_qa_user_inputs1.png)
 
 The plugin proceeds in this manner until it has obtained user inputs (i.e. was the image closed or not closed) for all available processed images.
+
+> For single frame images, this is a redundant process but in the current iteration of the package is still necessary. You're best off opting to visualise a lot of cells at once, and ok'ing them all.
 
 ### Outputs
 
@@ -297,6 +305,8 @@ This value needs to be an integer and defaults to 10.
 
 ![Cell detection user inputs](./MarkdownAssets/CellDetectionModule/cell_detection_user_inputs.png)
 
+> For single frame images, this value is redundant and the plugin will simply detect that the input image is a single frame.
+
 For each substack created, we average project it and display this to the user with the automated cell location detection overlaid and the user is prompted to 'check that the automated CP selection has worked'. 
 
 ![Cell detection automated detection](./MarkdownAssets/CellDetectionModule/cell_detection_automated_detection.png)
@@ -373,7 +383,7 @@ In this section the user is asked for a number of inputs:
 4. What increment would you like to increase mask size by per loop?
 5. What area should the local region around each cell location be? (in um)
 
-![Mask generation user inputs](./MarkdownAssets/MaskGenerationModule/mask_generation_user)inputs.png)
+![Mask generation user inputs](./MarkdownAssets/MaskGenerationModule/mask_generation_user_inputs.png)
 
 The first two inputs dictate what values the module loops from, and to, whilst the Fourth input indicates the step size each iteration takes. For example, a lower limit of 200, an upper limit of 800, and an increment of 100, would result in us generating segmented cells for mask size values of: 200,300,400,500,600,700,800.
 
