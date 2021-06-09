@@ -7,9 +7,9 @@
 2. [Step 1: Setting up Folder Structures](#step-1-setting-up-folder-structures)
 3. [Image Stack Processing: Motion Artefact Removal and Cleaning](#image-stack-processing-motion-artefact-removal-and-cleaning)
     1. [Step 2: Running Stack Preprocessing](#step-2-running-stack-preprocessing)
-    2. [Step 3: Running Stack QA](#step-3-running-stack-qa)
+    2. [Step 3: Running Stack Quality Assurance (QA)](#step-3-running-stack-qa)
         1. [Optional: Manual Processing](#step-3a-optional-manually-processing-stacks-that-were-rejected-from-qa)
-        2. [Optional: QA Manually Processed Stacks](#step-3b-optional-qa-manually-processed-stacks)
+        2. [Optional: QA for Manually Processed Stacks](#step-3b-optional-qa-manually-processed-stacks)
 4. [Automated Cell Detection](#automated-cell-detection)
     1. [Step 4: Cell Detection](#step-4-cell-detection)
     2. [Step 5: Mask Generation](#step-5-mask-generation)
@@ -39,7 +39,7 @@ Running the Microglia Morphology Analysis ImageJ script / plugin requires the in
 - [SNT](https://github.com/morphonets/SNT) (including extra SciView functionality)
 - [Jython](https://imagej.nih.gov/ij/plugins/jython/) (download the .jar file and place it in a '/jars' folder in your Fiji plugins folder if it isn't already present)
 
-To install the Microglia Morphology Analysis plugin, download the [.jar](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/microglia-morphology-analysis-0.1.0.jar) file from this GitHub repo  and drop it into your Fiji plugins folder. In addition, download the [Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py) script and drop it into the 'Scripts' folder in your Fiji plugins folder.
+To install the Microglia Morphology Analysis plugin, download the [.jar](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/) file from this GitHub repo  and drop it into your Fiji plugins folder. In addition, download the [Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py) script and drop it into the 'Scripts' folder in your Fiji plugins folder.
 
 **Plugin .jar file location:**
 
