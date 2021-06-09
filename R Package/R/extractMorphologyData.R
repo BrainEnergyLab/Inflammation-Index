@@ -101,19 +101,30 @@ getFileLocations = function(morphologyWD, useFrac) {
 		main_fracLac_dir = 
 		dir(path = morphologyWD, pattern = "fracLac", full.names = T, 
 			recursive = F, ignore.case = T)
+		
+		# Identify which of the results folders in the fracLac directory correspond
+		# to the latest analysis
+		latestFolder = which.max(
+		  sapply(
+		    dir(
+		      path = main_fracLac_dir, 
+		      pattern = "Hull and Circle Results.txt", full.names = T, 
+		      recursive = T, ignore.case = T),
+		    function(x) strsplit(strsplit(x, 'fracLac/')[[1]][2], '/')[[1]][1]
+		))
 
 		storageList$`Hull and Circularity` = 
 		list("Sep" = "\t",
 			"fileEncoding" = "unknown",
 			"Locations" = dir(path = main_fracLac_dir, 
 				pattern = "Hull and Circle Results.txt", full.names = T, 
-				recursive = T, ignore.case = T))
+				recursive = T, ignore.case = T)[latestFolder])
 		storageList$`FracLac` = 
 		list("Sep" = "\t",
 			"fileEncoding" = "unknown",
 			"Locations" = dir(path = main_fracLac_dir, 
 				pattern = "Scan Types.txt", full.names = T, 
-				recursive = T, ignore.case = T))
+				recursive = T, ignore.case = T)[latestFolder])
 
 	}
 
