@@ -39,6 +39,8 @@ Running the Microglia Morphology Analysis ImageJ script / plugin requires the in
 - [SNT](https://github.com/morphonets/SNT) (including extra SciView functionality)
 - [Jython](https://imagej.nih.gov/ij/plugins/jython/) (download the .jar file and place it in a '/jars' folder in your Fiji plugins folder if it isn't already present)
 
+For the dependencies that are not managed through update sites in Fiji, their .jar files can be found [here](https://drive.google.com/drive/folders/1APUNbaJcyXxN1rXeDPuGG9OIda-p9-j_?usp=sharing). Please note, though these may not be the latest versions available on the respective plugin websites, they have been tested with our ImageJ plugin.
+
 To install the Microglia Morphology Analysis plugin, download the [.jar](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/) file from this GitHub repo  and drop it into your Fiji plugins folder. In addition, download the [Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py) script and drop it into the 'Scripts' folder in your Fiji plugins folder.  
 <br/>
 > Some users have reported that the .py file needs to be dropped in the plugins folder, rather than the 'Scripts' child folder.
@@ -53,27 +55,35 @@ To install the Microglia Morphology Analysis plugin, download the [.jar](https:/
     - Close -> apply changes
     - Close Fiji
 
-- In this README, click the multistackreg link
-    - Click the multistackreg link on front page and download the .jar
+- Download the dependent .jar files [here](https://drive.google.com/drive/folders/1APUNbaJcyXxN1rXeDPuGG9OIda-p9-j_?usp=sharing)
+    - Drop the MultiStackReg, TurboReg, FracLac, and Stack Contrast Adjustment .jar files in the Fiji plugins folder
+    - Drop the Jython .jar file in a /jars folder within the Fiji plugins folder (make this if it doesn't exist)
+
+Alternatively:
+
+- In this README, click the [MultiStackReg](http://bradbusse.net/sciencedownloads.html) link
+    - Click the top link on front page and download the .jar
     - Drop the .jar in the Fiji plugins folder
 
-- In this README, click the turboReg link
+- In this README, click the [TurboReg](http://bigwww.epfl.ch/thevenaz/turboreg/) link
     - Click on the distribution link that is relevant (e.g. Macintosh distribution)
     - Open the downloaded file and folder
     - Drop the TurboReg_.jar file into the Fiji plugins folder
 
-- In this README, click the fraclac link
+- In this README, click the [FracLac](https://imagej.nih.gov/ij/plugins/fraclac/fraclac.html) link
     - Click the frac_lac.jar link to download
     - Drop the .jar into the Fiji plugins folder
 
-- In this README, click the stackcontrastadjustment link
+- In this README, click the [Stack Contrast Adjustment](https://imagej.nih.gov/ij/plugins/stack-contrast/index.htm) link
     - Click the .jar link to download
     - Drop the .jar into the Fiji plugins folder
 
-- In this README, click the jython link
+- In this README, click the [Jython](https://imagej.nih.gov/ij/plugins/jython/) link
     - Click the jython.jar link to download
     - Create a /jars folder in the plugin folder in Fiji
     - Drop the jython.jar file into this folder
+
+Finally:
 
 - Copy the Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py file into the /scripts folder in the Fiji plugins folder
 
