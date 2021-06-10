@@ -42,6 +42,44 @@ Running the Microglia Morphology Analysis ImageJ script / plugin requires the in
 To install the Microglia Morphology Analysis plugin, download the [.jar](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/) file from this GitHub repo  and drop it into your Fiji plugins folder. In addition, download the [Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Microglia%20Morphology%20Analysis%20Plugin%20-%20ImageJ/Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py) script and drop it into the 'Scripts' folder in your Fiji plugins folder.  
 <br/>
 > Some users have reported that the .py file needs to be dropped in the plugins folder, rather than the 'Scripts' child folder.
+<br/>
+---
+
+### A step by step guide of how best to install this plugin
+  
+- Download and open Fiji
+    - Run Help -> Update
+    - Manage update sites -> tick ImageScience, Neuroanatomy, and Sciview
+    - Close -> apply changes
+    - Close Fiji
+
+- In this README, click the multistackreg link
+    - Click the multistackreg link on front page and download the .jar
+    - Drop the .jar in the Fiji plugins folder
+
+- In this README, click the turboReg link
+    - Click on the distribution link that is relevant (e.g. Macintosh distribution)
+    - Open the downloaded file and folder
+    - Drop the TurboReg_.jar file into the Fiji plugins folder
+
+- In this README, click the fraclac link
+    - Click the frac_lac.jar link to download
+    - Drop the .jar into the Fiji plugins folder
+
+- In this README, click the stackcontrastadjustment link
+    - Click the .jar link to download
+    - Drop the .jar into the Fiji plugins folder
+
+- In this README, click the jython link
+    - Click the jython.jar link to download
+    - Create a /jars folder in the plugin folder in Fiji
+    - Drop the jython.jar file into this folder
+
+- Copy the Microglia_Morphology_Analysis_Plugin_Sholl_Analysis_Script.py file into the /scripts folder in the Fiji plugins folder
+
+- Drop the microglia-morphology-analysis-0.1.2.jar file from the Inflammation Index repo into the Fiji plugins folder
+
+- Start Fiji
 
 ---
 
