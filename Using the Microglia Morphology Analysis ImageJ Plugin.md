@@ -318,6 +318,8 @@ For each substack created, we average project it and display this to the user wi
 
 Here we see the automated cell detection has identified a cell location where the cyan circle ROI is drawn.
 
+>If images seem faint, users should use the Image › Adjust › Brightness/Contrast feature in the Fiji menu
+
 Once users click 'ok', they are asked 'Automated CPs Acceptable?'. 
 
 **In this context, 'acceptable' means the cell detection has detected the soma of at least one cell accurately. If we have detected no cells, or the detection has highlighted a region of the image that is not cell soma, the detection is unacceptable**
