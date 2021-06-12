@@ -1,6 +1,0 @@
-"0","pixelSize = 0.58 # Pixel size in microns"
-"0","morphologyWD = ""/Microglial Morphology/Output"" # Output directory of the MicroMorph.ijm script as a string"
-"0","animalIDs = c('HIPP5', 'HIPP6', 'HIPP7') # Vector of strings identifying the names of the animals images were captured from and matching the names of the Animal level folders"
-"0","treatmentIDs = c('Pre-LPS', 'Post-LPS') # Vector of strings identifying different treatments / timepoints and matching the names of the Treatment level folders"
-"0","useFrac = T # Boolean indicating whether to use the output of the FracLac plugin"
-"0","TCSExclude = NULL # String vector of mask sizes to exclude from the preprocessing function, can also take NULL"
