@@ -45,7 +45,8 @@ To install the Microglia Morphology Analysis plugin, download the [.jar](https:/
 <br/>
 > Some users have reported that the .py file needs to be dropped in the plugins folder, rather than the 'Scripts' child folder.
 <br/>
----
+
+--- 
 
 ### A step by step guide of how best to install this plugin
   
