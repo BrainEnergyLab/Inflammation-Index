@@ -38,7 +38,7 @@ require(devtools)
 install_github("BrainEnergyLab/Inflammation-Index/R Package")
 ```
 
-    ## Skipping install of 'InflammationIndex' from a github remote, the SHA1 (97b242e4) has not changed since last install.
+    ## Skipping install of 'InflammationIndex' from a github remote, the SHA1 (9153dded) has not changed since last install.
     ##   Use `force = TRUE` to force installation
 
 Then load in the package.
@@ -48,9 +48,6 @@ require(InflammationIndex)
 ```
 
     ## Loading required package: InflammationIndex
-
-    ## Warning: replacing previous import 'dplyr::collapse' by 'nlme::collapse' when
-    ## loading 'InflammationIndex'
 
 -----
 
