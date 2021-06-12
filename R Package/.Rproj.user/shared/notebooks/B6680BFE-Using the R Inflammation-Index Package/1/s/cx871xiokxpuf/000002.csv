@@ -1,4 +1,0 @@
-"0","LPSGroups = c('D56', 'LPS')"
-"0","inDat = output[, Treatment %in% LPSGroups] # The output of the morphPreProcessing() function"
-"2","Error: object 'output' not found
-"

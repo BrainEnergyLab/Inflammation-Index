@@ -1,2 +1,0 @@
-"0",""
-"0","head(inDat[Treatment %in% c('D56', 'LPS'), ])"

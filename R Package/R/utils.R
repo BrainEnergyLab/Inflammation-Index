@@ -6,12 +6,12 @@
 #' @name InflammationIndex
 #' @import ROCR
 #' @import tidyr
-#' @import nlme
 #' @import stringr
 #' @import dplyr
 #' @importFrom stats anova complete.cases prcomp predict var
 #' @importFrom utils tail
 #' @importFrom data.table := rbindlist fread as.data.table copy data.table setnames
+#' @importFrom nlme lme lmeControl
 
 NULL
 

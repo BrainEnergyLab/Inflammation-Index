@@ -1,4 +1,0 @@
-"0",""
-"0","inDat = fread(exampleData)"
-"0","setnames(inDat, old = c('TCS'), new = 'TCSValue')"
-"0",""

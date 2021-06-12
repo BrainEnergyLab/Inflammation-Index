@@ -38,7 +38,8 @@ require(devtools)
 install_github("BrainEnergyLab/Inflammation-Index/R Package")
 ```
 
-    ## Downloading GitHub repo BrainEnergyLab/Inflammation-Index@HEAD
+    ## Skipping install of 'InflammationIndex' from a github remote, the SHA1 (97b242e4) has not changed since last install.
+    ##   Use `force = TRUE` to force installation
 
 Then load in the package.
 
@@ -47,6 +48,9 @@ require(InflammationIndex)
 ```
 
     ## Loading required package: InflammationIndex
+
+    ## Warning: replacing previous import 'dplyr::collapse' by 'nlme::collapse' when
+    ## loading 'InflammationIndex'
 
 -----
 
@@ -175,161 +179,161 @@ head(output)
 ```
 
     ##    Animal Treatment TCSValue
-    ## 1:   CE1L     HFD21      200
-    ## 2:   CE1L     HFD21      300
-    ## 3:   CE1L     HFD21      400
-    ## 4:   CE1L     HFD21      500
-    ## 5:   CE1L     HFD21      600
-    ## 6:   CE1L     HFD21      700
+    ## 1:   CE1L     HFD21      300
+    ## 2:   CE1L     HFD21      400
+    ## 3:   CE1L     HFD21      500
+    ## 4:   CE1L     HFD21      600
+    ## 5:   CE1L     HFD21      700
+    ## 6:   CE1L     HFD21      800
     ##                                                     UniqueID
-    ## 1: ce1lhfd21200candidate mask for 10-20 x 17828 y 433108 tif
-    ## 2: ce1lhfd21300candidate mask for 10-20 x 17828 y 433108 tif
-    ## 3: ce1lhfd21400candidate mask for 10-20 x 17828 y 433108 tif
-    ## 4: ce1lhfd21500candidate mask for 10-20 x 17828 y 433108 tif
-    ## 5: ce1lhfd21600candidate mask for 10-20 x 17828 y 433108 tif
-    ## 6: ce1lhfd21700candidate mask for 10-20 x 17828 y 433108 tif
+    ## 1: ce1lhfd21300candidate mask for 10-20 x 17828 y 433108 tif
+    ## 2: ce1lhfd21400candidate mask for 10-20 x 17828 y 433108 tif
+    ## 3: ce1lhfd21500candidate mask for 10-20 x 17828 y 433108 tif
+    ## 4: ce1lhfd21600candidate mask for 10-20 x 17828 y 433108 tif
+    ## 5: ce1lhfd21700candidate mask for 10-20 x 17828 y 433108 tif
+    ## 6: ce1lhfd21800candidate mask for 10-20 x 17828 y 433108 tif
     ##    CellParametersPerimeter CellSpread Eccentricity Roundness SomaSize MaskSize
-    ## 1:                199.8199    20.4999       1.9711   0.06554  27.9212 208.2318
-    ## 2:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
-    ## 3:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
-    ## 4:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
-    ## 5:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
-    ## 6:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
+    ## 1:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
+    ## 2:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
+    ## 3:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
+    ## 4:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
+    ## 5:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
+    ## 6:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
     ##    #Branches #Junctions #End-pointvoxels #Junctionvoxels #Slabvoxels
-    ## 1:        23         10               13              21         111
+    ## 1:        35         15               20              41         191
     ## 2:        35         15               20              41         191
     ## 3:        35         15               20              41         191
     ## 4:        35         15               20              41         191
     ## 5:        35         15               20              41         191
     ## 6:        35         15               20              41         191
     ##    AverageBranchLength #Triplepoints #Quadruplepoints MaximumBranchLength
-    ## 1:              4.3832             8                1             19.7442
+    ## 1:              5.0535            11                3             13.4753
     ## 2:              5.0535            11                3             13.4753
     ## 3:              5.0535            11                3             13.4753
     ## 4:              5.0535            11                3             13.4753
     ## 5:              5.0535            11                3             13.4753
     ## 6:              5.0535            11                3             13.4753
     ##    LongestShortestPath SkelArea CriticalValue EnclosingRadius
-    ## 1:             53.8850  48.7781            NA        22.50391
+    ## 1:             73.4044  84.7729      2.277565        34.10392
     ## 2:             73.4044  84.7729      2.277565        34.10392
     ## 3:             73.4044  84.7729      2.277565        34.10392
     ## 4:             73.4044  84.7729      2.277565        34.10392
     ## 5:             73.4044  84.7729      2.277565        34.10392
     ## 6:             73.4044  84.7729      2.277565        34.10392
     ##    MaximumNumberofIntersections Skewness(sampled)
-    ## 1:                            6         0.1116328
+    ## 1:                            7        -0.2103932
     ## 2:                            7        -0.2103932
     ## 3:                            7        -0.2103932
     ## 4:                            7        -0.2103932
     ## 5:                            7        -0.2103932
     ## 6:                            7        -0.2103932
     ##    RegressionIntercept(Semi-log)[P10-P90] RegressionCoefficient(semi-log)
-    ## 1:                              -2.079957                      -0.1933260
+    ## 1:                              -1.913573                      -0.1819827
     ## 2:                              -1.913573                      -0.1819827
     ## 3:                              -1.913573                      -0.1819827
     ## 4:                              -1.913573                      -0.1819827
     ## 5:                              -1.913573                      -0.1819827
     ## 6:                              -1.913573                      -0.1819827
     ##    MeanValue RegressionIntercept(semi-log) RamificationIndex(fit)
-    ## 1:        NA                     -2.306264                     NA
+    ## 1:  3.720781                     -2.206013               6.595027
     ## 2:  3.720781                     -2.206013               6.595027
     ## 3:  3.720781                     -2.206013               6.595027
     ## 4:  3.720781                     -2.206013               6.595027
     ## 5:  3.720781                     -2.206013               6.595027
     ## 6:  3.720781                     -2.206013               6.595027
     ##    Kurtosis(sampled) PolynomialDegree IntersectingRadii CentroidRadius
-    ## 1:         0.8201793               NA                34       12.93391
-    ## 2:        -1.5171886               27                54       18.73391
-    ## 3:        -1.5171886               27                54       18.73391
-    ## 4:        -1.5171886               27                54       18.73391
-    ## 5:        -1.5171886               27                54       18.73391
-    ## 6:        -1.5171886               27                54       18.73391
+    ## 1:         -1.517189               27                54       18.73391
+    ## 2:         -1.517189               27                54       18.73391
+    ## 3:         -1.517189               27                54       18.73391
+    ## 4:         -1.517189               27                54       18.73391
+    ## 5:         -1.517189               27                54       18.73391
+    ## 6:         -1.517189               27                54       18.73391
     ##    RegressionCoefficient(Log-log)[P10-P90] MaxIntersectionRadius
-    ## 1:                               -2.400080              4.523901
-    ## 2:                               -3.008099             10.323904
-    ## 3:                               -3.008099             10.323904
-    ## 4:                               -3.008099             10.323904
-    ## 5:                               -3.008099             10.323904
-    ## 6:                               -3.008099             10.323904
+    ## 1:                               -3.008099               10.3239
+    ## 2:                               -3.008099               10.3239
+    ## 3:                               -3.008099               10.3239
+    ## 4:                               -3.008099               10.3239
+    ## 5:                               -3.008099               10.3239
+    ## 6:                               -3.008099               10.3239
     ##    PrimaryBranches MedianofIntersections
-    ## 1:               1                   3.0
+    ## 1:               1                   4.5
     ## 2:               1                   4.5
     ## 3:               1                   4.5
     ## 4:               1                   4.5
     ## 5:               1                   4.5
     ## 6:               1                   4.5
     ##    RegressionCoefficient(semi-log)[P10-P90] RegressionIntercept(Log-log)
-    ## 1:                               -0.2107465                    0.2312613
-    ## 2:                               -0.1957838                    1.3719607
-    ## 3:                               -0.1957838                    1.3719607
-    ## 4:                               -0.1957838                    1.3719607
-    ## 5:                               -0.1957838                    1.3719607
-    ## 6:                               -0.1957838                    1.3719607
+    ## 1:                               -0.1957838                     1.371961
+    ## 2:                               -0.1957838                     1.371961
+    ## 3:                               -0.1957838                     1.371961
+    ## 4:                               -0.1957838                     1.371961
+    ## 5:                               -0.1957838                     1.371961
+    ## 6:                               -0.1957838                     1.371961
     ##    RamificationIndex(sampled) RegressionIntercept(Log-log)[P10-P90]
-    ## 1:                          6                              1.137956
+    ## 1:                          7                              2.941819
     ## 2:                          7                              2.941819
     ## 3:                          7                              2.941819
     ## 4:                          7                              2.941819
     ## 5:                          7                              2.941819
     ## 6:                          7                              2.941819
     ##    RegressionCoefficient(Log-log) SumofIntersections Kurtosis(fit)
-    ## 1:                      -2.065594                120            NA
+    ## 1:                      -2.517894                201     -1.568975
     ## 2:                      -2.517894                201     -1.568975
     ## 3:                      -2.517894                201     -1.568975
     ## 4:                      -2.517894                201     -1.568975
     ## 5:                      -2.517894                201     -1.568975
     ## 6:                      -2.517894                201     -1.568975
     ##    CentroidValue CriticalRadius MeanofIntersections
-    ## 1:      3.529412             NA            3.529412
+    ## 1:      3.722222       28.33172            3.722222
     ## 2:      3.722222       28.33172            3.722222
     ## 3:      3.722222       28.33172            3.722222
     ## 4:      3.722222       28.33172            3.722222
     ## 5:      3.722222       28.33172            3.722222
     ## 6:      3.722222       28.33172            3.722222
     ##    Density=ForegroundPixels/HullArea SpanRatio(major/minoraxis)
-    ## 1:                         0.1015928                     1.8055
+    ## 1:                         0.1044186                     1.9135
     ## 2:                         0.1044186                     1.9135
     ## 3:                         0.1044186                     1.9135
     ## 4:                         0.1044186                     1.9135
     ## 5:                         0.1044186                     1.9135
     ## 6:                         0.1044186                     1.9135
     ##    MaximumSpanAcrossHull     Area HullandCircularityPerimeter Circularity
-    ## 1:              42.66057  689.620                    110.1972      0.7136
-    ## 2:              55.68302 1163.944                    141.1598      0.7340
-    ## 3:              55.68302 1163.944                    141.1598      0.7340
-    ## 4:              55.68302 1163.944                    141.1598      0.7340
-    ## 5:              55.68302 1163.944                    141.1598      0.7340
-    ## 6:              55.68302 1163.944                    141.1598      0.7340
+    ## 1:              55.68302 1163.944                    141.1598       0.734
+    ## 2:              55.68302 1163.944                    141.1598       0.734
+    ## 3:              55.68302 1163.944                    141.1598       0.734
+    ## 4:              55.68302 1163.944                    141.1598       0.734
+    ## 5:              55.68302 1163.944                    141.1598       0.734
+    ## 6:              55.68302 1163.944                    141.1598       0.734
     ##    MaximumRadiusfromHull'sCentreofMass Max/MinRadii CVforallRadii MeanRadius
-    ## 1:                            23.93289       1.8507        0.1671   19.10648
-    ## 2:                            33.89595       2.4700        0.2527   23.80326
-    ## 3:                            33.89595       2.4700        0.2527   23.80326
-    ## 4:                            33.89595       2.4700        0.2527   23.80326
-    ## 5:                            33.89595       2.4700        0.2527   23.80326
-    ## 6:                            33.89595       2.4700        0.2527   23.80326
+    ## 1:                            33.89595         2.47        0.2527   23.80326
+    ## 2:                            33.89595         2.47        0.2527   23.80326
+    ## 3:                            33.89595         2.47        0.2527   23.80326
+    ## 4:                            33.89595         2.47        0.2527   23.80326
+    ## 5:                            33.89595         2.47        0.2527   23.80326
+    ## 6:                            33.89595         2.47        0.2527   23.80326
     ##    DiameterofBoundingCircle MaximumRadiusfromCircle'sCentre
-    ## 1:                 43.09156                        21.54578
+    ## 1:                 56.34538                        28.17269
     ## 2:                 56.34538                        28.17269
     ## 3:                 56.34538                        28.17269
     ## 4:                 56.34538                        28.17269
     ## 5:                 56.34538                        28.17269
     ## 6:                 56.34538                        28.17269
     ##    Max/MinRadiifromCircle'sCentre CVforallRadiifromCircle'sCentre
-    ## 1:                         1.5944                          0.1237
+    ## 1:                         1.4317                          0.1286
     ## 2:                         1.4317                          0.1286
     ## 3:                         1.4317                          0.1286
     ## 4:                         1.4317                          0.1286
     ## 5:                         1.4317                          0.1286
     ## 6:                         1.4317                          0.1286
     ##    MeanRadiusfromCircle'sCentre FractalDimension Lacunarity CellNo
-    ## 1:                     20.06284           1.3023     0.7276      1
-    ## 2:                     25.46101           1.3991     0.6822      2
-    ## 3:                     25.46101           1.3991     0.6822      3
-    ## 4:                     25.46101           1.3991     0.6822      4
-    ## 5:                     25.46101           1.3991     0.6822      5
-    ## 6:                     25.46101           1.3991     0.6822      6
+    ## 1:                     25.46101           1.3991     0.6822      1
+    ## 2:                     25.46101           1.3991     0.6822      1
+    ## 3:                     25.46101           1.3991     0.6822      1
+    ## 4:                     25.46101           1.3991     0.6822      1
+    ## 5:                     25.46101           1.3991     0.6822      1
+    ## 6:                     25.46101           1.3991     0.6822      1
     ##    BranchingDensity
-    ## 1:       0.07073185
+    ## 1:       0.07283246
     ## 2:       0.07283246
     ## 3:       0.07283246
     ## 4:       0.07283246
@@ -344,8 +348,8 @@ head(output)
 
 Once users have an output from the morphPreProcessing() function, they
 can use this to generate an Inflammation Index based on training
-conditions using the constructInfInd() function. This function takes
-three required arguments:
+conditions using the constructInfInd() function. This function takes one
+required arguments:
 
   - **procDat**: this is the filtered data.table output by the
     morphPreProcessing() function that is limited to your positive
@@ -356,13 +360,14 @@ three required arguments:
         function compares TCS value against one another to pick the
         value that provides the best morphological discrimination
         between training conditions
+
+In addition there are four optional arguments:
+
   - **method**: this is a string identifying which method users want to
     use to optimise the Inflammation Index
       - ‘p value’ uses the smallest p value
       - ‘AUC’ uses a ROC-AUC analysis
-
-In addition there are two optional arguments:
-
+      - Defaults to ‘AUC’
   - **noDesc**: this is an integer vector of the number of ‘best’
     descriptors to compare to one another
       - Defaults to 5:15
@@ -370,8 +375,18 @@ In addition there are two optional arguments:
     non-metric columns that defaults to the identifier columns provided
     by morphPreProcessing():
       - Defaults to c(Animal, Treatment, TCSValue, UniqueID, CellNo)
+  - **correlationCutoff**: this is a decimal value that indicates the
+    threshold at which highly correlated metrics will be dropped e.g a
+    value of 0.9 means if two metrics correlate at this value or above,
+    the worst performing one will be dropped from consideration
+      - Defaults to 0.9
 
-The function returns a single PCA object.
+The function returns a list containing: - **PCA** - A PCA object,
+trained to be discriminate between the training conditions - **Metrics
+Correlation** - A correlation matrix of the metrics included in the PCA
+so users can see what was used, and how they relate - **Optimal TCS** -
+The TCS value identified as optimal for detecting differences in
+morphology between training conditions
 
 ``` r
 # A string vector indicating the treatment labels that ID our training data
@@ -379,11 +394,7 @@ LPSGroups = c('D56', 'LPS')
 
 # The output of the morphPreProcessing() function filtered to only include our
 # training data
-inDat = output[, Treatment %in% LPSGroups]
-
-# The method to use to refine the inflammation index,
-# can also take the value 'AUC
-method = 'p value' 
+inDat = output[Treatment %in% LPSGroups]
 ```
 
 Here we’re going to run this function on the example morphPreProccessing
@@ -496,21 +507,36 @@ head(inDat)
     ## 5:                                  3.36   5988
     ## 6:                                  3.36   5988
 
-The constructInfInd() function will print out the mask size, and number
-of descriptors, that created the Inflammation Index that was most
+The constructInfInd() function will print out the mask size and number
+of descriptors that created the Inflammation Index that was most
 sensitive to the differences in morphology between the positive control
 conditions according to the method passed in the method argument. It
-will print the value from the method argument.
+will also print the descriminators that were retained after cleaning
+(removing variants of the same metrics, removing highly correlated
+metrics) and these are the ones included in the index. Finally, it
+prints the value (AUC or p value) of the index’s ability to discriminate
+between training conditions.
 
 ``` r
 infIndOut = 
-  constructInfInd(procDat = inDat,
-                  method = 'p value')
+  constructInfInd(procDat = inDat)
 ```
 
-    ## [1] "Best TCS 400"
-    ## [1] "Best No. Discriminators 5"
-    ## [1] "p value 1.43679512731865e-10"
+    ## [1] "Best TCS 500"
+    ## [1] "Best No. Discriminators (Pre Cleaning): 5"
+    ## [1] "Discriminators chosen (Post Cleaning): MaskSize, #Slabvoxels, Criticalradius"
+    ## [1] "AUC 0.741221374045801"
+
+The returned correlation matrix may also be of interest to users.
+
+``` r
+infIndOut$`Metric Correlations`
+```
+
+    ##                 MaskSize #Slabvoxels Criticalradius
+    ## MaskSize       1.0000000   0.8478799      0.5107622
+    ## #Slabvoxels    0.8478799   1.0000000      0.4253839
+    ## Criticalradius 0.5107622   0.4253839      1.0000000
 
 -----
 
@@ -521,18 +547,22 @@ infIndOut =
 Users can use the applyInfInd() function to generate an Inflammation
 Index for novel data using the PCA object output by constructInfInd().
 All this dataset needs to have is the same metrics that were available
-in the training dataset. The value of the Inflammation Index for each
-cell is added as the column ‘InfInd’.
+in the training dataset, and data collected at the identified optimal
+TCS value. The value of the Inflammation Index for each cell is added as
+the column ‘InfInd’.
+
+Here the $`Optimal TCS` value returned from constructInfInd can come in
+handy for automating the process.
 
 ``` r
-daatWithInfIndex = applyInfInd(infIndOut, output)
-head(daatWithInfIndex[, list(Animal, Treatment, TCSValue, CellNo, InfInd)])
+dataWithInfIndex = applyInfInd(infIndOut$PCA, output[TCSValue == infIndOut$`Optimal TCS`])
+head(dataWithInfIndex[, list(Animal, Treatment, TCSValue, CellNo, InfInd)])
 ```
 
-    ##    Animal Treatment TCSValue CellNo    InfInd
-    ## 1:   BT1R       D49      800   4083 6.2153555
-    ## 2: HIPP17       D30      500      1 2.7330977
-    ## 3:   CE1L   D2HOURS      500      2 0.6657795
-    ## 4: WICKET       D14      800   4084 5.3204217
-    ## 5:   BT1R        D3      800   4085 6.3594224
-    ## 6:   BU2L        D1      500      3 4.4164059
+    ##    Animal Treatment TCSValue CellNo     InfInd
+    ## 1: HIPP17       D30      500      1  0.9762437
+    ## 2:   CE1L   D2HOURS      500      2 -0.4894777
+    ## 3:   BU2L        D1      500      3  2.0586940
+    ## 4:   BG1L        D7      500      4 -1.4928852
+    ## 5: HIPP12   D4HOURS      500      5 -1.4916847
+    ## 6:   BR1R       D-1      500      6 -1.0283423

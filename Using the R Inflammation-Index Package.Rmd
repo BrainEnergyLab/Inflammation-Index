@@ -173,24 +173,33 @@ head(output)
 
 Once users have an output from the morphPreProcessing() function, they can use this
 to generate an Inflammation Index based on training conditions using the constructInfInd() function.
-This function takes three required arguments:
+This function takes one required arguments:
 
 - **procDat**: this is the filtered data.table output by the morphPreProcessing() function that is limited to your positive control / training conditions in the 'Treatment' column
   - This table should have two unique values in the 'Treatment' column
   - This table should have multiple 'TCSValue' values as the function compares TCS value against one another
   to pick the value that provides the best morphological discrimination between training conditions
+  
+In addition there are four optional arguments:
+
 - **method**: this is a string identifying which method users want to use to optimise the Inflammation Index
   - 'p value' uses the smallest p value
   - 'AUC' uses a ROC-AUC analysis
-  
-In addition there are two optional arguments:
-
+  -  Defaults to 'AUC'
 - **noDesc**: this is an integer vector of the number of 'best' descriptors to compare to one another
   - Defaults to 5:15
 - **labCols**: this is a string vector containing the names of non-metric columns that defaults to the identifier columns provided by morphPreProcessing():
   - Defaults to c(Animal, Treatment, TCSValue, UniqueID, CellNo)
+- **correlationCutoff**: this is a decimal value that indicates the threshold at which highly correlated metrics will be dropped e.g a value of 0.9 means if two metrics correlate at this value or above, the worst performing one will be dropped from consideration
+  - Defaults to 0.9
   
-The function returns a single PCA object.
+The function returns a list containing:
+- **PCA**
+  -  A PCA object, trained to be discriminate between the training conditions
+- **Metrics Correlation**
+  -  A correlation matrix of the metrics included in the PCA so users can see what was used, and how they relate
+- **Optimal TCS**
+  -  The TCS value identified as optimal for detecting differences in morphology between training conditions
 
 ```{r}
 # A string vector indicating the treatment labels that ID our training data
@@ -198,11 +207,7 @@ LPSGroups = c('D56', 'LPS')
 
 # The output of the morphPreProcessing() function filtered to only include our
 # training data
-inDat = output[, Treatment %in% LPSGroups]
-
-# The method to use to refine the inflammation index,
-# can also take the value 'AUC
-method = 'p value' 
+inDat = output[Treatment %in% LPSGroups]
 ```
 
 
@@ -226,16 +231,21 @@ head(inDat)
 
 ```
 
-The constructInfInd() function will print out the mask size, and number of descriptors,
+The constructInfInd() function will print out the mask size and number of descriptors
 that created the Inflammation Index that was most sensitive to the differences in morphology
 between the positive control conditions according to the method passed in the method argument. It will
-print the value from the method argument.
+also print the descriminators that were retained after cleaning (removing variants of the same metrics, removing highly correlated metrics) and these are the ones included in the index. Finally, it prints the value (AUC or p value) of the index's ability to discriminate between training conditions.
 
 
 ```{r}
 infIndOut = 
-  constructInfInd(procDat = inDat,
-                  method = 'p value')
+  constructInfInd(procDat = inDat)
+```
+
+The returned correlation matrix may also be of interest to users.
+
+```{r}
+infIndOut$`Metric Correlations`
 ```
 
 ---
@@ -246,11 +256,13 @@ infIndOut =
 
 Users can use the applyInfInd() function to generate an Inflammation Index for novel
 data using the PCA object output by constructInfInd(). All this dataset needs to have is the same
-metrics that were available in the training dataset. The value of the Inflammation Index for
-each cell is added as the column 'InfInd'.
+metrics that were available in the training dataset, and data collected at the identified optimal TCS value. 
+The value of the Inflammation Index for each cell is added as the column 'InfInd'.
+
+Here the $`Optimal TCS` value returned from constructInfInd can come in handy for automating the process.
 
 ```{r}
-daatWithInfIndex = applyInfInd(infIndOut, output)
-head(daatWithInfIndex[, list(Animal, Treatment, TCSValue, CellNo, InfInd)])
+dataWithInfIndex = applyInfInd(infIndOut$PCA, output[TCSValue == infIndOut$`Optimal TCS`])
+head(dataWithInfIndex[, list(Animal, Treatment, TCSValue, CellNo, InfInd)])
 ```
 

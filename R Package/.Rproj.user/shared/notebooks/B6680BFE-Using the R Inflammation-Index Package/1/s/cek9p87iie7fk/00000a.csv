@@ -1,2 +1,0 @@
-"0","data_with_inf_index = applyInfInd(infIndOut, inDat)"
-"0","head(data_with_inf_index[, list(Animal, Treatment, TCSValue, CellNo, InfInd)])"
