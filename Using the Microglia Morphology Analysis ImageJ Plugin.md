@@ -203,7 +203,7 @@ For image stacks that have already been processed and QA'd (the subsequent step 
 
 - What string should we search for in the Image Storage directory to find stacks to process?
 
-This is a string value that indicates which string identifier to use to identify images to process. This can be useful if you only want to process a subset of the images in your Image Storage directory and this subset can be identified by a unique string. It cannot be empty and defaults to "Morphology".
+This is a string value that indicates which string identifier to use to identify images to process. This can be useful if you only want to process a subset of the images in your Image Storage directory and this subset can be identified by a unique string. It defaults to "Morphology" but can be left empty.
 
 ![Stack preprocessing user inputs](./MarkdownAssets/StackPreprocessingModule/stack_preprocessing_user_inputs.png)
 
@@ -478,29 +478,31 @@ Finally, a 'Local Regions' folder is created in the image's folder where we save
 
 In this module users are presented with each automatically generated cell mask, as well as an automatically generated outline of the soma for each cell, which they either reject (if the cell mask encompasses two cells for example) or approve. 
 
+**This step typically requires the most user input and time out of the entire pipeline, but is relatively simple, requiring yes / no decision making, and some occassional drawing around cell somas - we recommend loading up Netflix in the background. Work is being done to reverse the looping logic for this stage to reduce the time investment.**
+
 ### User Inputs
 
 After selecting the 'working directory' and 'image storage directory' each automatically generated mask will be presented to the user with a prompt to 'Check image for issues'. Each mask is presented as an overlay of the outline of the mask ontop of the local region image. 
 
-![Mask QA approve mask](./MarkdownAssets/MaskQAModule/mask_qa_approve_mask.png)
+>If images seem faint, users should use the Image › Adjust › Brightness/Contrast feature in the Fiji menu
 
-**There is a known issue with masks being displayed in this module where the overlay of the cell mask outline appears to show spurious connecting lines between points. This has no effect on the outcome of the plugin so can be safely ignored, but a resolution is being worked on. In cases where it appears truly artefactual, users should reject the mask.**
+![Mask QA approve mask](./MarkdownAssets/MaskQAModule/mask_qa_approve_mask.png)
 
 Once users have done so and clicked 'ok' they are asked if they want to keep the image. If they keep the image, it is flagged as approved for quantification. If they reject the image, it is ignored for quantification.
 
 If approved, and if no soma mask has been generated for these cell coordinates, this will be generated for the user to approve, along with the prompt 'Check image soma mask'. Once users click 'ok' they can indicate if they want to keep the soma mask. If they do, it is saved.
 
-**There is a known issue with soma mask generation where at times the entire FOV will be selected as the soma mask. Users need to be aware of this and ensure they reject these masks and draw their own manually. A resolution is being worked on.**
-
 ![Mask QA auto soma](./MarkdownAssets/MaskQAModule/mask_qa_auto_soma.png)
 
 If users reject the automated soma mask, or if one cannot be generated, users will be shown the prompt 'Need to draw manual soma mask'. Once they have clicked 'ok' they must click on the image to draw a ROI around the cell soma. Once done, they must click 'ok' on the prompt 'Draw appropriate soma mask, click 'ok' when done'.
+
+**There is a known issue where automatic soma detection performs poorly. This is being addressed but in the interim users will likely need to draw soma masks manually for the majority of cells.**
 
 ![Mask QA manual soma](./MarkdownAssets/MaskQAModule/mask_qa_manual_soma.png)
 
 Once the soma mask for a particular cell has either been approved (if automatically generated) or drawn manually, that soma mask is approved for use across all mask sizes (as the mask size does not influence the soma mask that is generated or drawn).
 
-Users proceed to do this for all generated cell masks across all mask sizes.
+Users proceed to do this for all generated cell masks across all mask sizes. The script loops through mask sizes from smallest to largest. However, if a mask is failed at a given mask size, it is automatically failed at all larger mask sizes (the assumption is that if a mask is not suitable at a smaller mask size, it will also not be suitable as size increases).
 
 ### Outputs
 
