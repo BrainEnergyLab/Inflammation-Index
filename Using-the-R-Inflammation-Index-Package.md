@@ -434,8 +434,8 @@ head(output[order(Animal,CellNo, TCSValue)], 10)
 **Note here that some rows have identical measurements. This can occur
 when automated cell segmentation creates the same mask for a given cell
 across multiple TCSValue values. This is a result of the cell
-segmentation converging on a certain threshold to use for
-segmentation.**
+segmentation converging on a certain threshold to use for segmentation,
+and it intended behaviour.**
 
 -----
 
