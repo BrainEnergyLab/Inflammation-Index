@@ -38,8 +38,7 @@ require(devtools)
 install_github("BrainEnergyLab/Inflammation-Index/R Package")
 ```
 
-    ## Skipping install of 'InflammationIndex' from a github remote, the SHA1 (9153dded) has not changed since last install.
-    ##   Use `force = TRUE` to force installation
+    ## Downloading GitHub repo BrainEnergyLab/Inflammation-Index@HEAD
 
 Then load in the package.
 
@@ -60,12 +59,12 @@ require(InflammationIndex)
 After users have run the Microglia Morphology Analysis Fiji plugin ([see
 here](https://github.com/BrainEnergyLab/Inflammation-Index/blob/master/Using%20the%20Microglia%20Morphology%20Analysis%20ImageJ%20Plugin.md)),
 the ***morphPreProcessing()*** function can be used to read in and
-collate all the morphological metrics extracted.This function requires
+collate all the morphological metrics extracted. This function requires
 users to specify:
 
   - **pixelSize**: The pixel size in microns (assuming a square pixel)
   - **morphologyWD**: The file path to the ‘Output’ folder of the
-    ‘working directory’ of the Fiji plugin passed as a string
+    ‘Working Directory’ of the Fiji plugin passed as a string
   - **animalIDs**: A string vector where each element is the ID of an
     animal that users want to extract data for
   - **treatmentIDs**: A string vector where each element is the ID of
@@ -115,7 +114,7 @@ To avoid having to manually input the animal and treatment IDs, users
 can use the ***getAnimalAndTreatmentIDs()*** function to return a list,
 the only input is:
 
-  - **imageStorageDirectory**: the file path to the ‘image storage
+  - **imageStorageDirectory**: the file path to the ‘Image Storage
     directory’ that users used with the Fiji plugin, passed as a string
 
 The function returns a list with two elements:
@@ -131,7 +130,10 @@ at our [Fji example data
 directory](https://drive.google.com/drive/folders/1t96nDcn9MJm0WcCDIAtmUL9dnJo-L4Ar?usp=sharing)
 
 ``` r
-idList = InflammationIndex::getAnimalAndTreatmentIDs(imageStorageDirectory)
+# e.g.
+# imageStorageDirectory = '/Users/Downloads/Image Storage Directory/'
+
+idList = getAnimalAndTreatmentIDs(imageStorageDirectory)
 treatmentIDs = idList$treatmentIDs
 animalIDs = idList$animalIDs
 
@@ -172,170 +174,268 @@ The columns in the output table:
 All other columns are morphological metrics.
 
 ``` r
-head(output)
+head(output[order(Animal,CellNo, TCSValue)], 10)
 ```
 
-    ##    Animal Treatment TCSValue
-    ## 1:   CE1L     HFD21      300
-    ## 2:   CE1L     HFD21      400
-    ## 3:   CE1L     HFD21      500
-    ## 4:   CE1L     HFD21      600
-    ## 5:   CE1L     HFD21      700
-    ## 6:   CE1L     HFD21      800
-    ##                                                     UniqueID
-    ## 1: ce1lhfd21300candidate mask for 10-20 x 17828 y 433108 tif
-    ## 2: ce1lhfd21400candidate mask for 10-20 x 17828 y 433108 tif
-    ## 3: ce1lhfd21500candidate mask for 10-20 x 17828 y 433108 tif
-    ## 4: ce1lhfd21600candidate mask for 10-20 x 17828 y 433108 tif
-    ## 5: ce1lhfd21700candidate mask for 10-20 x 17828 y 433108 tif
-    ## 6: ce1lhfd21800candidate mask for 10-20 x 17828 y 433108 tif
-    ##    CellParametersPerimeter CellSpread Eccentricity Roundness SomaSize MaskSize
-    ## 1:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
-    ## 2:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
-    ## 3:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
-    ## 4:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
-    ## 5:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
-    ## 6:                337.5485    24.0163       2.1762   0.03985  27.9212  361.294
-    ##    #Branches #Junctions #End-pointvoxels #Junctionvoxels #Slabvoxels
-    ## 1:        35         15               20              41         191
-    ## 2:        35         15               20              41         191
-    ## 3:        35         15               20              41         191
-    ## 4:        35         15               20              41         191
-    ## 5:        35         15               20              41         191
-    ## 6:        35         15               20              41         191
-    ##    AverageBranchLength #Triplepoints #Quadruplepoints MaximumBranchLength
-    ## 1:              5.0535            11                3             13.4753
-    ## 2:              5.0535            11                3             13.4753
-    ## 3:              5.0535            11                3             13.4753
-    ## 4:              5.0535            11                3             13.4753
-    ## 5:              5.0535            11                3             13.4753
-    ## 6:              5.0535            11                3             13.4753
-    ##    LongestShortestPath SkelArea CriticalValue EnclosingRadius
-    ## 1:             73.4044  84.7729      2.277565        34.10392
-    ## 2:             73.4044  84.7729      2.277565        34.10392
-    ## 3:             73.4044  84.7729      2.277565        34.10392
-    ## 4:             73.4044  84.7729      2.277565        34.10392
-    ## 5:             73.4044  84.7729      2.277565        34.10392
-    ## 6:             73.4044  84.7729      2.277565        34.10392
-    ##    MaximumNumberofIntersections Skewness(sampled)
-    ## 1:                            7        -0.2103932
-    ## 2:                            7        -0.2103932
-    ## 3:                            7        -0.2103932
-    ## 4:                            7        -0.2103932
-    ## 5:                            7        -0.2103932
-    ## 6:                            7        -0.2103932
-    ##    RegressionIntercept(Semi-log)[P10-P90] RegressionCoefficient(semi-log)
-    ## 1:                              -1.913573                      -0.1819827
-    ## 2:                              -1.913573                      -0.1819827
-    ## 3:                              -1.913573                      -0.1819827
-    ## 4:                              -1.913573                      -0.1819827
-    ## 5:                              -1.913573                      -0.1819827
-    ## 6:                              -1.913573                      -0.1819827
-    ##    MeanValue RegressionIntercept(semi-log) RamificationIndex(fit)
-    ## 1:  3.720781                     -2.206013               6.595027
-    ## 2:  3.720781                     -2.206013               6.595027
-    ## 3:  3.720781                     -2.206013               6.595027
-    ## 4:  3.720781                     -2.206013               6.595027
-    ## 5:  3.720781                     -2.206013               6.595027
-    ## 6:  3.720781                     -2.206013               6.595027
-    ##    Kurtosis(sampled) PolynomialDegree IntersectingRadii CentroidRadius
-    ## 1:         -1.517189               27                54       18.73391
-    ## 2:         -1.517189               27                54       18.73391
-    ## 3:         -1.517189               27                54       18.73391
-    ## 4:         -1.517189               27                54       18.73391
-    ## 5:         -1.517189               27                54       18.73391
-    ## 6:         -1.517189               27                54       18.73391
-    ##    RegressionCoefficient(Log-log)[P10-P90] MaxIntersectionRadius
-    ## 1:                               -3.008099               10.3239
-    ## 2:                               -3.008099               10.3239
-    ## 3:                               -3.008099               10.3239
-    ## 4:                               -3.008099               10.3239
-    ## 5:                               -3.008099               10.3239
-    ## 6:                               -3.008099               10.3239
-    ##    PrimaryBranches MedianofIntersections
-    ## 1:               1                   4.5
-    ## 2:               1                   4.5
-    ## 3:               1                   4.5
-    ## 4:               1                   4.5
-    ## 5:               1                   4.5
-    ## 6:               1                   4.5
-    ##    RegressionCoefficient(semi-log)[P10-P90] RegressionIntercept(Log-log)
-    ## 1:                               -0.1957838                     1.371961
-    ## 2:                               -0.1957838                     1.371961
-    ## 3:                               -0.1957838                     1.371961
-    ## 4:                               -0.1957838                     1.371961
-    ## 5:                               -0.1957838                     1.371961
-    ## 6:                               -0.1957838                     1.371961
-    ##    RamificationIndex(sampled) RegressionIntercept(Log-log)[P10-P90]
-    ## 1:                          7                              2.941819
-    ## 2:                          7                              2.941819
-    ## 3:                          7                              2.941819
-    ## 4:                          7                              2.941819
-    ## 5:                          7                              2.941819
-    ## 6:                          7                              2.941819
-    ##    RegressionCoefficient(Log-log) SumofIntersections Kurtosis(fit)
-    ## 1:                      -2.517894                201     -1.568975
-    ## 2:                      -2.517894                201     -1.568975
-    ## 3:                      -2.517894                201     -1.568975
-    ## 4:                      -2.517894                201     -1.568975
-    ## 5:                      -2.517894                201     -1.568975
-    ## 6:                      -2.517894                201     -1.568975
-    ##    CentroidValue CriticalRadius MeanofIntersections
-    ## 1:      3.722222       28.33172            3.722222
-    ## 2:      3.722222       28.33172            3.722222
-    ## 3:      3.722222       28.33172            3.722222
-    ## 4:      3.722222       28.33172            3.722222
-    ## 5:      3.722222       28.33172            3.722222
-    ## 6:      3.722222       28.33172            3.722222
-    ##    Density=ForegroundPixels/HullArea SpanRatio(major/minoraxis)
-    ## 1:                         0.1044186                     1.9135
-    ## 2:                         0.1044186                     1.9135
-    ## 3:                         0.1044186                     1.9135
-    ## 4:                         0.1044186                     1.9135
-    ## 5:                         0.1044186                     1.9135
-    ## 6:                         0.1044186                     1.9135
-    ##    MaximumSpanAcrossHull     Area HullandCircularityPerimeter Circularity
-    ## 1:              55.68302 1163.944                    141.1598       0.734
-    ## 2:              55.68302 1163.944                    141.1598       0.734
-    ## 3:              55.68302 1163.944                    141.1598       0.734
-    ## 4:              55.68302 1163.944                    141.1598       0.734
-    ## 5:              55.68302 1163.944                    141.1598       0.734
-    ## 6:              55.68302 1163.944                    141.1598       0.734
-    ##    MaximumRadiusfromHull'sCentreofMass Max/MinRadii CVforallRadii MeanRadius
-    ## 1:                            33.89595         2.47        0.2527   23.80326
-    ## 2:                            33.89595         2.47        0.2527   23.80326
-    ## 3:                            33.89595         2.47        0.2527   23.80326
-    ## 4:                            33.89595         2.47        0.2527   23.80326
-    ## 5:                            33.89595         2.47        0.2527   23.80326
-    ## 6:                            33.89595         2.47        0.2527   23.80326
-    ##    DiameterofBoundingCircle MaximumRadiusfromCircle'sCentre
-    ## 1:                 56.34538                        28.17269
-    ## 2:                 56.34538                        28.17269
-    ## 3:                 56.34538                        28.17269
-    ## 4:                 56.34538                        28.17269
-    ## 5:                 56.34538                        28.17269
-    ## 6:                 56.34538                        28.17269
-    ##    Max/MinRadiifromCircle'sCentre CVforallRadiifromCircle'sCentre
-    ## 1:                         1.4317                          0.1286
-    ## 2:                         1.4317                          0.1286
-    ## 3:                         1.4317                          0.1286
-    ## 4:                         1.4317                          0.1286
-    ## 5:                         1.4317                          0.1286
-    ## 6:                         1.4317                          0.1286
-    ##    MeanRadiusfromCircle'sCentre FractalDimension Lacunarity CellNo
-    ## 1:                     25.46101           1.3991     0.6822      1
-    ## 2:                     25.46101           1.3991     0.6822      1
-    ## 3:                     25.46101           1.3991     0.6822      1
-    ## 4:                     25.46101           1.3991     0.6822      1
-    ## 5:                     25.46101           1.3991     0.6822      1
-    ## 6:                     25.46101           1.3991     0.6822      1
-    ##    BranchingDensity
-    ## 1:       0.07283246
-    ## 2:       0.07283246
-    ## 3:       0.07283246
-    ## 4:       0.07283246
-    ## 5:       0.07283246
-    ## 6:       0.07283246
+    ##     Animal Treatment TCSValue
+    ##  1:   CE1L     HFD21      300
+    ##  2:   CE1L     HFD21      400
+    ##  3:   CE1L     HFD21      500
+    ##  4:   CE1L     HFD21      600
+    ##  5:   CE1L     HFD21      700
+    ##  6:   CE1L     HFD21      800
+    ##  7:   CE1L     HFD21      200
+    ##  8:   CE1L     HFD21      300
+    ##  9:   CE1L     HFD21      400
+    ## 10:   CE1L     HFD21      500
+    ##                                                       UniqueID
+    ##  1:  ce1lhfd21300candidate mask for 10-20 x 17828 y 433108 tif
+    ##  2:  ce1lhfd21400candidate mask for 10-20 x 17828 y 433108 tif
+    ##  3:  ce1lhfd21500candidate mask for 10-20 x 17828 y 433108 tif
+    ##  4:  ce1lhfd21600candidate mask for 10-20 x 17828 y 433108 tif
+    ##  5:  ce1lhfd21700candidate mask for 10-20 x 17828 y 433108 tif
+    ##  6:  ce1lhfd21800candidate mask for 10-20 x 17828 y 433108 tif
+    ##  7: ce1lhfd21200candidate mask for 10-20 x 228978 y 298356 tif
+    ##  8: ce1lhfd21300candidate mask for 10-20 x 228978 y 298356 tif
+    ##  9: ce1lhfd21400candidate mask for 10-20 x 228978 y 298356 tif
+    ## 10: ce1lhfd21500candidate mask for 10-20 x 228978 y 298356 tif
+    ##     CellParametersPerimeter CellSpread Eccentricity Roundness SomaSize MaskSize
+    ##  1:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
+    ##  2:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
+    ##  3:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
+    ##  4:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
+    ##  5:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
+    ##  6:                337.5485    24.0163       2.1762   0.03985  27.9212 361.2940
+    ##  7:                 85.4561     8.9277       1.3486   0.19510  20.1840 113.3669
+    ##  8:                245.3896    17.0824       1.4252   0.06564  20.1840 314.5343
+    ##  9:                245.3896    17.0824       1.4252   0.06564  20.1840 314.5343
+    ## 10:                245.3896    17.0824       1.4252   0.06564  20.1840 314.5343
+    ##     #Branches #Junctions #End-pointvoxels #Junctionvoxels #Slabvoxels
+    ##  1:        35         15               20              41         191
+    ##  2:        35         15               20              41         191
+    ##  3:        35         15               20              41         191
+    ##  4:        35         15               20              41         191
+    ##  5:        35         15               20              41         191
+    ##  6:        35         15               20              41         191
+    ##  7:        10          4                7               9          50
+    ##  8:        30         13               17              39         149
+    ##  9:        30         13               17              39         149
+    ## 10:        30         13               17              39         149
+    ##     AverageBranchLength #Triplepoints #Quadruplepoints MaximumBranchLength
+    ##  1:              5.0535            11                3             13.4753
+    ##  2:              5.0535            11                3             13.4753
+    ##  3:              5.0535            11                3             13.4753
+    ##  4:              5.0535            11                3             13.4753
+    ##  5:              5.0535            11                3             13.4753
+    ##  6:              5.0535            11                3             13.4753
+    ##  7:              4.6581             3                1              7.9210
+    ##  8:              4.8348            10                2             13.2817
+    ##  9:              4.8348            10                2             13.2817
+    ## 10:              4.8348            10                2             13.2817
+    ##     LongestShortestPath SkelArea CriticalValue EnclosingRadius
+    ##  1:             73.4044  84.7729  2.277565e+00        34.10392
+    ##  2:             73.4044  84.7729  2.277565e+00        34.10392
+    ##  3:             73.4044  84.7729  2.277565e+00        34.10392
+    ##  4:             73.4044  84.7729  2.277565e+00        34.10392
+    ##  5:             73.4044  84.7729  2.277565e+00        34.10392
+    ##  6:             73.4044  84.7729  2.277565e+00        34.10392
+    ##  7:             22.6403  22.2024  1.690778e+14        14.46011
+    ##  8:             63.5910  68.9621            NA        20.84011
+    ##  9:             63.5910  68.9621            NA        20.84011
+    ## 10:             63.5910  68.9621            NA        20.84011
+    ##     MaximumNumberofIntersections Skewness(sampled)
+    ##  1:                            7        -0.2103932
+    ##  2:                            7        -0.2103932
+    ##  3:                            7        -0.2103932
+    ##  4:                            7        -0.2103932
+    ##  5:                            7        -0.2103932
+    ##  6:                            7        -0.2103932
+    ##  7:                            3        -0.2937964
+    ##  8:                            8         0.2661271
+    ##  9:                            8         0.2661271
+    ## 10:                            8         0.2661271
+    ##     RegressionIntercept(Semi-log)[P10-P90] RegressionCoefficient(semi-log)
+    ##  1:                              -1.913573                      -0.1819827
+    ##  2:                              -1.913573                      -0.1819827
+    ##  3:                              -1.913573                      -0.1819827
+    ##  4:                              -1.913573                      -0.1819827
+    ##  5:                              -1.913573                      -0.1819827
+    ##  6:                              -1.913573                      -0.1819827
+    ##  7:                              -2.617455                      -0.2387706
+    ##  8:                              -2.127898                      -0.1902941
+    ##  9:                              -2.127898                      -0.1902941
+    ## 10:                              -2.127898                      -0.1902941
+    ##     MeanValue RegressionIntercept(semi-log) RamificationIndex(fit)
+    ##  1:  3.720781                     -2.206013               6.595027
+    ##  2:  3.720781                     -2.206013               6.595027
+    ##  3:  3.720781                     -2.206013               6.595027
+    ##  4:  3.720781                     -2.206013               6.595027
+    ##  5:  3.720781                     -2.206013               6.595027
+    ##  6:  3.720781                     -2.206013               6.595027
+    ##  7:  2.142856                     -2.528711               3.160871
+    ##  8:        NA                     -2.271791                     NA
+    ##  9:        NA                     -2.271791                     NA
+    ## 10:        NA                     -2.271791                     NA
+    ##     Kurtosis(sampled) PolynomialDegree IntersectingRadii CentroidRadius
+    ##  1:        -1.5171886               27                54      18.733908
+    ##  2:        -1.5171886               27                54      18.733908
+    ##  3:        -1.5171886               27                54      18.733908
+    ##  4:        -1.5171886               27                54      18.733908
+    ##  5:        -1.5171886               27                54      18.733908
+    ##  6:        -1.5171886               27                54      18.733908
+    ##  7:        -1.5878508               14                21       8.660103
+    ##  8:        -0.4671162               NA                32      11.850105
+    ##  9:        -0.4671162               NA                32      11.850105
+    ## 10:        -0.4671162               NA                32      11.850105
+    ##     RegressionCoefficient(Log-log)[P10-P90] MaxIntersectionRadius
+    ##  1:                               -3.008099             10.323904
+    ##  2:                               -3.008099             10.323904
+    ##  3:                               -3.008099             10.323904
+    ##  4:                               -3.008099             10.323904
+    ##  5:                               -3.008099             10.323904
+    ##  6:                               -3.008099             10.323904
+    ##  7:                               -1.689856              4.600101
+    ##  8:                               -1.889429             12.140105
+    ##  9:                               -1.889429             12.140105
+    ## 10:                               -1.889429             12.140105
+    ##     PrimaryBranches MedianofIntersections
+    ##  1:               1                   4.5
+    ##  2:               1                   4.5
+    ##  3:               1                   4.5
+    ##  4:               1                   4.5
+    ##  5:               1                   4.5
+    ##  6:               1                   4.5
+    ##  7:               1                   2.0
+    ##  8:               1                   4.0
+    ##  9:               1                   4.0
+    ## 10:               1                   4.0
+    ##     RegressionCoefficient(semi-log)[P10-P90] RegressionIntercept(Log-log)
+    ##  1:                               -0.1957838                    1.3719607
+    ##  2:                               -0.1957838                    1.3719607
+    ##  3:                               -0.1957838                    1.3719607
+    ##  4:                               -0.1957838                    1.3719607
+    ##  5:                               -0.1957838                    1.3719607
+    ##  6:                               -0.1957838                    1.3719607
+    ##  7:                               -0.2254427                   -0.9958107
+    ##  8:                               -0.1971739                   -0.5304139
+    ##  9:                               -0.1971739                   -0.5304139
+    ## 10:                               -0.1971739                   -0.5304139
+    ##     RamificationIndex(sampled) RegressionIntercept(Log-log)[P10-P90]
+    ##  1:                          7                            2.94181923
+    ##  2:                          7                            2.94181923
+    ##  3:                          7                            2.94181923
+    ##  4:                          7                            2.94181923
+    ##  5:                          7                            2.94181923
+    ##  6:                          7                            2.94181923
+    ##  7:                          3                           -1.03891847
+    ##  8:                          8                            0.04722433
+    ##  9:                          8                            0.04722433
+    ## 10:                          8                            0.04722433
+    ##     RegressionCoefficient(Log-log) SumofIntersections Kurtosis(fit)
+    ##  1:                      -2.517894                201     -1.568975
+    ##  2:                      -2.517894                201     -1.568975
+    ##  3:                      -2.517894                201     -1.568975
+    ##  4:                      -2.517894                201     -1.568975
+    ##  5:                      -2.517894                201     -1.568975
+    ##  6:                      -2.517894                201     -1.568975
+    ##  7:                      -1.747633                 45     -1.579314
+    ##  8:                      -1.705895                134            NA
+    ##  9:                      -1.705895                134            NA
+    ## 10:                      -1.705895                134            NA
+    ##     CentroidValue CriticalRadius MeanofIntersections
+    ##  1:      3.722222       28.33172            3.722222
+    ##  2:      3.722222       28.33172            3.722222
+    ##  3:      3.722222       28.33172            3.722222
+    ##  4:      3.722222       28.33172            3.722222
+    ##  5:      3.722222       28.33172            3.722222
+    ##  6:      3.722222       28.33172            3.722222
+    ##  7:      2.142857       17.58189            2.142857
+    ##  8:      4.187500             NA            4.187500
+    ##  9:      4.187500             NA            4.187500
+    ## 10:      4.187500             NA            4.187500
+    ##     Density=ForegroundPixels/HullArea SpanRatio(major/minoraxis)
+    ##  1:                         0.1044186                     1.9135
+    ##  2:                         0.1044186                     1.9135
+    ##  3:                         0.1044186                     1.9135
+    ##  4:                         0.1044186                     1.9135
+    ##  5:                         0.1044186                     1.9135
+    ##  6:                         0.1044186                     1.9135
+    ##  7:                         0.2076261                     1.1423
+    ##  8:                         0.1452239                     1.2212
+    ##  9:                         0.1452239                     1.2212
+    ## 10:                         0.1452239                     1.2212
+    ##     MaximumSpanAcrossHull      Area HullandCircularityPerimeter Circularity
+    ##  1:              55.68302 1163.9440                   141.15982      0.7340
+    ##  2:              55.68302 1163.9440                   141.15982      0.7340
+    ##  3:              55.68302 1163.9440                   141.15982      0.7340
+    ##  4:              55.68302 1163.9440                   141.15982      0.7340
+    ##  5:              55.68302 1163.9440                   141.15982      0.7340
+    ##  6:              55.68302 1163.9440                   141.15982      0.7340
+    ##  7:              17.40969  183.6744                    51.09591      0.8841
+    ##  8:              35.39902  728.6424                   101.58770      0.8872
+    ##  9:              35.39902  728.6424                   101.58770      0.8872
+    ## 10:              35.39902  728.6424                   101.58770      0.8872
+    ##     MaximumRadiusfromHull'sCentreofMass Max/MinRadii CVforallRadii MeanRadius
+    ##  1:                            33.89595       2.4700        0.2527   23.80326
+    ##  2:                            33.89595       2.4700        0.2527   23.80326
+    ##  3:                            33.89595       2.4700        0.2527   23.80326
+    ##  4:                            33.89595       2.4700        0.2527   23.80326
+    ##  5:                            33.89595       2.4700        0.2527   23.80326
+    ##  6:                            33.89595       2.4700        0.2527   23.80326
+    ##  7:                            10.68870       1.6847        0.1519    8.46742
+    ##  8:                            18.94524       1.3895        0.1094   16.52756
+    ##  9:                            18.94524       1.3895        0.1094   16.52756
+    ## 10:                            18.94524       1.3895        0.1094   16.52756
+    ##     DiameterofBoundingCircle MaximumRadiusfromCircle'sCentre
+    ##  1:                 56.34538                       28.172688
+    ##  2:                 56.34538                       28.172688
+    ##  3:                 56.34538                       28.172688
+    ##  4:                 56.34538                       28.172688
+    ##  5:                 56.34538                       28.172688
+    ##  6:                 56.34538                       28.172688
+    ##  7:                 17.67962                        8.839838
+    ##  8:                 36.40996                       18.204982
+    ##  9:                 36.40996                       18.204982
+    ## 10:                 36.40996                       18.204982
+    ##     Max/MinRadiifromCircle'sCentre CVforallRadiifromCircle'sCentre
+    ##  1:                         1.4317                          0.1286
+    ##  2:                         1.4317                          0.1286
+    ##  3:                         1.4317                          0.1286
+    ##  4:                         1.4317                          0.1286
+    ##  5:                         1.4317                          0.1286
+    ##  6:                         1.4317                          0.1286
+    ##  7:                         1.1591                          0.0488
+    ##  8:                         1.3701                          0.0985
+    ##  9:                         1.3701                          0.0985
+    ## 10:                         1.3701                          0.0985
+    ##     MeanRadiusfromCircle'sCentre FractalDimension Lacunarity CellNo
+    ##  1:                    25.461014           1.3991     0.6822      1
+    ##  2:                    25.461014           1.3991     0.6822      1
+    ##  3:                    25.461014           1.3991     0.6822      1
+    ##  4:                    25.461014           1.3991     0.6822      1
+    ##  5:                    25.461014           1.3991     0.6822      1
+    ##  6:                    25.461014           1.3991     0.6822      1
+    ##  7:                     8.485574           1.3704     0.5695      2
+    ##  8:                    16.707074           1.4293     0.5832      2
+    ##  9:                    16.707074           1.4293     0.5832      2
+    ## 10:                    16.707074           1.4293     0.5832      2
+    ##     BranchingDensity
+    ##  1:       0.07283246
+    ##  2:       0.07283246
+    ##  3:       0.07283246
+    ##  4:       0.07283246
+    ##  5:       0.07283246
+    ##  6:       0.07283246
+    ##  7:       0.12087912
+    ##  8:       0.09464464
+    ##  9:       0.09464464
+    ## 10:       0.09464464
+
+**Note here that some rows have identical measurements. This can occur
+when automated cell segmentation creates the same mask for a given cell
+across multiple TCSValue values. This is a result of the cell
+segmentation converging on a certain threshold to use for
+segmentation.**
 
 -----
 
@@ -397,112 +497,169 @@ inDat = output[Treatment %in% LPSGroups]
 Here we’re going to run this function on the example morphPreProccessing
 output table found
 [here](https://drive.google.com/file/d/1dtgZZuBTPg-uJaWxZy8bOav8mSJs-msY/view?usp=sharing).
-It’s worth noting that this data was collated with a legacy version of
-the morphPreProcessing function and doesn’t have any FracLac data
-included.
+It’s worth noting that this data was processed with a legacy version of
+the Fiji plugin, and also collated with a legacy version of the
+morphPreProcessing function. In addition, it doesn’t have any FracLac
+data included.
 
 ``` r
-head(inDat)
+head(inDat[order(Animal, Treatment, UniqueID)],10)
 ```
 
-    ##    TCSValue Animal Treatment                                          UniqueID
-    ## 1:      200   C3PO       LPS C3POLPSCANDIDATEMASKFORSUBSTACK(21-30)X106Y417200
-    ## 2:      200   CA1R       LPS CA1RLPSCANDIDATEMASKFORSUBSTACK(21-30)X118Y398200
-    ## 3:      300   CA1R       LPS CA1RLPSCANDIDATEMASKFORSUBSTACK(21-30)X118Y398300
-    ## 4:      400   CA1R       LPS CA1RLPSCANDIDATEMASKFORSUBSTACK(21-30)X118Y398400
-    ## 5:      500   CA1R       LPS CA1RLPSCANDIDATEMASKFORSUBSTACK(21-30)X118Y398500
-    ## 6:      600   CA1R       LPS CA1RLPSCANDIDATEMASKFORSUBSTACK(21-30)X118Y398600
-    ##    Perimeter CellSpread Eccentricity Roundness SomaSize MaskSize #Branches
-    ## 1:    84.636     10.902        2.584     0.208   38.686  118.413         5
-    ## 2:   165.991     17.138        2.741     0.130   82.754  284.931        13
-    ## 3:   165.991     17.138        2.741     0.130   82.754  284.931        13
-    ## 4:   266.973     19.886        2.160     0.082   82.754  465.241        19
-    ## 5:   266.973     19.886        2.160     0.082   82.754  465.241        19
-    ## 6:   266.973     19.886        2.160     0.082   82.754  465.241        19
-    ##    #Junctions #End-pointvoxels #Junctionvoxels #Slabvoxels AverageBranchLength
-    ## 1:          2                4               4          57               8.577
-    ## 2:          5                9              10         119               7.498
-    ## 3:          5                9              10         119               7.498
-    ## 4:          9               10              18         190               8.015
-    ## 5:          9               10              18         190               8.015
-    ## 6:          9               10              18         190               8.015
-    ##    #Triplepoints #Quadruplepoints MaximumBranchLength LongestShortestPath
-    ## 1:             2                0              19.562              30.524
-    ## 2:             3                2              17.482              49.970
-    ## 3:             3                2              17.482              49.970
-    ## 4:             8                1              15.403              65.231
-    ## 5:             8                1              15.403              65.231
-    ## 6:             8                1              15.403              65.231
-    ##    SkelArea Ibranches(inferred) Intersectingradii Suminters. Meaninters.
-    ## 1:   21.866                   3                24         58        2.42
-    ## 2:   46.423                   3                34        110        3.24
-    ## 3:   46.423                   3                34        110        3.24
-    ## 4:   73.335                   2                46        179        3.89
-    ## 5:   73.335                   2                46        179        3.89
-    ## 6:   73.335                   2                46        179        3.89
-    ##    Medianinters. Skewness(sampled) Kurtosis(sampled) Maxinters.
-    ## 1:             3             -0.40             -1.21          4
-    ## 2:             3             -0.10             -0.99          6
-    ## 3:             3             -0.10             -0.99          6
-    ## 4:             3              0.45             -0.98          9
-    ## 5:             3              0.45             -0.98          9
-    ## 6:             3              0.45             -0.98          9
-    ##    Maxinters.radius Ramificationindex(sampled) Centroidradius Centroidvalue
-    ## 1:             8.15                       1.33         -10.57          2.45
-    ## 2:            10.35                       2.00          14.48          3.30
-    ## 3:            10.35                       2.00          14.48          3.30
-    ## 4:            14.41                       4.50          17.57          4.31
-    ## 5:            14.41                       4.50          17.57          4.31
-    ## 6:            14.41                       4.50          17.57          4.31
-    ##    Enclosingradius Criticalvalue Criticalradius Meanvalue
-    ## 1:           16.85          3.46           8.84      2.43
-    ## 2:           24.27          5.05          10.71      3.27
-    ## 3:           24.27          5.05          10.71      3.27
-    ## 4:           31.23          7.73          13.20      3.93
-    ## 5:           31.23          7.73          13.20      3.93
-    ## 6:           31.23          7.73          13.20      3.93
-    ##    Ramificationindex(fit) Skewness(fit) Kurtosis(fit) Polyn.degree
-    ## 1:                   1.15         -0.56         -1.38            6
-    ## 2:                   1.68         -0.31         -1.11            7
-    ## 3:                   1.68         -0.31         -1.11            7
-    ## 4:                   3.87          0.37         -1.16            8
-    ## 5:                   3.87          0.37         -1.16            8
-    ## 6:                   3.87          0.37         -1.16            8
-    ##    Regressioncoefficient(Semi-log) Regressionintercept(Semi-log)
-    ## 1:                            0.32                         -1.53
-    ## 2:                            0.22                         -2.02
-    ## 3:                            0.22                         -2.02
-    ## 4:                            0.19                         -2.13
-    ## 5:                            0.19                         -2.13
-    ## 6:                            0.19                         -2.13
-    ##    Regressioncoefficient(Semi-log)[P10-P90]
-    ## 1:                                     0.33
-    ## 2:                                     0.22
-    ## 3:                                     0.22
-    ## 4:                                     0.20
-    ## 5:                                     0.20
-    ## 6:                                     0.20
-    ##    Regressionintercept(Semi-log)[P10-P90] Regressioncoefficient(Log-log)
-    ## 1:                                  -1.49                           2.82
-    ## 2:                                  -2.07                           2.77
-    ## 3:                                  -2.07                           2.77
-    ## 4:                                  -1.87                           2.77
-    ## 5:                                  -1.87                           2.77
-    ## 6:                                  -1.87                           2.77
-    ##    Regressionintercept(Log-log) Regressioncoefficient(Log-log)[P10-P90]
-    ## 1:                         1.45                                    2.92
-    ## 2:                         1.91                                    2.79
-    ## 3:                         1.91                                    2.79
-    ## 4:                         2.15                                    3.13
-    ## 5:                         2.15                                    3.13
-    ## 6:                         2.15                                    3.13
-    ##    Regressionintercept(Log-log)[P10-P90] CellNo
-    ## 1:                                  1.77   5987
-    ## 2:                                  2.10   5988
-    ## 3:                                  2.10   5988
-    ## 4:                                  3.36   5988
-    ## 5:                                  3.36   5988
-    ## 6:                                  3.36   5988
+    ##     TCSValue Animal Treatment                                          UniqueID
+    ##  1:      200   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X148Y164200
+    ##  2:      300   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X148Y164300
+    ##  3:      400   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X148Y164400
+    ##  4:      500   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X148Y164500
+    ##  5:      600   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X148Y164600
+    ##  6:      700   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X148Y164700
+    ##  7:      800   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X148Y164800
+    ##  8:      200   BR1R       D56  BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X150Y28200
+    ##  9:      200   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X167Y466200
+    ## 10:      300   BR1R       D56 BR1RD56CANDIDATEMASKFORSUBSTACK(21-30)X167Y466300
+    ##     Perimeter CellSpread Eccentricity Roundness SomaSize MaskSize #Branches
+    ##  1:   183.415     17.194        1.803     0.112   59.206  298.723        19
+    ##  2:   157.929     16.749        1.969     0.114   59.206  225.388        13
+    ##  3:   183.415     17.194        1.803     0.112   59.206  298.723        19
+    ##  4:   183.415     17.194        1.803     0.112   59.206  298.723        19
+    ##  5:   218.603     22.235        1.523     0.100   59.206  380.132        23
+    ##  6:   218.603     22.235        1.523     0.100   59.206  380.132        23
+    ##  7:   404.420     26.811        1.636     0.052   59.206  679.864        40
+    ##  8:    95.100      9.659        1.451     0.163   32.967  117.067         8
+    ##  9:    73.036      8.609        1.217     0.262   45.414  111.012         7
+    ## 10:    96.658     10.065        1.237     0.228   45.414  169.209        16
+    ##     #Junctions #End-pointvoxels #Junctionvoxels #Slabvoxels AverageBranchLength
+    ##  1:          9               11              13         118               5.113
+    ##  2:          6                8              14         101               6.293
+    ##  3:          9               11              13         118               5.113
+    ##  4:          9               11              13         118               5.113
+    ##  5:         10               13              23         158               5.932
+    ##  6:         10               13              23         158               5.932
+    ##  7:         18               23              41         284               6.094
+    ##  8:          3                6               9          60               6.626
+    ##  9:          3                5               7          40               4.981
+    ## 10:          7               10              14          58               3.485
+    ##     #Triplepoints #Quadruplepoints MaximumBranchLength LongestShortestPath
+    ##  1:             9                0              13.903              50.608
+    ##  2:             6                0              13.903              45.786
+    ##  3:             9                0              13.903              50.608
+    ##  4:             9                0              13.903              50.608
+    ##  5:             7                3              17.524              55.488
+    ##  6:             7                3              17.524              55.488
+    ##  7:            15                3              23.365             103.333
+    ##  8:             2                1              14.582              32.686
+    ##  9:             3                0              11.202              25.884
+    ## 10:             6                1               7.138              27.761
+    ##     SkelArea Ibranches(inferred) Intersectingradii Suminters. Meaninters.
+    ##  1:   47.769                   3                40        109        2.73
+    ##  2:   41.377                   3                39         98        2.51
+    ##  3:   47.769                   3                40        109        2.73
+    ##  4:   47.769                   3                40        109        2.73
+    ##  5:   65.262                   3                42        142        3.38
+    ##  6:   65.262                   3                42        142        3.38
+    ##  7:  117.067                   2                62        248        4.00
+    ##  8:   25.230                   1                22         58        2.64
+    ##  9:   17.493                   4                13         40        3.08
+    ## 10:   27.585                   4                18         56        3.11
+    ##     Medianinters. Skewness(sampled) Kurtosis(sampled) Maxinters.
+    ##  1:             3              0.54             -1.10          6
+    ##  2:             2              0.34             -1.22          5
+    ##  3:             3              0.54             -1.10          6
+    ##  4:             3              0.54             -1.10          6
+    ##  5:             3             -0.02             -1.49          6
+    ##  6:             3             -0.02             -1.49          6
+    ##  7:             3              0.53             -0.67         10
+    ##  8:             2              0.56             -0.78          6
+    ##  9:             3             -0.46             -0.50          5
+    ## 10:             3             -0.22             -0.09          5
+    ##     Maxinters.radius Ramificationindex(sampled) Centroidradius Centroidvalue
+    ##  1:             7.82                       2.00          13.77          2.41
+    ##  2:             8.98                       1.67          14.07          2.28
+    ##  3:             7.82                       2.00          13.77          2.41
+    ##  4:             7.82                       2.00          13.77          2.41
+    ##  5:             7.82                       2.00         -13.35         -4.57
+    ##  6:             7.82                       2.00         -13.35         -4.57
+    ##  7:            17.10                       5.00          25.10          5.39
+    ##  8:             5.56                       6.00           9.31          3.04
+    ##  9:             9.60                       1.25           5.28          2.14
+    ## 10:             6.70                       1.25          10.92          3.40
+    ##     Enclosingradius Criticalvalue Criticalradius Meanvalue
+    ##  1:           26.96          5.44           9.46      2.74
+    ##  2:           26.38          4.62           8.88      2.53
+    ##  3:           26.96          5.44           9.46      2.74
+    ##  4:           26.96          5.44           9.46      2.74
+    ##  5:           28.12          5.57           9.01      3.43
+    ##  6:           28.12          5.57           9.01      3.43
+    ##  7:           39.72          7.33          14.57      4.04
+    ##  8:           15.42          5.04           5.39      2.73
+    ##  9:           10.76          4.36           9.05      3.12
+    ## 10:           13.66          4.17           3.80      3.14
+    ##     Ramificationindex(fit) Skewness(fit) Kurtosis(fit) Polyn.degree
+    ##  1:                   1.81          0.32         -1.54            8
+    ##  2:                   1.54          0.21         -1.52            8
+    ##  3:                   1.81          0.32         -1.54            8
+    ##  4:                   1.81          0.32         -1.54            8
+    ##  5:                   1.86         -0.48         -1.22            8
+    ##  6:                   1.86         -0.48         -1.22            8
+    ##  7:                   3.66          0.36         -1.18            8
+    ##  8:                   5.04          0.45         -1.30            8
+    ##  9:                   1.09         -0.76         -0.37            8
+    ## 10:                   1.04         -1.37          2.05            8
+    ##     Regressioncoefficient(Semi-log) Regressionintercept(Semi-log)
+    ##  1:                            0.24                         -1.92
+    ##  2:                            0.23                         -2.04
+    ##  3:                            0.24                         -1.92
+    ##  4:                            0.24                         -1.92
+    ##  5:                            0.22                         -1.97
+    ##  6:                            0.22                         -1.97
+    ##  7:                            0.15                         -2.61
+    ##  8:                            0.34                         -1.45
+    ##  9:                            0.42                         -0.97
+    ## 10:                            0.33                         -1.43
+    ##     Regressioncoefficient(Semi-log)[P10-P90]
+    ##  1:                                     0.27
+    ##  2:                                     0.25
+    ##  3:                                     0.27
+    ##  4:                                     0.27
+    ##  5:                                     0.24
+    ##  6:                                     0.24
+    ##  7:                                     0.16
+    ##  8:                                     0.42
+    ##  9:                                     0.27
+    ## 10:                                     0.29
+    ##     Regressionintercept(Semi-log)[P10-P90] Regressioncoefficient(Log-log)
+    ##  1:                                  -1.57                           3.15
+    ##  2:                                  -1.85                           3.03
+    ##  3:                                  -1.57                           3.15
+    ##  4:                                  -1.57                           3.15
+    ##  5:                                  -1.54                           2.85
+    ##  6:                                  -1.54                           2.85
+    ##  7:                                  -2.40                           2.48
+    ##  8:                                  -0.77                           2.72
+    ##  9:                                  -1.88                           2.79
+    ## 10:                                  -1.71                           2.57
+    ##     Regressionintercept(Log-log) Regressioncoefficient(Log-log)[P10-P90]
+    ##  1:                         2.63                                    3.72
+    ##  2:                         2.29                                    3.37
+    ##  3:                         2.63                                    3.72
+    ##  4:                         2.63                                    3.72
+    ##  5:                         2.14                                    3.43
+    ##  6:                         2.14                                    3.43
+    ##  7:                         1.49                                    2.96
+    ##  8:                         1.20                                    3.50
+    ##  9:                         1.42                                    1.92
+    ## 10:                         1.12                                    2.32
+    ##     Regressionintercept(Log-log)[P10-P90] CellNo
+    ##  1:                                  4.25   5994
+    ##  2:                                  3.28   5994
+    ##  3:                                  4.25   5994
+    ##  4:                                  4.25   5994
+    ##  5:                                  3.82   5994
+    ##  6:                                  3.82   5994
+    ##  7:                                  3.09   5994
+    ##  8:                                  2.95   5996
+    ##  9:                                 -0.10   6002
+    ## 10:                                  0.67   6002
 
 The constructInfInd() function will print out the mask size and number
 of descriptors that created the Inflammation Index that was most
