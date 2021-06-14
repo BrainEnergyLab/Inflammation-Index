@@ -485,6 +485,134 @@ so users can see what was used, and how they relate - **Optimal TCS** -
 The TCS value identified as optimal for detecting differences in
 morphology between training conditions
 
+For the following examples we’re going to run this function on the
+example morphPreProccessing output table found
+[here](https://drive.google.com/file/d/1dtgZZuBTPg-uJaWxZy8bOav8mSJs-msY/view?usp=sharing).
+It’s worth noting that this data was processed with a legacy version of
+the Fiji plugin, and also collated with a legacy version of the
+morphPreProcessing function. In addition, it doesn’t have any FracLac
+data included.
+
+**We’re not running the examples on the data we extracted using
+morphPreProcessing() as that only covers a single animal at a single
+treatment level**
+
+``` r
+# Read in our example data
+output = fread(pathToExampleData)
+
+# Show that this data has the same format as the output of morphPreProcessing()
+head(output)
+```
+
+    ##    TCSValue Animal Treatment
+    ## 1:      800   BT1R       D49
+    ## 2:      500 HIPP17       D30
+    ## 3:      500   CE1L   D2HOURS
+    ## 4:      800 WICKET       D14
+    ## 5:      800   BT1R        D3
+    ## 6:      500   BU2L        D1
+    ##                                                 UniqueID Perimeter CellSpread
+    ## 1:     BT1RD49CANDIDATEMASKFORSUBSTACK(21-30)X100Y159800   444.190     27.598
+    ## 2:   HIPP17D30CANDIDATEMASKFORSUBSTACK(21-30)X100Y249500   327.259     24.864
+    ## 3: CE1LD2HOURSCANDIDATEMASKFORSUBSTACK(21-30)X100Y348500   263.188     21.937
+    ## 4:   WICKETD14CANDIDATEMASKFORSUBSTACK(21-30)X100Y375800   480.572     30.771
+    ## 5:      BT1RD3CANDIDATEMASKFORSUBSTACK(21-30)X100Y380800   402.979     23.340
+    ## 6:       BU2LD1CANDIDATEMASKFORSUBSTACK(21-30)X100Y61500   381.371     24.091
+    ##    Eccentricity Roundness SomaSize MaskSize #Branches #Junctions
+    ## 1:        1.783     0.041   47.432  637.478        59         29
+    ## 2:        1.758     0.053   51.133  450.776        32         15
+    ## 3:        1.632     0.067   37.004  372.058        29         13
+    ## 4:        1.411     0.034   38.350  631.759        54         25
+    ## 5:        1.991     0.050   31.622  646.224        61         32
+    ## 6:        1.233     0.049   66.271  562.461        42         19
+    ##    #End-pointvoxels #Junctionvoxels #Slabvoxels AverageBranchLength
+    ## 1:               23              55         301               4.565
+    ## 2:               17              31         214               5.555
+    ## 3:               17              33         165               5.103
+    ## 4:               28              54         320               5.232
+    ## 5:               15              55         330               4.674
+    ## 6:               22              37         261               5.225
+    ##    #Triplepoints #Quadruplepoints MaximumBranchLength LongestShortestPath
+    ## 1:            21                8              16.902              89.368
+    ## 2:            13                2              20.424              71.090
+    ## 3:            12                0              12.618              61.586
+    ## 4:            22                1              17.043             106.993
+    ## 5:            21               11              15.403             126.398
+    ## 6:            15                3              18.062              72.768
+    ##    SkelArea Ibranches(inferred) Intersectingradii Suminters. Meaninters.
+    ## 1:  127.496                   1                65        250        3.85
+    ## 2:   88.137                   2                45        182        4.04
+    ## 3:   72.326                   1                46        157        3.41
+    ## 4:  135.233                   1                61        285        4.67
+    ## 5:  134.560                   1                58        240        4.14
+    ## 6:  107.648                   1                45        235        5.22
+    ##    Medianinters. Skewness(sampled) Kurtosis(sampled) Maxinters.
+    ## 1:           4.0        -0.0006346             -1.12          8
+    ## 2:           4.0         0.5800000             -0.10         10
+    ## 3:           3.5         0.4500000             -0.40          8
+    ## 4:           5.0         0.0900000             -0.69          9
+    ## 5:           2.0         0.7100000             -1.01         11
+    ## 6:           5.0         0.2700000             -0.99         12
+    ##    Maxinters.radius Ramificationindex(sampled) Centroidradius Centroidvalue
+    ## 1:            15.49                          8          26.53          4.77
+    ## 2:            12.73                          5          18.51          5.31
+    ## 3:            10.39                          8          20.45          4.78
+    ## 4:            11.03                          9          42.67          9.08
+    ## 5:            14.19                         11          18.91          4.45
+    ## 6:            13.87                         12          15.93          5.43
+    ##    Enclosingradius Criticalvalue Criticalradius Meanvalue
+    ## 1:           41.01          6.04          15.45      3.88
+    ## 2:           29.55          7.27          13.45      4.10
+    ## 3:           29.53          5.62          10.04      3.47
+    ## 4:           38.29          7.34          10.10      4.73
+    ## 5:           36.23          9.47          13.75      4.19
+    ## 6:           30.11         10.24          13.29      5.31
+    ##    Ramificationindex(fit) Skewness(fit) Kurtosis(fit) Polyn.degree
+    ## 1:                   6.04         -0.16         -1.53            7
+    ## 2:                   3.64          0.16         -1.20            7
+    ## 3:                   5.62          0.05         -1.24            8
+    ## 4:                   7.34         -0.18         -0.99            8
+    ## 5:                   9.47          0.52         -1.34            8
+    ## 6:                  10.24          0.13         -1.30            7
+    ##    Regressioncoefficient(Semi-log) Regressionintercept(Semi-log)
+    ## 1:                            0.15                         -2.60
+    ## 2:                            0.18                         -2.21
+    ## 3:                            0.18                         -2.41
+    ## 4:                            0.13                         -2.72
+    ## 5:                            0.17                         -2.36
+    ## 6:                            0.18                         -2.17
+    ##    Regressioncoefficient(Semi-log)[P10-P90]
+    ## 1:                                     0.16
+    ## 2:                                     0.18
+    ## 3:                                     0.19
+    ## 4:                                     0.15
+    ## 5:                                     0.20
+    ## 6:                                     0.19
+    ##    Regressionintercept(Semi-log)[P10-P90] Regressioncoefficient(Log-log)
+    ## 1:                                  -2.34                           2.48
+    ## 2:                                  -2.14                           2.40
+    ## 3:                                  -2.24                           2.27
+    ## 4:                                  -2.37                           2.09
+    ## 5:                                  -1.79                           2.39
+    ## 6:                                  -1.77                           2.30
+    ##    Regressionintercept(Log-log) Regressioncoefficient(Log-log)[P10-P90]
+    ## 1:                         1.44                                    3.02
+    ## 2:                         1.14                                    2.60
+    ## 3:                         0.67                                    2.64
+    ## 4:                         0.54                                    2.73
+    ## 5:                         1.02                                    3.16
+    ## 6:                         1.04                                    2.73
+    ##    Regressionintercept(Log-log)[P10-P90] CellNo
+    ## 1:                                  3.19   4083
+    ## 2:                                  1.91      1
+    ## 3:                                  1.87      2
+    ## 4:                                  2.54   4084
+    ## 5:                                  3.46   4085
+    ## 6:                                  2.55      3
+
+Filter this data to only contain our training conditions.
+
 ``` r
 # A string vector indicating the treatment labels that ID our training data
 LPSGroups = c('D56', 'LPS')
@@ -494,15 +622,8 @@ LPSGroups = c('D56', 'LPS')
 inDat = output[Treatment %in% LPSGroups]
 ```
 
-Here we’re going to run this function on the example morphPreProccessing
-output table found
-[here](https://drive.google.com/file/d/1dtgZZuBTPg-uJaWxZy8bOav8mSJs-msY/view?usp=sharing).
-It’s worth noting that this data was processed with a legacy version of
-the Fiji plugin, and also collated with a legacy version of the
-morphPreProcessing function. In addition, it doesn’t have any FracLac
-data included.
-
 ``` r
+# Show our filtered data
 head(inDat[order(Animal, Treatment, UniqueID)],10)
 ```
 
@@ -665,7 +786,7 @@ The constructInfInd() function will print out the mask size and number
 of descriptors that created the Inflammation Index that was most
 sensitive to the differences in morphology between the positive control
 conditions according to the method passed in the method argument. It
-will also print the descriminators that were retained after cleaning
+will also print the discriminators that were retained after cleaning
 (removing variants of the same metrics, removing highly correlated
 metrics) and these are the ones included in the index. Finally, it
 prints the value (AUC or p value) of the index’s ability to discriminate
