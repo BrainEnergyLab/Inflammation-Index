@@ -127,7 +127,7 @@ in morphPreProcessing().
 
 Here we’re using the ‘Image Storage Directory’ in the example data found
 at our [Fji example data
-directory](https://drive.google.com/drive/folders/1t96nDcn9MJm0WcCDIAtmUL9dnJo-L4Ar?usp=sharing)
+directory](https://drive.google.com/drive/folders/1t96nDcn9MJm0WcCDIAtmUL9dnJo-L4Ar?usp=sharing).
 
 ``` r
 # e.g.
@@ -148,7 +148,7 @@ idList
 
 Here we’re using the ‘Working Directory/Output’ in the example data
 found at our [Fji example data
-directory](https://drive.google.com/drive/folders/17vDC6DvMFMrDnKlWLNMphE1dfXmUCAon?usp=sharing)
+directory](https://drive.google.com/drive/folders/17vDC6DvMFMrDnKlWLNMphE1dfXmUCAon?usp=sharing).
 
 ``` r
 output = 
@@ -495,7 +495,7 @@ data included.
 
 **We’re not running the examples on the data we extracted using
 morphPreProcessing() as that only covers a single animal at a single
-treatment level**
+treatment level.**
 
 ``` r
 # Read in our example data
