@@ -45,17 +45,8 @@ To do this, type in and execute the following code:
 
 ``` r
 require(devtools)
-```
-
-    ## Loading required package: devtools
-
-    ## Loading required package: usethis
-
-``` r
 install_github("BrainEnergyLab/Inflammation-Index/R Package")
 ```
-
-    ## Downloading GitHub repo BrainEnergyLab/Inflammation-Index@HEAD
 
 Then load in the package using:
 
@@ -63,7 +54,14 @@ Then load in the package using:
 require(InflammationIndex)
 ```
 
-    ## Loading required package: InflammationIndex
+You’ll also want to install and load the **data.table** package, which
+we use in the InflammationIndex functions, and in this README, using the
+following code:
+
+``` r
+install.packages('data.table')
+require(data.table)
+```
 
 ### Example Datasets for this README
 
@@ -204,7 +202,7 @@ These can be passed directly to the treatmentIDs and animalIDs arguments
 in morphPreProcessing().
 
 Here we’re using a path to the ‘Image Storage Directory’ in the example
-data found at our [Fji example data
+data found at our [Fiji example data
 directory](https://drive.google.com/drive/folders/1t96nDcn9MJm0WcCDIAtmUL9dnJo-L4Ar?usp=sharing)
 as our input argument **imageStorageDirectory**.
 
@@ -226,7 +224,7 @@ idList
     ## [1] "CE1L"
 
 Here we’re using a path to the ‘Working Directory/Output’ in the example
-data found at our [Fji example data
+data found at our [Fiji example data
 directory](https://drive.google.com/drive/folders/17vDC6DvMFMrDnKlWLNMphE1dfXmUCAon?usp=sharing)
 as our **morphologyWD** argument. The value for **pixelSize** was
 specified earlier as 0.58, as was the value for **useFrac**. The
@@ -575,6 +573,8 @@ Here we use the fread function to read in a .csv file - our
 **pathToExampleData** argument is just a string that is the path to
 where we’ve downloaded the [Example morphPreProcessing() Function
 Output](https://drive.google.com/file/d/1dtgZZuBTPg-uJaWxZy8bOav8mSJs-msY/view?usp=sharing).
+Note that this string must include the name of the file you’ve saved
+e.g. ‘Users/Test/Downloads/ExampleData.csv’.
 
 ``` r
 # Read in our example data
@@ -1027,3 +1027,10 @@ head(dataWithInfIndex[, list(Animal, Treatment, TCSValue, CellNo, InfInd)])
     ## 4:   BG1L        D7      500      4 -1.4928852
     ## 5: HIPP12   D4HOURS      500      5 -1.4916847
     ## 6:   BR1R       D-1      500      6 -1.0283423
+
+#### Next steps
+
+Now that you are familiar with how to use this R package, you can train
+and calculate an inflammation index for your own data. You can compare
+this index between groups using statistical tests to evaluate if a
+difference in morphology exists.
