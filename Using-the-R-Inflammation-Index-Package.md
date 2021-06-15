@@ -569,8 +569,8 @@ morphPreProcessing() in [Step
 \#1](#step-1-loading-in-data-morphpreprocessing-function) as that
 example data only covers a single animal at a single treatment level.**
 
-Here we use the fread function to read in a .csv file - our
-**pathToExampleData** argument is just a string that is the path to
+Here we use the fread function to read in a .csv file as a data.table -
+our **pathToExampleData** argument is just a string that is the path to
 where we’ve downloaded the [Example morphPreProcessing() Function
 Output](https://drive.google.com/file/d/1dtgZZuBTPg-uJaWxZy8bOav8mSJs-msY/view?usp=sharing).
 Note that this string must include the name of the file you’ve saved
