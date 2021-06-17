@@ -1028,6 +1028,12 @@ head(dataWithInfIndex[, list(Animal, Treatment, TCSValue, CellNo, InfInd)])
     ## 5: HIPP12   D4HOURS      500      5 -1.4916847
     ## 6:   BR1R       D-1      500      6 -1.0283423
 
+If you want to save this table, use the fwrite function:
+
+``` r
+fwrite(dataWithInfIndex,'Users/Test/Downloads/InfIndData.csv')
+```
+
 #### Next steps
 
 Now that you are familiar with how to use this R package, you can train
