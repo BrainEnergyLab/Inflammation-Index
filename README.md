@@ -1,6 +1,6 @@
 # Inflammation-Index
 
-In this repo you'll find all the code necessary to process 3D image stacks of microglia, extract morphological features for detected cells, and combine these features into a single metric of morphological change sensitive to the training data you provide. This is detailed in other READMEs in this repo, and also in the associated **[pre-print publication](https://www.biorxiv.org/content/10.1101/2021.01.12.426422v1)**
+In this repo you'll find all the code necessary to process 3D image stacks of microglia, extract morphological features for detected cells, and combine these features into a single metric of morphological change sensitive to the training data you provide. This is detailed in other READMEs in this repo, and also in the associated **[publication](https://pubmed.ncbi.nlm.nih.gov/34375551/)**
 
 **You can follow progress on changes and updates to this GitHub repo and the R and Fiji plugins [here](https://github.com/BrainEnergyLab/Inflammation-Index/projects/1) and observe development of the Fiji plugin [here](https://github.com/DAZN-DKClarke/ImageJMicroMorphJarTest)**
 
