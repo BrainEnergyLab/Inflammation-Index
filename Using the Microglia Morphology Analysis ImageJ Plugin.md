@@ -140,6 +140,8 @@ In addition a text file containing the calibration information for the images in
 
 These strings should be followed by their associated numeric values.
 
+Ensure these values are entered **as doubles i.e. instead of '28', enter '28.0'.**
+
 For example, a stack of 606 frames in total, with 101 unique Z planes, would have 6 frames per plane.
 
 > For single frame images, set z.spacing, no.of.planes, and frames.per.plane to 1
