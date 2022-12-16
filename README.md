@@ -4,6 +4,8 @@ In this repo you'll find all the code necessary to process 3D image stacks of mi
 
 **You can follow progress on changes and updates to this GitHub repo and the R and Fiji plugins [here](https://github.com/BrainEnergyLab/Inflammation-Index/projects/1) and observe development of the Fiji plugin [here](https://github.com/DAZN-DKClarke/ImageJMicroMorphJarTest)**
 
+**If you're having issues with the plugin that we are unable to resolve, you can find a standalone Fiji package [here](https://drive.google.com/drive/folders/1ZNUTkUueam0nT7ZjUI2-f5VO9UCv_cRM?usp=share_link) that has the plugin installed that you can download and use to unblock your work**
+
 ---
 
 # Documentation
