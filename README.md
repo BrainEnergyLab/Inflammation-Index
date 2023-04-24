@@ -1,3 +1,7 @@
+# NO LONGER ACTIVELY SUPPORTED - HELP WANTED!
+
+The Inflammation Index packages (both in R and ImageJ) are no longer being actively supported - I've moved out of academia and no longer have the time outside of work to maintain these packages or give them the changes they need. If you're interested in working together to improve and interate on these packages, please get in touch via the discussions section.
+
 # Inflammation-Index
 
 In this repo you'll find all the code necessary to process 3D image stacks of microglia, extract morphological features for detected cells, and combine these features into a single metric of morphological change sensitive to the training data you provide. This is detailed in other READMEs in this repo, and also in the associated **[publication](https://pubmed.ncbi.nlm.nih.gov/34375551/)**
